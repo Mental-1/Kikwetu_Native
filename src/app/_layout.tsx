@@ -1,9 +1,14 @@
 import { Tabs } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 
+import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+import '@/global.css';
+
 export default function TabLayout() {
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
+    
+    <GluestackUIProvider mode="light">
+      <Tabs screenOptions={{ headerShown: false }}>
       <Tabs.Screen
         name="index"
         options={{
@@ -40,5 +45,7 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </GluestackUIProvider>
+  
   );
 }
