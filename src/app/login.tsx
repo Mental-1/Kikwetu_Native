@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Link } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Login = () => {
   return (
-    <View>
+    <SafeAreaView>
       <View className='justify-center items-center font-bold text-2xl'>
         <Text> Login Screen</Text>
       </View>
@@ -13,7 +14,7 @@ const Login = () => {
           <Text>Back to Home</Text>
         </TouchableOpacity>
       </Link>
-    </View>
+    </SafeAreaView>
   );
 };
 

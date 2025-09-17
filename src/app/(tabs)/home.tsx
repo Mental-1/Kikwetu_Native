@@ -7,11 +7,11 @@ type Props = {};
 
 const Home = (props: Props) => {
   return (
-    <SafeAreaView
-      style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-    >
-      <View>
-        <Text>Home</Text>
+    <SafeAreaView>
+      <View className='flex-1 items-center justify-center'>
+        <Text className='text-2xl font-bold text-blue-500 px-4 mx-auto'>
+          Home
+        </Text>
         <Link href='/signup' asChild>
           <TouchableOpacity>
             <Text>Go to Sign Up</Text>

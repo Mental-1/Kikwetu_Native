@@ -9,7 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 SplashScreen.preventAutoHideAsync();
 
 const [loaded] = useFonts({
-  'Inter-Regular': require('@/assets/fonts/Inter-Regular.ttf'),
+  'Inter-Variable': require('@/assets/fonts/Inter-VariableFont.ttf'),
 });
 
 useEffect(() => {
