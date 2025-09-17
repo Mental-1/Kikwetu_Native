@@ -14,12 +14,12 @@ const Home = (props: Props) => {
         <Text>Home</Text>
         <Link href='/signup' asChild>
           <TouchableOpacity>
-            <Text>Sign Up</Text>
+            <Text>Go to Sign Up</Text>
           </TouchableOpacity>
         </Link>
         <Link href='/login' asChild>
           <TouchableOpacity>
-            <Text>Login</Text>
+            <Text>Go to Login</Text>
           </TouchableOpacity>
         </Link>
       </View>
