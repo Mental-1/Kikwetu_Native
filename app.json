@@ -36,7 +36,8 @@
         }
       ],
       "expo-quick-actions",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
