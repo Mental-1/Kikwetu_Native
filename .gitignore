@@ -43,4 +43,4 @@ app-example
 /android
 
 #VSCode
-.vscode
+/.vscode
