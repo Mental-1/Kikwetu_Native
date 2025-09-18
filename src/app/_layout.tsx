@@ -31,6 +31,7 @@ export default function RootLayout() {
           <Stack.Screen name='(screens)' />
           <Stack.Screen name='signup' options={{ presentation: 'modal' }} />
           <Stack.Screen name='signin' options={{ presentation: 'modal' }} />
+	  <Stack.Screen name='forgot-password' options={{presentation: 'modal'}}/>
         </Stack>
       </GluestackUIProvider>
     </SafeAreaProvider>

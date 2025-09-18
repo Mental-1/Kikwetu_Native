@@ -27,7 +27,7 @@ export default function TabLayout() {
         options={{
           title: 'Post Ad',
           tabBarIcon: ({ color }) => (
-            <Ionicons size={22} name='add-circle-outline' color={color} />
+            <Ionicons size={28} name='add-circle-outline' color={color} />
           ),
         }}
       />
