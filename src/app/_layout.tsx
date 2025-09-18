@@ -8,17 +8,21 @@ import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync();
 
-const [loaded] = useFonts({
-  'Inter-Variable': require('@/assets/fonts/Inter-VariableFont.ttf'),
-});
-
-useEffect(() => {
-  if (loaded) {
-    SplashScreen.hideAsync();
-  }
-}, [loaded]);
-
 export default function RootLayout() {
+  const [loaded] = useFonts({
+    'Inter-Variable': require('@/assets/fonts/Inter-VariableFont.ttf'),
+  });
+
+  useEffect(() => {
+    if (loaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded]);
+
+  if (!loaded) {
+    return null;
+  }
+
   return (
     <SafeAreaProvider>
       <GluestackUIProvider mode='light'>

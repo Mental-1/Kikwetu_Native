@@ -5,9 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Signup = () => {
   return (
-    <SafeAreaView>
-      <View className='flex-1 items-center justify-center text-2xl p-4 mx-2'>
-        <Text>Signup</Text>
+    <SafeAreaView className='flex-1'>
+      <View className='flex-1 items-center justify-center'>
+        <Text className='text-2xl font-bold'>Signup</Text>
         <View>
           <Link href='/home' asChild>
             <TouchableOpacity>

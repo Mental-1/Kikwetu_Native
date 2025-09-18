@@ -7,7 +7,7 @@ type Props = {};
 
 const Home = (props: Props) => {
   return (
-    <SafeAreaView>
+    <SafeAreaView className='flex-1'>
       <View className='flex-1 items-center justify-center'>
         <Text className='text-2xl font-bold text-blue-500 px-4 mx-auto'>
           Home
