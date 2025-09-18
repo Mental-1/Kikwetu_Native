@@ -30,7 +30,7 @@ export default function RootLayout() {
           <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
           <Stack.Screen name='(screens)' />
           <Stack.Screen name='signup' options={{ presentation: 'modal' }} />
-          <Stack.Screen name='login' options={{ presentation: 'modal' }} />
+          <Stack.Screen name='signin' options={{ presentation: 'modal' }} />
         </Stack>
       </GluestackUIProvider>
     </SafeAreaProvider>

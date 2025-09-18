@@ -1,23 +1,28 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { Link } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native'
+import React from 'react'
+import { useRouter } from 'expo-router'
 
-const Signup = () => {
+type Props = {}
+
+const SignUpScreen = (props: Props) => {
+  const router = useRouter();
+
   return (
-    <SafeAreaView className='flex-1'>
-      <View className='flex-1 items-center justify-center'>
-        <Text className='text-2xl font-bold'>Signup</Text>
-        <View>
-          <Link href='/home' asChild>
-            <TouchableOpacity>
-              <Text>Go to Home</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-      </View>
-    </SafeAreaView>
-  );
-};
+    <View style={styles.container}>
+      <Text>SignUp Screen</Text>
+      <TouchableOpacity onPress={() => router.back()}>
+        <Text>Go Back</Text>
+      </TouchableOpacity>
+    </View>
+  )
+}
 
-export default Signup;
+export default SignUpScreen
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  }
+})
