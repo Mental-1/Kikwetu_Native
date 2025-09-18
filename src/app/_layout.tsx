@@ -5,6 +5,7 @@ import '@/global.css';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
+import { AuthProvider } from '@/contexts/authContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,13 +27,15 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <GluestackUIProvider mode='light'>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
-          <Stack.Screen name='(screens)' />
-          <Stack.Screen name='signup' options={{ presentation: 'modal' }} />
-          <Stack.Screen name='signin' options={{ presentation: 'modal' }} />
-	  <Stack.Screen name='forgot-password' options={{presentation: 'modal'}}/>
-        </Stack>
+        <AuthProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
+            <Stack.Screen name='screens' />
+            <Stack.Screen name='signup' options={{ presentation: 'modal' }} />
+            <Stack.Screen name='signin' options={{ presentation: 'modal' }} />
+            <Stack.Screen name='forgot-password' options={{ presentation: 'modal' }} />
+          </Stack>
+        </AuthProvider>
       </GluestackUIProvider>
     </SafeAreaProvider>
   );
