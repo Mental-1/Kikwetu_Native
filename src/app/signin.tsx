@@ -1,14 +1,8 @@
-
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Box } from '@/components/ui/box';
-import { Button, ButtonText } from '@/components/ui/button';
-import { Heading } from '@/components/ui/heading';
-import { Input, InputField } from '@/components/ui/input';
-import { Text } from '@/components/ui/text';
-import { VStack } from '@/components/ui/vstack';
 import { useAuth } from '@/contexts/authContext';
+import { View, Text, TextInput, Button } from 'react-native';
 import { Link } from 'expo-router';
 
 const signinSchema = z.object({
@@ -29,50 +23,45 @@ export default function SignInScreen() {
   };
 
   return (
-    <Box flex={1} justifyContent="center" alignItems="center">
-      <VStack space="md" w="$full" p="$4">
-        <Heading>Sign In</Heading>
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input>
-              <InputField
-                placeholder="Email"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-              />
-            </Input>
-          )}
-        />
-        {errors.email && <Text color="$red500">{errors.email.message}</Text>}
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input>
-              <InputField
-                placeholder="Password"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                secureTextEntry
-              />
-            </Input>
-          )}
-        />
-        {errors.password && <Text color="$red500">{errors.password.message}</Text>}
-        <Button onPress={handleSubmit(onSubmit)}>
-          <ButtonText>Sign In</ButtonText>
-        </Button>
-        <Button onPress={signInWithGoogle}>
-          <ButtonText>Sign In with Google</ButtonText>
-        </Button>
-        <Link href="/forgot-password">
-          <Text>Forgot Password?</Text>
-        </Link>
-      </VStack>
-    </Box>
+    <View className="flex-1 justify-center items-center p-4">
+      <Text className="text-2xl font-bold mb-4">Sign In</Text>
+      <Controller
+        control={control}
+        name="email"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            className="w-full h-10 border border-gray-400 rounded px-2 mb-4"
+            placeholder="Email"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            autoCapitalize="none"
+          />
+        )}
+      />
+      {errors.email && <Text className="text-red-500 mb-4">{errors.email.message}</Text>}
+      <Controller
+        control={control}
+        name="password"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            className="w-full h-10 border border-gray-400 rounded px-2 mb-4"
+            placeholder="Password"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            secureTextEntry
+          />
+        )}
+      />
+      {errors.password && <Text className="text-red-500 mb-4">{errors.password.message}</Text>}
+      <Button title="Sign In" onPress={handleSubmit(onSubmit)} />
+      <View className="mt-4">
+        <Button title="Sign In with Google" onPress={signInWithGoogle} />
+      </View>
+      <Link href="/forgot-password" className="mt-4">
+        <Text className="text-blue-500">Forgot Password?</Text>
+      </Link>
+    </View>
   );
 }

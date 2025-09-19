@@ -1,14 +1,8 @@
-
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Box } from '@/components/ui/box';
-import { Button, ButtonText } from '@/components/ui/button';
-import { Heading } from '@/components/ui/heading';
-import { Input, InputField } from '@/components/ui/input';
-import { Text } from '@/components/ui/text';
-import { VStack } from '@/components/ui/vstack';
 import { useAuth } from '@/contexts/authContext';
+import { View, Text, TextInput, Button } from 'react-native';
 
 const signupSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -31,89 +25,82 @@ export default function SignUpScreen() {
   };
 
   return (
-    <Box flex={1} justifyContent="center" alignItems="center">
-      <VStack space="md" w="$full" p="$4">
-        <Heading>Sign Up</Heading>
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input>
-              <InputField
-                placeholder="Email"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-              />
-            </Input>
-          )}
-        />
-        {errors.email && <Text color="$red500">{errors.email.message}</Text>}
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input>
-              <InputField
-                placeholder="Password"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                secureTextEntry
-              />
-            </Input>
-          )}
-        />
-        {errors.password && <Text color="$red500">{errors.password.message}</Text>}
-        <Controller
-          control={control}
-          name="full_name"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input>
-              <InputField
-                placeholder="Full Name"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-              />
-            </Input>
-          )}
-        />
-        {errors.full_name && <Text color="$red500">{errors.full_name.message}</Text>}
-        <Controller
-          control={control}
-          name="username"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input>
-              <InputField
-                placeholder="Username"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-              />
-            </Input>
-          )}
-        />
-        {errors.username && <Text color="$red500">{errors.username.message}</Text>}
-        <Controller
-          control={control}
-          name="phone_number"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input>
-              <InputField
-                placeholder="Phone Number"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-              />
-            </Input>
-          )}
-        />
-        {errors.phone_number && <Text color="$red500">{errors.phone_number.message}</Text>}
-        <Button onPress={handleSubmit(onSubmit)}>
-          <ButtonText>Sign Up</ButtonText>
-        </Button>
-      </VStack>
-    </Box>
+    <View className="flex-1 justify-center items-center p-4">
+      <Text className="text-2xl font-bold mb-4">Sign Up</Text>
+      <Controller
+        control={control}
+        name="email"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            className="w-full h-10 border border-gray-400 rounded px-2 mb-4"
+            placeholder="Email"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            autoCapitalize="none"
+          />
+        )}
+      />
+      {errors.email && <Text className="text-red-500 mb-4">{errors.email.message}</Text>}
+      <Controller
+        control={control}
+        name="password"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            className="w-full h-10 border border-gray-400 rounded px-2 mb-4"
+            placeholder="Password"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            secureTextEntry
+          />
+        )}
+      />
+      {errors.password && <Text className="text-red-500 mb-4">{errors.password.message}</Text>}
+      <Controller
+        control={control}
+        name="full_name"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            className="w-full h-10 border border-gray-400 rounded px-2 mb-4"
+            placeholder="Full Name"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+          />
+        )}
+      />
+      {errors.full_name && <Text className="text-red-500 mb-4">{errors.full_name.message}</Text>}
+      <Controller
+        control={control}
+        name="username"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            className="w-full h-10 border border-gray-400 rounded px-2 mb-4"
+            placeholder="Username"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            autoCapitalize="none"
+          />
+        )}
+      />
+      {errors.username && <Text className="text-red-500 mb-4">{errors.username.message}</Text>}
+      <Controller
+        control={control}
+        name="phone_number"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            className="w-full h-10 border border-gray-400 rounded px-2 mb-4"
+            placeholder="Phone Number"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+          />
+        )}
+      />
+      {errors.phone_number && <Text className="text-red-500 mb-4">{errors.phone_number.message}</Text>}
+      <Button title="Sign Up" onPress={handleSubmit(onSubmit)} />
+    </View>
   );
 }
