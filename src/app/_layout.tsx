@@ -1,42 +1,60 @@
-import { Stack } from 'expo-router';
+import { Stack, Redirect } from 'expo-router';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '@/global.css';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider } from '@/contexts/authContext';
+import { AuthProvider, useAuth } from '@/contexts/authContext'; // useAuth imports for authentication context
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const [loaded] = useFonts({
-    'Inter-Variable': require('@/assets/fonts/Inter-VariableFont.ttf'),
-  });
+function Navigator() {
+    const { session, loading } = useAuth();
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    // Wait for auth loading to complete before rendering
+    if (loading) {
+        return null; // Or a loading spinner if preferred
     }
-  }, [loaded]);
 
-  if (!loaded) {
-    return null;
-  }
+    if (!session) {
+        return <Redirect href="/signin" />;
+    }
 
-  return (
-    <SafeAreaProvider>
-      <GluestackUIProvider mode='light'>
-        <AuthProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
-            <Stack.Screen name='screens' />
-            <Stack.Screen name='signup' options={{ presentation: 'modal' }} />
-            <Stack.Screen name='signin' options={{ presentation: 'modal' }} />
-            <Stack.Screen name='forgot-password' options={{ presentation: 'modal' }} />
-          </Stack>
-        </AuthProvider>
-      </GluestackUIProvider>
-    </SafeAreaProvider>
-  );
+    return (
+        <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="screens" />
+            <Stack.Screen name="signup" options={{ presentation: "modal" }} />
+            <Stack.Screen name="signin" options={{ presentation: "modal" }} />
+            <Stack.Screen name="forgot-password" options={{ presentation: "modal" }} />
+        </Stack>
+    );
+}
+
+export default function RootLayout() {
+    const [loaded] = useFonts({
+        'Inter-Variable': require('@/assets/fonts/Inter-VariableFont.ttf'),
+    });
+
+    useEffect(() => {
+        if (loaded) {
+            // Don't hide splash here—let Navigator handle auth loading
+            // SplashScreen.hideAsync(); // Remove this
+        }
+    }, [loaded]);
+
+    if (!loaded) {
+        return null;
+    }
+
+    return (
+        <SafeAreaProvider>
+            <GluestackUIProvider mode="light">
+                <AuthProvider>
+                    <Navigator />
+                </AuthProvider>
+            </GluestackUIProvider>
+        </SafeAreaProvider>
+    );
 }
