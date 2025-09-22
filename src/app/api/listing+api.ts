@@ -7,7 +7,7 @@ export async function GET(request: Request) {
         // Extract pagination params from query string
         const url = new URL(request.url);
         const page = parseInt(url.searchParams.get('page') || '1', 10);
-        const pageSize = 20; // Fixed page size
+        const pageSize = 20;
         const from = (page - 1) * pageSize;
         const to = from + pageSize - 1;
 
@@ -52,4 +52,4 @@ export async function GET(request: Request) {
 // 1. Initiate a supabase client , which involves getting the supabase client from the supabase instance.
 // 2. Create a function to fetch the data and return it as a json string,
 // 3. Fetch it in chunks of 20 for pagination.
-// 4. Use react query to manage the different lifecycle points for loading and error states,
+// 4. Use React query to manage the different lifecycle points for loading and error states,

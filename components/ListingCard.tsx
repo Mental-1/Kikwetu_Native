@@ -1,6 +1,19 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 
+/**
+ * A concise summary of what the function, class, or variable does.
+ *
+ * @param {Type} paramName - Description of the parameter, including its purpose and any constraints.
+ * @param {Type} [optionalParamName] - Description of an optional parameter.
+ * @returns {Type} Description of the return value.
+ * @example
+ * // Example usage of the documented code.
+ * const result = myFunction(10, 'hello');
+ * console.log(result);
+ * @see {@link AnotherThing} - Reference to related documentation or type.
+ */
+
 type ListingCardProps = {
     imageUrl: string;
     title: string;
