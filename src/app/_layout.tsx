@@ -1,5 +1,5 @@
 import { Stack, Redirect } from 'expo-router';
-import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+import {PaperProvider} from "react-native-paper";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '@/global.css';
 import { useFonts } from 'expo-font';
@@ -23,7 +23,7 @@ function Navigator() {
 
     return (
         <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" />
             <Stack.Screen name="screens" />
             <Stack.Screen name="signup" options={{ presentation: "modal" }} />
             <Stack.Screen name="signin" options={{ presentation: "modal" }} />
@@ -50,11 +50,12 @@ export default function RootLayout() {
 
     return (
         <SafeAreaProvider>
-            <GluestackUIProvider mode="light">
+            <PaperProvider>
                 <AuthProvider>
                     <Navigator />
                 </AuthProvider>
-            </GluestackUIProvider>
+            </PaperProvider>
+
         </SafeAreaProvider>
     );
 }
