@@ -40,7 +40,15 @@
       ],
       "expo-quick-actions",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "kikwetu-native",
+          "organization": "routteme"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
