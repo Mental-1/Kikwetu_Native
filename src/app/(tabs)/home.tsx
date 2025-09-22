@@ -28,3 +28,4 @@ const styles = StyleSheet.create({
 })
 
 export default Home;
+// TODO: Implement full home page.

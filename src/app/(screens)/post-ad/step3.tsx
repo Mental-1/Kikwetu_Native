@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { View, Text, Button } from 'react-native';
-import { useAppStore } from '@/src/stores/useAppStore';
+import { useAppStore } from '@/stores/useAppStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Step3() {
