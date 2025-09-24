@@ -1,11 +1,12 @@
-import { Stack, Redirect } from 'expo-router';
+import { Stack} from 'expo-router';
 import {PaperProvider} from "react-native-paper";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '@/global.css';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider, useAuth } from '@/contexts/authContext'; // useAuth imports for authentication context
+import { AuthProvider, useAuth } from '@/contexts/authContext';
+import {ActivityIndicator} from "react-native"; // useAuth imports for authentication context
 
 SplashScreen.preventAutoHideAsync();
 
@@ -14,22 +15,20 @@ function Navigator() {
 
     // Wait for auth loading to complete before rendering
     if (loading) {
-        return null; // Or a loading spinner if preferred
+        return <ActivityIndicator color={'blue'}/>;
     }
 
-    if (!session) {
-        return <Redirect href="/signin" />;
-    }
-
-    return (
-        <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="screens" />
-            <Stack.Screen name="signup" options={{ presentation: "modal" }} />
-            <Stack.Screen name="signin" options={{ presentation: "modal" }} />
-            <Stack.Screen name="forgot-password" options={{ presentation: "modal" }} />
-        </Stack>
-    );
+        if (!session) {
+            return (
+                <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen name="screens" />
+                    <Stack.Screen name="signup" options={{ presentation: "modal" }} />
+                    <Stack.Screen name="signin" options={{ presentation: "modal" }} />
+                    <Stack.Screen name="forgot-password" options={{ presentation: "modal" }} />
+                </Stack>
+            );
+        }
 }
 
 export default function RootLayout() {
