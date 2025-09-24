@@ -3,7 +3,6 @@ import { Text,View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {Colors } from '@/src/constants/constant'
-import {Searchbar, Avatar, Card, Modal} from "react-native-paper";
 
 type Props = {};
 
@@ -30,6 +29,7 @@ const styles = StyleSheet.create({
 })
 
 export default Home;
+
 
 // TODO: Implement full home page.
 //  Views to create:
