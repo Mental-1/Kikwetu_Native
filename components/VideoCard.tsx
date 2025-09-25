@@ -26,7 +26,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
         player.muted = true;
     });
     const [isPlaying, setIsPlaying] = useState(false);
-    const [showControls, setShowControls] = useState(false);
 
     const handlePress = () => {
         onPress?.(id);
@@ -56,7 +55,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
         <TouchableOpacity 
             style={styles.card} 
             onPress={handlePress}
-            onLongPress={() => setShowControls(!showControls)}
         >
             <View style={styles.videoContainer}>
                 <VideoView
@@ -87,21 +85,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
                     </View>
                 )}
 
-                {/* Controls Overlay (shown on long press) */}
-                {showControls && (
-                    <View style={styles.controlsOverlay}>
-                        <TouchableOpacity 
-                            style={styles.controlButton}
-                            onPress={handleVideoPress}
-                        >
-                            <Ionicons 
-                                name={isPlaying ? "pause" : "play"} 
-                                size={24} 
-                                color={Colors.white} 
-                            />
-                        </TouchableOpacity>
-                    </View>
-                )}
             </View>
 
             {/* Title */}
@@ -132,8 +115,9 @@ const styles = StyleSheet.create({
     },
     videoContainer: {
         position: 'relative',
-        height: 238, // Reduced by 15% from 280
+        height: 238,
         backgroundColor: Colors.lightgrey,
+        overflow: 'hidden',
     },
     video: {
         width: '100%',
@@ -171,23 +155,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: Colors.white,
         fontWeight: '600',
-    },
-    controlsOverlay: {
-        position: 'absolute',
-        bottom: 12,
-        left: 12,
-        right: 12,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    controlButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     content: {
         padding: 12,

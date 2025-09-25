@@ -2,7 +2,7 @@ import DiscoverOverlay from '@/components/ui/discover/discoverOverlay';
 import { Colors } from '@/src/constants/constant';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import React, { useRef, useState } from 'react';
-import { Dimensions, FlatList, StatusBar, StyleSheet, View } from 'react-native';
+import { Dimensions, FlatList, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,11 +29,11 @@ const Discover = () => {
     const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
     const flatListRef = useRef<FlatList>(null);
 
-    // Mock video data
+    // Mock video data - shorter videos (2 min max)
     const mockVideos: VideoItem[] = [
         {
             id: '1',
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
             username: '@techreviewer',
             title: 'iPhone 14 Pro Max Unboxing',
             location: 'Westlands, Nairobi',
@@ -49,7 +49,7 @@ const Discover = () => {
         },
         {
             id: '2',
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
             username: '@gadgetguru',
             title: 'MacBook Pro M2 Review',
             location: 'Kilimani, Nairobi',
@@ -65,7 +65,7 @@ const Discover = () => {
         },
         {
             id: '3',
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
             username: '@nairobitrader',
             title: 'Samsung Galaxy S23 Demo',
             location: 'Karen, Nairobi',
@@ -124,13 +124,24 @@ const Discover = () => {
 
         return (
             <View style={styles.videoContainer}>
-                <VideoView
-                    style={styles.video}
-                    player={player}
-                    allowsFullscreen={false}
-                    allowsPictureInPicture={false}
-                    contentFit="cover"
-                />
+                <TouchableOpacity 
+                    style={styles.videoTouchable}
+                    activeOpacity={1}
+                    onPress={() => {
+                        if (player.playing) {
+                            player.pause();
+                        } else {
+                            player.play();
+                        }
+                    }}
+                >
+                    <VideoView
+                        style={styles.video}
+                        player={player}
+                        allowsPictureInPicture={false}
+                        contentFit="cover"
+                    />
+                </TouchableOpacity>
                 
                 <DiscoverOverlay
                     video={item}
@@ -193,6 +204,10 @@ const styles = StyleSheet.create({
         width: width,
         height: height,
         position: 'relative',
+    },
+    videoTouchable: {
+        width: '100%',
+        height: '100%',
     },
     video: {
         width: '100%',

@@ -1,10 +1,10 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Dimensions, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width, height } = Dimensions.get('window');
+// const { width, height } = Dimensions.get('window');
 
 interface VideoItem {
     id: string;
@@ -191,7 +191,7 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                         <View style={styles.actionIcon}>
                             <Ionicons
                                 name={video.isLiked ? "heart" : "heart-outline"}
-                                size={32}
+                                size={24} // Reduced size
                                 color={video.isLiked ? "#ff4444" : Colors.white}
                             />
                         </View>
@@ -204,7 +204,7 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                         onPress={() => onReview(video.id)}
                     >
                         <View style={styles.actionIcon}>
-                            <Ionicons name="star-outline" size={32} color={Colors.white} />
+                            <Ionicons name="star-outline" size={24} color={Colors.white} />
                         </View>
                         <Text style={styles.actionCount}>{formatNumber(video.reviews)}</Text>
                     </TouchableOpacity>
@@ -215,7 +215,7 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                         onPress={() => onMessage(video.id)}
                     >
                         <View style={styles.actionIcon}>
-                            <Ionicons name="chatbubble-outline" size={32} color={Colors.white} />
+                            <Ionicons name="chatbubble-outline" size={24} color={Colors.white} />
                         </View>
                     </TouchableOpacity>
 
@@ -225,7 +225,7 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                         onPress={() => onShare(video.id)}
                     >
                         <View style={styles.actionIcon}>
-                            <Ionicons name="share-outline" size={32} color={Colors.white} />
+                            <Ionicons name="share-social-outline" size={24} color={Colors.white} />
                         </View>
                         <Text style={styles.actionCount}>{formatNumber(video.shares)}</Text>
                     </TouchableOpacity>
@@ -238,7 +238,7 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                         <View style={styles.actionIcon}>
                             <Ionicons
                                 name={video.isSaved ? "bookmark" : "bookmark-outline"}
-                                size={32}
+                                size={24} // Reduced size
                                 color={video.isSaved ? Colors.primary : Colors.white}
                             />
                         </View>
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     },
     leftSafeArea: {
         paddingHorizontal: 16,
-        paddingBottom: 100,
+        paddingBottom: 150,
     },
     userInfo: {
         marginBottom: 8,
@@ -382,21 +382,21 @@ const styles = StyleSheet.create({
     },
     rightSafeArea: {
         paddingHorizontal: 16,
-        paddingBottom: 100,
+        paddingBottom: 150,
         alignItems: 'center',
     },
     actionItem: {
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: 20,
     },
     avatarContainer: {
         position: 'relative',
         marginBottom: 8,
     },
     avatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         borderWidth: 2,
         borderColor: Colors.white,
     },
@@ -404,9 +404,9 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: -2,
         right: -2,
-        width: 20,
-        height: 20,
-        borderRadius: 10,
+        width: 16,
+        height: 16,
+        borderRadius: 8,
         backgroundColor: '#ff4444',
         justifyContent: 'center',
         alignItems: 'center',
@@ -417,9 +417,9 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: -2,
         right: -2,
-        width: 20,
-        height: 20,
-        borderRadius: 10,
+        width: 16,
+        height: 16,
+        borderRadius: 8,
         backgroundColor: Colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
@@ -427,9 +427,9 @@ const styles = StyleSheet.create({
         borderColor: Colors.white,
     },
     actionIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         backgroundColor: 'rgba(0, 0, 0, 0.3)',
         justifyContent: 'center',
         alignItems: 'center',

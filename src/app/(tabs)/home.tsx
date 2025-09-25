@@ -48,58 +48,58 @@ const Home = (props: Props) => {
         { 
             id: '1', 
             title: 'Amazing Product Demo', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
             thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '2:30' 
+            duration: '1:30' 
         },
         { 
             id: '2', 
             title: 'Tech Review 2024', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
             thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '5:15' 
+            duration: '1:45' 
         },
         { 
             id: '3', 
             title: 'Unboxing Experience', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
             thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '3:45' 
+            duration: '2:00' 
         },
         { 
             id: '4', 
             title: 'How to Use Guide', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
             thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '4:20' 
+            duration: '1:20' 
         },
         { 
             id: '5', 
             title: 'Behind the Scenes', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
             thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '6:10' 
+            duration: '1:50' 
         },
         { 
             id: '6', 
             title: 'Product Comparison', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
             thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '7:30' 
+            duration: '1:35' 
         },
         { 
             id: '7', 
             title: 'User Testimonials', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
             thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '3:20' 
+            duration: '1:40' 
         },
         { 
             id: '8', 
             title: 'Feature Spotlight', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
             thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '4:50' 
+            duration: '1:55' 
         },
     ];
 
@@ -319,6 +319,9 @@ const Home = (props: Props) => {
                         ))}
                     </View>
                 </View>
+
+                {/* Bottom padding for better scrolling */}
+                <View style={styles.bottomPadding} />
             </ScrollView>
             
             {/* Auth Modals */}
@@ -493,6 +496,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
+    },
+    bottomPadding: {
+        paddingBottom: 100,
     },
 });
 
