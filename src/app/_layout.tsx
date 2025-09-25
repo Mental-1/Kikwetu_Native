@@ -1,4 +1,4 @@
-import { AuthProvider } from '@/contexts/authContext';
+import AuthProvider from '@/contexts/authContext';
 import '@/global.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
