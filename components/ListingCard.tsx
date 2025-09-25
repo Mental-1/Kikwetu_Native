@@ -1,101 +1,207 @@
+import { Colors } from '@/src/constants/constant';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-/**
- * A concise summary of what the function, class, or variable does.
- *
- * @param {Type} paramName - Description of the parameter, including its purpose and any constraints.
- * @param {Type} [optionalParamName] - Description of an optional parameter.
- * @returns {Type} Description of the return value.
- * @example
- * // Example usage of the documented code.
- * const result = myFunction(10, 'hello');
- * console.log(result);
- * @see {@link AnotherThing} - Reference to related documentation or type.
- */
-
-type ListingCardProps = {
-    imageUrl: string;
+interface ListingCardProps {
+    id: string;
     title: string;
     price: string;
-    description: string;
+    condition: string;
+    rating: string;
     location: string;
-    views: number;
-    sellerHandle: string;
-};
+    image: string;
+    description?: string;
+    views?: number;
+    isFavorite?: boolean;
+    onPress?: (id: string) => void;
+    onFavoritePress?: (id: string) => void;
+}
 
-const ListingCard = ({ imageUrl, title, price, description, location, views, sellerHandle }: ListingCardProps) => {
+const { width } = Dimensions.get('window');
+const cardWidth = (width - 48) / 2; // 2 cards per row with 16px padding on each side
+
+const ListingCard: React.FC<ListingCardProps> = ({
+    id,
+    title,
+    price,
+    condition,
+    rating,
+    location,
+    image,
+    description,
+    views,
+    isFavorite = false,
+    onPress,
+    onFavoritePress,
+}) => {
+    const handlePress = () => {
+        onPress?.(id);
+    };
+
+    const handleFavoritePress = () => {
+        onFavoritePress?.(id);
+    };
+
     return (
-        <View style={styles.card}>
-            <Image source={{ uri: imageUrl }} style={styles.image} />
+        <TouchableOpacity style={styles.card} onPress={handlePress}>
+            {/* Image Container */}
+            <View style={styles.imageContainer}>
+                <Image source={{ uri: image }} style={styles.image} resizeMode="cover" />
+                
+                {/* Favorite Button */}
+                <TouchableOpacity 
+                    style={styles.favoriteButton} 
+                    onPress={handleFavoritePress}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                    <Ionicons 
+                        name={isFavorite ? "heart" : "heart-outline"} 
+                        size={20} 
+                        color={isFavorite ? "#ff4444" : Colors.white} 
+                    />
+                </TouchableOpacity>
+            </View>
+
+            {/* Content */}
             <View style={styles.content}>
+                {/* Title */}
                 <Text style={styles.title} numberOfLines={1}>
                     {title}
                 </Text>
-                <Text style={styles.price}>{price}</Text>
-                <Text style={styles.description} numberOfLines={2}>
-                    {description}
+
+                {/* Price */}
+                <Text style={styles.price}>
+                    {price}
                 </Text>
-                <Text style={styles.location}>{location}</Text>
+
+                {/* Description */}
+                {description && (
+                    <Text style={styles.description} numberOfLines={2}>
+                        {description}
+                    </Text>
+                )}
+
+                {/* Condition and Rating Tags */}
+                <View style={styles.tagsContainer}>
+                    <View style={styles.tag}>
+                        <Text style={styles.tagText}>{condition}</Text>
+                    </View>
+                    <View style={styles.tag}>
+                        <Text style={styles.tagText}>{rating}</Text>
+                    </View>
+                </View>
+
+                {/* Location and Views */}
                 <View style={styles.footer}>
-                    <Text style={styles.seller}>@{sellerHandle}</Text>
-                    <Text style={styles.views}>{views} views</Text>
+                    <Text style={styles.location} numberOfLines={1}>
+                        {location}
+                    </Text>
+                    {views !== undefined && (
+                        <View style={styles.viewsContainer}>
+                            <Ionicons name="eye-outline" size={12} color={Colors.grey} />
+                            <Text style={styles.viewsText}>{views}</Text>
+                        </View>
+                    )}
                 </View>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 };
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: '#1A1A1A',
-        borderRadius: 8,
+        width: cardWidth,
+        backgroundColor: Colors.white,
+        borderRadius: 12,
+        marginBottom: 16,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
         overflow: 'hidden',
-        marginVertical: 8,
-        width: '100%',
+    },
+    imageContainer: {
+        position: 'relative',
+        height: 140,
+        backgroundColor: Colors.lightgrey,
     },
     image: {
         width: '100%',
-        height: 200,
-        resizeMode: 'cover',
+        height: '100%',
+    },
+    favoriteButton: {
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     content: {
         padding: 12,
     },
     title: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
-        color: '#FFF',
+        color: Colors.black,
         marginBottom: 4,
     },
     price: {
-        fontSize: 20,
-        color: '#00FF00',
+        fontSize: 18,
         fontWeight: 'bold',
+        color: Colors.primary,
         marginBottom: 4,
     },
     description: {
-        fontSize: 14,
-        color: '#B0B0B0',
-        marginBottom: 4,
-    },
-    location: {
         fontSize: 12,
-        color: '#B0B0B0',
-        marginBottom: 4,
+        color: Colors.grey,
+        lineHeight: 16,
+        marginBottom: 8,
+    },
+    tagsContainer: {
+        flexDirection: 'row',
+        marginBottom: 8,
+        gap: 6,
+    },
+    tag: {
+        backgroundColor: Colors.lightgrey,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    tagText: {
+        fontSize: 12,
+        color: Colors.black,
+        fontWeight: '500',
     },
     footer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    seller: {
+    location: {
         fontSize: 12,
-        color: '#FFF',
+        color: Colors.grey,
+        flex: 1,
+        marginRight: 8,
     },
-    views: {
+    viewsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    viewsText: {
         fontSize: 12,
-        color: '#B0B0B0',
+        color: Colors.grey,
+        fontWeight: '500',
     },
 });
 

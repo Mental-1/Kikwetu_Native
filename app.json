@@ -48,7 +48,8 @@
           "project": "kikwetu-native",
           "organization": "routteme"
         }
-      ]
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,34 +1,27 @@
-import { Stack} from 'expo-router';
-import {PaperProvider} from "react-native-paper";
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider } from '@/contexts/authContext';
 import '@/global.css';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
-import { useEffect } from 'react';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider, useAuth } from '@/contexts/authContext';
-import {ActivityIndicator} from "react-native"; // useAuth imports for authentication context
+import { useEffect } from 'react';
+import { PaperProvider } from "react-native-paper";
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 SplashScreen.preventAutoHideAsync();
 
+// Create a client
+const queryClient = new QueryClient();
+
 function Navigator() {
-    const { session, loading } = useAuth();
-
-    // Wait for auth loading to complete before rendering
-    if (loading) {
-        return <ActivityIndicator color={'blue'}/>;
-    }
-
-        if (!session) {
-            return (
-                <Stack screenOptions={{ headerShown: false }}>
-                    <Stack.Screen name="(tabs)" />
-                    <Stack.Screen name="screens" />
-                    <Stack.Screen name="signup" options={{ presentation: "modal" }} />
-                    <Stack.Screen name="signin" options={{ presentation: "modal" }} />
-                    <Stack.Screen name="forgot-password" options={{ presentation: "modal" }} />
-                </Stack>
-            );
-        }
+    // Removed auth protection for development
+    return (
+        <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(screens)" />
+            <Stack.Screen name="forgot-password" options={{ presentation: "modal" }} />
+        </Stack>
+    );
 }
 
 export default function RootLayout() {
@@ -39,7 +32,7 @@ export default function RootLayout() {
     useEffect(() => {
         if (loaded) {
             // Don't hide splash here—let Navigator handle auth loading
-            // SplashScreen.hideAsync(); // Remove this
+            SplashScreen.hideAsync();
         }
     }, [loaded]);
 
@@ -49,12 +42,13 @@ export default function RootLayout() {
 
     return (
         <SafeAreaProvider>
-            <PaperProvider>
-                <AuthProvider>
-                    <Navigator />
-                </AuthProvider>
-            </PaperProvider>
-
+            <QueryClientProvider client={queryClient}>
+                <PaperProvider>
+                    <AuthProvider>
+                        <Navigator />
+                    </AuthProvider>
+                </PaperProvider>
+            </QueryClientProvider>
         </SafeAreaProvider>
     );
 }
