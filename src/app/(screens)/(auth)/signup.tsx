@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Button, TextInput } from 'react-native-paper';
+import { Button, Divider, TextInput } from 'react-native-paper';
 import { z } from 'zod';
 
 // Form validation schema
@@ -146,7 +146,7 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                                     name="phoneNumber"
                                     render={({ field: { onChange, onBlur, value } }) => (
                                         <TextInput
-                                            label="Phone Number"
+                                            label="Phone Number eg. +254123456789"
                                             value={value}
                                             onBlur={onBlur}
                                             onChangeText={onChange}
@@ -251,6 +251,11 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                             >
                                 Create Account
                             </Button>
+                            <Divider style={styles.divider}/>
+                            <TouchableOpacity style={styles.authButton} onPress={() => {}}>
+                                <Ionicons name="logo-google" size={24} color={Colors.white} />
+                                <Text style={styles.authButtonText}>Continue with Google</Text>
+                            </TouchableOpacity>
                             
                             <TouchableOpacity style={styles.switchAuthButton} onPress={onSwitchToSignIn}>
                                 <Text style={styles.switchAuthText}>
@@ -272,7 +277,7 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     modalContainer: {
-        height: '65%',
+        height: '75%',
         backgroundColor: Colors.white,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
@@ -329,7 +334,7 @@ const styles = StyleSheet.create({
     },
     textInput: {
         marginBottom: 8,
-        backgroundColor: 'transparent',
+        backgroundColor: 'white',
     },
     errorText: {
         color: '#d32f2f',
@@ -341,14 +346,15 @@ const styles = StyleSheet.create({
         marginTop: 10,
         marginBottom: 8,
         borderRadius: 12,
-    },
+        backgroundColor: Colors.primary    },
     submitButtonText: {
         fontSize: 16,
         fontWeight: '600',
         paddingVertical: 8,
+        color: Colors.white,
     },
     switchAuthButton: {
-        marginTop: 20,
+        marginTop: 8,
         alignItems: 'center',
     },
     switchAuthText: {
@@ -358,6 +364,26 @@ const styles = StyleSheet.create({
     switchAuthLink: {
         color: Colors.primary,
         fontWeight: '600',
+    },
+    authButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'green',
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        borderRadius: 12,
+        marginBottom: 16, 
+        gap: 10,
+    },
+    authButtonText: {
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    divider: {
+        marginTop: 5,
+        marginBottom: 10,
     },
 });
 

@@ -144,10 +144,11 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                                 style={styles.submitButton}
                                 labelStyle={styles.submitButtonText}
                             >
-                                Sign In
+                                Sign In with Email
                             </Button>
                             
                             <TouchableOpacity style={styles.authButton} onPress={() => {}}>
+                                <Ionicons name="logo-google" size={24} color={Colors.white} />
                                 <Text style={styles.authButtonText}>Sign In with Google</Text>
                             </TouchableOpacity>
                             
@@ -239,20 +240,25 @@ const styles = StyleSheet.create({
     submitButton: {
         marginTop: 10,
         marginBottom: 8,
+        backgroundColor: Colors.primary,
         borderRadius: 12,
     },
     submitButtonText: {
         fontSize: 16,
         fontWeight: '600',
         paddingVertical: 8,
+        color: Colors.white,
     },
     authButton: {
-        backgroundColor: Colors.primary,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'green',
         paddingVertical: 16,
         paddingHorizontal: 24,
         borderRadius: 12,
-        marginBottom: 16,
-        alignItems: 'center',
+        marginBottom: 16, 
+        gap: 10,
     },
     authButtonText: {
         color: Colors.white,
