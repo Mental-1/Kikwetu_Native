@@ -10,7 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.kawa-ida.Kikwetu"
+      "bundleIdentifier": "com.kawa-ida.Kikwetu",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +27,7 @@
       "package": "com.kawa_ida.Kikwetu"
     },
     "web": {
-      "output": "static",
+      "output": "server",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -37,11 +40,27 @@
       ],
       "expo-quick-actions",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "kikwetu-native",
+          "organization": "routteme"
+        }
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7f836722-0d8e-48d8-8c53-2ebad4137d71"
+      }
+    },
+    "owner": "kawa_ida"
   }
 }

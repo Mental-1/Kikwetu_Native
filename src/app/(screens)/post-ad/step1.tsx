@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { View, Button } from 'react-native';
-import { useAppStore } from '@/src/stores/useAppStore';
+import { useAppStore } from '@/stores/useAppStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Step1Form from '@/components/ui/post-ad/Step1Form';
 
