@@ -298,7 +298,12 @@ const Home = (props: Props) => {
 
                 {/* Listings Near You Section */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Listings Near You</Text>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Listings Near You</Text>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/listings')}>
+                            <Text style={styles.seeAllText}>See More</Text>
+                        </TouchableOpacity>
+                    </View>
                     <View style={styles.listingsGrid}>
                         {mockListings.map((listing) => (
                             <ListingCard
@@ -438,6 +443,7 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: Colors.black,
+        paddingBottom: 10,
     },
     seeAllText: {
         fontSize: 14,
@@ -489,7 +495,6 @@ const styles = StyleSheet.create({
     // Video Cards Styles
     videoScrollContent: {
         paddingRight: 16,
-        paddingTop: 8, // Add separation between heading and videos
     },
     // Listings Grid Styles
     listingsGrid: {

@@ -14,6 +14,7 @@ interface ListingCardProps {
     description?: string;
     views?: number;
     isFavorite?: boolean;
+    viewMode?: 'grid' | 'list';
     onPress?: (id: string) => void;
     onFavoritePress?: (id: string) => void;
 }
@@ -32,6 +33,7 @@ const ListingCard: React.FC<ListingCardProps> = ({
     description,
     views,
     isFavorite = false,
+    viewMode = 'grid',
     onPress,
     onFavoritePress,
 }) => {
@@ -43,6 +45,60 @@ const ListingCard: React.FC<ListingCardProps> = ({
         onFavoritePress?.(id);
     };
 
+    if (viewMode === 'list') {
+        return (
+            <TouchableOpacity style={styles.listCard} onPress={handlePress}>
+                {/* Image on the left */}
+                <View style={styles.listImageContainer}>
+                    <Image source={{ uri: image }} style={styles.listImage} resizeMode="cover" />
+                </View>
+
+                {/* Content on the right */}
+                <View style={styles.listContent}>
+                    {/* Title and Favorite Button */}
+                    <View style={styles.listTitleRow}>
+                        <Text style={styles.listTitle} numberOfLines={1}>
+                            {title}
+                        </Text>
+                        <TouchableOpacity style={styles.listFavoriteButton} onPress={handleFavoritePress}>
+                            <Ionicons
+                                name={isFavorite ? "heart" : "heart-outline"}
+                                size={18}
+                                color={isFavorite ? "#ff4444" : Colors.grey}
+                            />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Price */}
+                    <Text style={styles.listPrice}>
+                        {price}
+                    </Text>
+
+                    {/* Description */}
+                    {description && (
+                        <Text style={styles.listDescription} numberOfLines={2}>
+                            {description}
+                        </Text>
+                    )}
+
+                    {/* Location and Views */}
+                    <View style={styles.listFooter}>
+                        <Text style={styles.listLocation} numberOfLines={1}>
+                            {location}
+                        </Text>
+                        {views !== undefined && (
+                            <View style={styles.listViewsContainer}>
+                                <Ionicons name="eye-outline" size={12} color={Colors.grey} />
+                                <Text style={styles.listViewsText}>{views}</Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </TouchableOpacity>
+        );
+    }
+
+    // Grid view (existing layout)
     return (
         <TouchableOpacity style={styles.card} onPress={handlePress}>
             {/* Image Container */}
@@ -199,6 +255,89 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     viewsText: {
+        fontSize: 12,
+        color: Colors.grey,
+        fontWeight: '500',
+    },
+    // List view styles
+    listCard: {
+        flexDirection: 'row',
+        backgroundColor: Colors.white,
+        borderRadius: 8,
+        marginBottom: 12,
+        marginHorizontal: 16,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: Colors.lightgrey,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    listImageContainer: {
+        width: 120,
+        height: 100,
+        borderRadius: 8,
+        marginRight: 12,
+    },
+    listImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 8,
+    },
+    listTitleRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 4,
+    },
+    listFavoriteButton: {
+        padding: 4,
+        marginLeft: 8,
+    },
+    listContent: {
+        flex: 1,
+        justifyContent: 'space-between',
+    },
+    listTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.black,
+        marginBottom: 4,
+    },
+    listPrice: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.primary,
+        marginBottom: 6,
+    },
+    listDescription: {
+        fontSize: 12,
+        color: Colors.grey,
+        lineHeight: 16,
+        marginBottom: 8,
+    },
+    listFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    listLocation: {
+        fontSize: 12,
+        color: Colors.grey,
+        flex: 1,
+        marginRight: 8,
+    },
+    listViewsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    listViewsText: {
         fontSize: 12,
         color: Colors.grey,
         fontWeight: '500',

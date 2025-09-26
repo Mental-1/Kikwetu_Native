@@ -1,7 +1,7 @@
 import DiscoverOverlay from '@/components/ui/discover/discoverOverlay';
 import { Colors } from '@/src/constants/constant';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Dimensions, FlatList, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -114,32 +114,58 @@ const Discover = () => {
     };
 
     const VideoItemComponent = ({ item, index }: { item: VideoItem; index: number }) => {
+        const [isPlaying, setIsPlaying] = useState(false);
+        const [isMuted, setIsMuted] = useState(true);
+        
         const player = useVideoPlayer(item.videoUrl, player => {
             player.loop = true;
-            player.muted = true;
+            player.muted = isMuted;
+            player.volume = isMuted ? 0 : 0.8;
+        });
+
+        // Handle play/pause based on current video index
+        useEffect(() => {
             if (index === currentVideoIndex) {
                 player.play();
+                setIsPlaying(true);
+            } else {
+                player.pause();
+                setIsPlaying(false);
             }
-        });
+        }, [currentVideoIndex, index, player]);
+
+        // Handle mute/unmute
+        const toggleMute = useCallback(() => {
+            const newMutedState = !isMuted;
+            setIsMuted(newMutedState);
+            player.muted = newMutedState;
+            player.volume = newMutedState ? 0 : 0.8;
+        }, [isMuted, player]);
+
+        // Handle play/pause toggle
+        const togglePlayPause = useCallback(() => {
+            if (player.playing) {
+                player.pause();
+                setIsPlaying(false);
+            } else {
+                player.play();
+                setIsPlaying(true);
+            }
+        }, [player]);
 
         return (
             <View style={styles.videoContainer}>
                 <TouchableOpacity 
                     style={styles.videoTouchable}
                     activeOpacity={1}
-                    onPress={() => {
-                        if (player.playing) {
-                            player.pause();
-                        } else {
-                            player.play();
-                        }
-                    }}
+                    onPress={togglePlayPause}
                 >
                     <VideoView
                         style={styles.video}
                         player={player}
                         allowsPictureInPicture={false}
                         contentFit="cover"
+                        nativeControls={false}
                     />
                 </TouchableOpacity>
                 
@@ -156,6 +182,8 @@ const Discover = () => {
                     onSave={handleSave}
                     onMessage={handleMessage}
                     onReview={handleReview}
+                    isMuted={isMuted}
+                    onToggleMute={toggleMute}
                 />
             </View>
         );
@@ -190,6 +218,15 @@ const Discover = () => {
                 snapToInterval={height}
                 snapToAlignment="start"
                 decelerationRate="fast"
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={3}
+                windowSize={5}
+                initialNumToRender={2}
+                getItemLayout={(data, index) => ({
+                    length: height,
+                    offset: height * index,
+                    index,
+                })}
             />
         </View>
     );
