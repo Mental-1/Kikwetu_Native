@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   applyButtonContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderTopWidth: 1,
+    borderTopWidth: 0.3,
     borderTopColor: Colors.lightgrey,
   },
   applyButton: {

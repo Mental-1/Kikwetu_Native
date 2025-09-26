@@ -17,8 +17,8 @@ type Props = Record<string, never>;
 const Home = (props: Props) => {
     const router = useRouter();
     const [showAuthModal, setShowAuthModal] = useState(false);
-    const [isSignIn, setIsSignIn] = useState(true); // Start with sign in
-    const [isAuthenticated] = useState(false); // Mock: user is unauthenticated
+    const [isSignIn, setIsSignIn] = useState(true);
+    const [isAuthenticated] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     
     // Fetch categories
@@ -273,7 +273,7 @@ const Home = (props: Props) => {
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>For You</Text>
-                        <TouchableOpacity>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/discover')}>
                             <Text style={styles.seeAllText}>See More</Text>
                         </TouchableOpacity>
                     </View>
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
-        paddingTop: 0, // Ensure it goes to the very top
+        paddingTop: 0,
     },
     headerContent: {
         flexDirection: 'row',

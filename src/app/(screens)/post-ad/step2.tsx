@@ -3,6 +3,7 @@ import { useAppStore } from '@/stores/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { Alert, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,13 +37,14 @@ export default function Step2() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsMultipleSelection: true,
+      allowsEditing: false,
       quality: 0.8,
     });
 
-    if (!result.canceled && result.assets[0]) {
-      setImages([...images, result.assets[0].uri]);
+    if (!result.canceled && result.assets) {
+      const newImageUris = result.assets.map(asset => asset.uri);
+      setImages([...images, ...newImageUris]);
     }
   };
 
@@ -103,15 +105,16 @@ export default function Step2() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar style="dark" />
       {/* Header */}
-      <View style={styles.header}>
+      <SafeAreaView style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Post Ad - Step 2</Text>
+        <Text style={styles.headerTitle}>Post Ad - Media</Text>
         <View style={styles.placeholder} />
-      </View>
+      </SafeAreaView>
 
       {/* Tab Selector */}
       <View style={styles.tabContainer}>
@@ -219,7 +222,7 @@ export default function Step2() {
           <Ionicons name="chevron-forward" size={20} color={Colors.white} />
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

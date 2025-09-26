@@ -2,6 +2,7 @@ import { Colors } from '@/src/constants/constant';
 import { useAppStore } from '@/stores/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { Alert, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +17,8 @@ export default function Step3() {
     price, 
     location, 
     condition, 
+    categoryId,
+    subcategoryId,
     tags, 
     images, 
     videos 
@@ -60,15 +63,16 @@ export default function Step3() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar style="dark" />
       {/* Header */}
-      <View style={styles.header}>
+      <SafeAreaView style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Post Ad - Step 3</Text>
+        <Text style={styles.headerTitle}>Post Ad - Preview</Text>
         <View style={styles.placeholder} />
-      </View>
+      </SafeAreaView>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Preview Title */}
@@ -188,7 +192,7 @@ export default function Step3() {
           <Ionicons name="checkmark" size={20} color={Colors.white} />
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

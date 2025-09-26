@@ -1,7 +1,9 @@
+import { useCategories, useSubcategoriesByCategory } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { useAppStore } from '@/stores/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { Alert, Dimensions, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,16 +18,27 @@ export default function Step1() {
     price, 
     location, 
     condition, 
+    categoryId,
+    subcategoryId,
     tags,
     setTitle,
     setDescription,
     setPrice,
     setLocation,
     setCondition,
+    setCategoryId,
+    setSubcategoryId,
     setTags
   } = useAppStore((state) => state.postAd);
 
   const [tagInput, setTagInput] = useState('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showSubcategoryDropdown, setShowSubcategoryDropdown] = useState(false);
+  const [priceInput, setPriceInput] = useState('');
+
+  // Fetch categories and subcategories
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+  const { data: subcategories } = useSubcategoriesByCategory(categoryId);
 
   const handleBack = () => {
     router.push('/(tabs)/listings');
@@ -52,7 +65,29 @@ export default function Step1() {
       Alert.alert('Required Field', 'Please select a condition');
       return;
     }
+    if (!categoryId) {
+      Alert.alert('Required Field', 'Please select a category');
+      return;
+    }
     router.push('/(screens)/post-ad/step2');
+  };
+
+  const formatPrice = (value: string) => {
+    // Remove all non-numeric characters
+    const numericValue = value.replace(/\D/g, '');
+    if (numericValue === '') return '';
+    
+    // Add thousand separators
+    return parseInt(numericValue).toLocaleString();
+  };
+
+  const handlePriceChange = (text: string) => {
+    const formatted = formatPrice(text);
+    setPriceInput(formatted);
+    
+    // Update the store with numeric value
+    const numericValue = text.replace(/\D/g, '');
+    setPrice(numericValue ? parseFloat(numericValue) : null);
   };
 
   const addTag = () => {
@@ -84,15 +119,16 @@ export default function Step1() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar style="dark" />
       {/* Header */}
-      <View style={styles.header}>
+      <SafeAreaView style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Post Ad - Step 1</Text>
+        <Text style={styles.headerTitle}>Post Ad - Details</Text>
         <View style={styles.placeholder} />
-      </View>
+      </SafeAreaView>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Title */}
@@ -125,6 +161,109 @@ export default function Step1() {
           <Text style={styles.characterCount}>{description.length}/500</Text>
         </View>
 
+        {/* Category and Subcategory */}
+        <View style={styles.section}>
+          <View style={styles.rowContainer}>
+            {/* Category Dropdown */}
+            <View style={styles.halfWidth}>
+              <Text style={styles.label}>Category *</Text>
+              <TouchableOpacity 
+                style={styles.dropdown} 
+                onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
+              >
+                <Text style={[
+                  styles.dropdownText, 
+                  !categoryId && styles.placeholderText
+                ]}>
+                  {categoryId ? categories?.find(c => c.id === categoryId)?.name : 'Select Category'}
+                </Text>
+                <Ionicons 
+                  name={showCategoryDropdown ? "chevron-up" : "chevron-down"} 
+                  size={20} 
+                  color={Colors.grey} 
+                />
+              </TouchableOpacity>
+              
+              {showCategoryDropdown && (
+                <View style={styles.dropdownList}>
+                  <ScrollView 
+                    style={styles.dropdownScroll}
+                    showsVerticalScrollIndicator={true}
+                    nestedScrollEnabled={true}
+                  >
+                    {categoriesLoading ? (
+                      <Text style={styles.loadingText}>Loading categories...</Text>
+                    ) : (
+                      categories?.map((category) => (
+                        <TouchableOpacity
+                          key={category.id}
+                          style={styles.dropdownItem}
+                          onPress={() => {
+                            setCategoryId(category.id);
+                            setShowCategoryDropdown(false);
+                          }}
+                        >
+                          <Text style={styles.dropdownItemText}>{category.name}</Text>
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+
+            {/* Subcategory Dropdown */}
+            <View style={styles.halfWidth}>
+              <Text style={styles.label}>Subcategory</Text>
+              <TouchableOpacity 
+                style={[styles.dropdown, !categoryId && styles.disabledDropdown]} 
+                onPress={() => categoryId && setShowSubcategoryDropdown(!showSubcategoryDropdown)}
+                disabled={!categoryId}
+              >
+                <Text style={[
+                  styles.dropdownText, 
+                  (!subcategoryId || !categoryId) && styles.placeholderText
+                ]}>
+                  {!categoryId ? 'Select category first' : 
+                   subcategoryId ? subcategories?.find(s => s.id === subcategoryId)?.name : 'Select Subcategory'}
+                </Text>
+                <Ionicons 
+                  name={showSubcategoryDropdown ? "chevron-up" : "chevron-down"} 
+                  size={20} 
+                  color={Colors.grey} 
+                />
+              </TouchableOpacity>
+              
+              {showSubcategoryDropdown && categoryId && (
+                <View style={styles.dropdownList}>
+                  <ScrollView 
+                    style={styles.dropdownScroll}
+                    showsVerticalScrollIndicator={true}
+                    nestedScrollEnabled={true}
+                  >
+                    {subcategories?.length === 0 ? (
+                      <Text style={styles.loadingText}>No subcategories available</Text>
+                    ) : (
+                      subcategories?.map((subcategory) => (
+                        <TouchableOpacity
+                          key={subcategory.id}
+                          style={styles.dropdownItem}
+                          onPress={() => {
+                            setSubcategoryId(subcategory.id);
+                            setShowSubcategoryDropdown(false);
+                          }}
+                        >
+                          <Text style={styles.dropdownItemText}>{subcategory.name}</Text>
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+
         {/* Price */}
         <View style={styles.section}>
           <Text style={styles.label}>Price (Kes) *</Text>
@@ -132,8 +271,8 @@ export default function Step1() {
             style={styles.input}
             placeholder="Enter price"
             placeholderTextColor={Colors.grey}
-            value={price ? price.toString() : ''}
-            onChangeText={(text) => setPrice(text ? parseFloat(text) : null)}
+            value={priceInput}
+            onChangeText={handlePriceChange}
             keyboardType="numeric"
           />
         </View>
@@ -221,7 +360,7 @@ export default function Step1() {
           <Ionicons name="chevron-forward" size={20} color={Colors.white} />
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -303,13 +442,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   conditionButton: {
-    backgroundColor: Colors.lightgrey,
+    backgroundColor: Colors.white,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: Colors.black,
   },
   conditionButtonSelected: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.black,
+    borderColor: Colors.black,
   },
   conditionText: {
     fontSize: 14,
@@ -371,5 +513,72 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  // New dropdown styles
+  rowContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  halfWidth: {
+    flex: 1,
+  },
+  dropdown: {
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: Colors.lightgrey,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  disabledDropdown: {
+    backgroundColor: Colors.lightgrey,
+    opacity: 0.6,
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: Colors.black,
+    flex: 1,
+  },
+  placeholderText: {
+    color: Colors.grey,
+  },
+  dropdownList: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightgrey,
+    maxHeight: 150,
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  dropdownScroll: {
+    maxHeight: 140,
+  },
+  dropdownItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightgrey,
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    color: Colors.black,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
+    paddingVertical: 12,
   },
 });
