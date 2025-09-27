@@ -1,6 +1,7 @@
 import ListingCard from '@/components/ListingCard';
 import NotificationBadge from '@/components/NotificationBadge';
 import VideoCard from '@/components/VideoCard';
+import { useAuth } from '@/contexts/authContext';
 import { useCategories } from '@/hooks/useCategories';
 import SignIn from '@/src/app/(screens)/(auth)/signin';
 import SignUp from '@/src/app/(screens)/(auth)/signup';
@@ -8,7 +9,7 @@ import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,16 +17,16 @@ type Props = Record<string, never>;
 
 const Home = (props: Props) => {
     const router = useRouter();
+    const { user, session } = useAuth();
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [isSignIn, setIsSignIn] = useState(true);
-    const [isAuthenticated] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     
     // Fetch categories
     const { data: categories, isLoading: categoriesLoading } = useCategories();
     
-    // Map emoji icons to Ionicons
-    const getIconFromEmoji = (emoji: string) => {
+    // Map emoji icons to Ionicons - memoized for performance
+    const getIconFromEmoji = useCallback((emoji: string) => {
         const iconMap: { [key: string]: string } = {
             '🎨': 'color-palette-outline',
             '🚗': 'car-outline',
@@ -41,7 +42,7 @@ const Home = (props: Props) => {
             '⚽': 'football-outline',
         };
         return iconMap[emoji] || 'grid-outline';
-    };
+    }, []);
     
     // Mock video data - vertical aspect ratio like TikTok/YouTube Shorts
     const mockVideos = [
@@ -155,42 +156,42 @@ const Home = (props: Props) => {
         },
     ];
     
-    const handleAccountPress = () => {
-        if (isAuthenticated) {
+    const handleAccountPress = useCallback(() => {
+        if (user && session) {
             // Navigate to dashboard if authenticated
-            // router.push('/(screens)/(dashboard)/');
+            router.push('/');
         } else {
             // Show auth modal if not authenticated
             setShowAuthModal(true);
         }
-    };
+    }, [user, session, router]);
     
-    const handleSignUpPress = () => {
+    const handleSignUpPress = useCallback(() => {
         setIsSignIn(false);
-    };
+    }, []);
     
-    const handleSignInPress = () => {
+    const handleSignInPress = useCallback(() => {
         setIsSignIn(true);
-    };
+    }, []);
     
-    const closeAuthModal = () => {
+    const closeAuthModal = useCallback(() => {
         setShowAuthModal(false);
-    };
+    }, []);
     
-    const handleVideoPress = (videoId: string) => {
+    const handleVideoPress = useCallback((videoId: string) => {
         // Navigate to Discover page with video ID
         router.push(`/(tabs)/discover?videoId=${videoId}`);
-    };
+    }, [router]);
 
-    const handleListingPress = (listingId: string) => {
+    const handleListingPress = useCallback((listingId: string) => {
         // Navigate to listing details page
         router.push(`/(screens)/listings/${listingId}`);
-    };
+    }, [router]);
 
-    const handleListingFavoritePress = (listingId: string) => {
+    const handleListingFavoritePress = useCallback((listingId: string) => {
         // Handle favorite toggle - could be API call in real app
         console.log('Toggle favorite for listing:', listingId);
-    };
+    }, []);
 
     return (
         <View style={styles.container}>
@@ -253,8 +254,12 @@ const Home = (props: Props) => {
                         </View>
                     ) : (
                         <View style={styles.categoriesGrid}>
-                            {categories?.slice(0, 8).map((category, index) => (
-                                <TouchableOpacity key={category.id} style={styles.categoryItem}>
+                            {categories?.slice(0, 8).map((category) => (
+                                <TouchableOpacity 
+                                    key={category.id} 
+                                    style={styles.categoryItem}
+                                    onPress={() => router.push(`/(screens)/subcategories/${category.id}`)}
+                                >
                                     <View style={styles.categoryIconContainer}>
                                         <Ionicons 
                                             name={getIconFromEmoji(category.icon || "") as any} 

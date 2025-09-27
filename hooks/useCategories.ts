@@ -1,5 +1,5 @@
+import { supabase } from '@/lib/supabase';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {supabase} from '@/lib/supabase'
 
 export interface Category {
     id: number;
@@ -52,13 +52,13 @@ export const useCategories = () => {
     return useQuery({
         queryKey: ["categories"],
         queryFn: fetchCategories,
-        staleTime: 1000 * 60 * 60,
-        gcTime: 1000 * 60 * 60 * 24,
-        retry: 3,
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-        // Enable background refetch when data becomes stale
+        staleTime: 1000 * 60 * 60 * 24, // 24 hours - categories rarely change
+        gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days
+        retry: 2, // Reduce retries
+        retryDelay: 1000, // Fixed delay
         refetchOnWindowFocus: false,
-        refetchOnReconnect: true,
+        refetchOnReconnect: false, // Disable auto-refetch
+        refetchOnMount: false, // Use cached data if available
     });
 };
 
@@ -66,12 +66,13 @@ export const useSubcategories = () => {
     return useQuery({
         queryKey: ["subcategories"],
         queryFn: fetchSubcategories,
-        staleTime: 1000 * 60 * 60,
-        gcTime: 1000 * 60 * 60 * 24,
-        retry: 3,
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+        staleTime: 1000 * 60 * 60 * 24, // 24 hours
+        gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days
+        retry: 2,
+        retryDelay: 1000,
         refetchOnWindowFocus: false,
-        refetchOnReconnect: true,
+        refetchOnReconnect: false,
+        refetchOnMount: false,
     });
 };
 
