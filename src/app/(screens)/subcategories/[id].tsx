@@ -1,4 +1,4 @@
-import { useCategory, useSubcategoriesByCategory } from '@/hooks/useCategories';
+import { useCategory, useCategoryMutations, useSubcategoriesByCategory } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -12,18 +12,26 @@ const SubcategoriesScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const categoryId = id ? parseInt(id, 10) : null;
 
-  // Fetch category and subcategories data
+  // Fetch category and subcategories data with optimized loading
   const { data: category, isLoading: categoryLoading } = useCategory(categoryId);
   const { data: subcategories, isLoading: subcategoriesLoading } = useSubcategoriesByCategory(categoryId);
+  const { prefetchCategories } = useCategoryMutations();
 
   const handleBack = useCallback(() => {
     router.back();
   }, [router]);
 
   const handleSubcategoryPress = useCallback((subcategoryId: number) => {
-    // Navigate to listings screen with subcategory filter
-    router.push(`/(tabs)/listings?subcategory=${subcategoryId}`);
+    // Optimized navigation with requestAnimationFrame
+    requestAnimationFrame(() => {
+      router.push(`/(tabs)/listings?subcategory=${subcategoryId}`);
+    });
   }, [router]);
+
+  // Preload categories for faster back navigation
+  React.useEffect(() => {
+    prefetchCategories();
+  }, [prefetchCategories]);
 
   const renderSubcategoryItem = useCallback(({ item }: { item: any }) => (
     <TouchableOpacity 

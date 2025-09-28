@@ -1,11 +1,13 @@
+import CustomDialog from '@/components/ui/CustomDialog';
 import { useCategories, useSubcategoriesByCategory } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { useAppStore } from '@/stores/useAppStore';
+import { getLocationWithAddress } from '@/utils/locationUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { Alert, Dimensions, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -16,6 +18,7 @@ export default function Step1() {
     title, 
     description, 
     price, 
+    isNegotiable,
     location, 
     condition, 
     categoryId,
@@ -24,6 +27,7 @@ export default function Step1() {
     setTitle,
     setDescription,
     setPrice,
+    setIsNegotiable,
     setLocation,
     setCondition,
     setCategoryId,
@@ -35,6 +39,8 @@ export default function Step1() {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showSubcategoryDropdown, setShowSubcategoryDropdown] = useState(false);
   const [priceInput, setPriceInput] = useState('');
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [showLocationDialog, setShowLocationDialog] = useState(false);
 
   // Fetch categories and subcategories
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -91,8 +97,11 @@ export default function Step1() {
   };
 
   const addTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
+    const trimmedTag = tagInput.trim();
+    if (trimmedTag && !tags.includes(trimmedTag)) {
+      // Remove # prefix if user added it
+      const cleanTag = trimmedTag.startsWith('#') ? trimmedTag.slice(1) : trimmedTag;
+      setTags([...tags, cleanTag]);
       setTagInput('');
     }
   };
@@ -102,20 +111,36 @@ export default function Step1() {
   };
 
   const requestLocation = () => {
-    Alert.alert(
-      'Location Permission',
-      'Allow Kikwetu to access your location for automatic detection?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Allow', 
-          onPress: () => {
-            // TODO: Implement location permission request
-            Alert.alert('Location', 'Location permission would be requested here');
-          }
-        }
-      ]
-    );
+    setShowLocationDialog(true);
+  };
+
+  const handleLocationConfirm = async () => {
+    setShowLocationDialog(false);
+    setIsLoadingLocation(true);
+    try {
+      const locationData = await getLocationWithAddress();
+      if (locationData) {
+        // Use the address if available, otherwise use coordinates
+        const locationText = locationData.address || 
+          `${locationData.latitude.toFixed(6)}, ${locationData.longitude.toFixed(6)}`;
+        setLocation(locationText);
+        Alert.alert('Success', 'Location detected successfully!');
+      } else {
+        Alert.alert('Error', 'Unable to detect your location. Please enter it manually.');
+      }
+    } catch (error) {
+      console.error('Location error:', error);
+      Alert.alert(
+        'Location Error', 
+        'Failed to get your location. Please check your location permissions and try again, or enter your location manually.'
+      );
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+
+  const handleLocationDeny = () => {
+    setShowLocationDialog(false);
   };
 
   return (
@@ -275,6 +300,20 @@ export default function Step1() {
             onChangeText={handlePriceChange}
             keyboardType="numeric"
           />
+          
+          {/* Negotiable Checkbox */}
+          <TouchableOpacity 
+            style={styles.checkboxContainer}
+            onPress={() => setIsNegotiable(!isNegotiable)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, isNegotiable && styles.checkboxChecked]}>
+              {isNegotiable && (
+                <Ionicons name="checkmark" size={16} color={Colors.white} />
+              )}
+            </View>
+            <Text style={styles.checkboxLabel}>Price is negotiable</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Location */}
@@ -288,8 +327,16 @@ export default function Step1() {
               value={location}
               onChangeText={setLocation}
             />
-            <TouchableOpacity style={styles.locationButton} onPress={requestLocation}>
-              <Ionicons name="location-outline" size={20} color={Colors.primary} />
+            <TouchableOpacity 
+              style={[styles.locationButton, isLoadingLocation && styles.locationButtonLoading]} 
+              onPress={requestLocation}
+              disabled={isLoadingLocation}
+            >
+              {isLoadingLocation ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : (
+                <Ionicons name="location-outline" size={20} color={Colors.primary} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -324,11 +371,13 @@ export default function Step1() {
           <View style={styles.tagInputContainer}>
             <TextInput
               style={[styles.input, styles.tagInput]}
-              placeholder="Add a tag (e.g., #electronics, #furniture)"
+              placeholder="Add a tag (e.g., electronics, furniture)"
               placeholderTextColor={Colors.grey}
               value={tagInput}
               onChangeText={setTagInput}
               onSubmitEditing={addTag}
+              returnKeyType="done"
+              blurOnSubmit={false}
             />
             <TouchableOpacity style={styles.addTagButton} onPress={addTag}>
               <Ionicons name="add" size={20} color={Colors.white} />
@@ -344,7 +393,7 @@ export default function Step1() {
                   style={styles.tag}
                   onPress={() => removeTag(tag)}
                 >
-                  <Text style={styles.tagText}>{tag}</Text>
+                  <Text style={styles.tagText}>#{tag}</Text>
                   <Ionicons name="close" size={16} color={Colors.white} />
                 </TouchableOpacity>
               ))}
@@ -360,6 +409,19 @@ export default function Step1() {
           <Ionicons name="chevron-forward" size={20} color={Colors.white} />
         </TouchableOpacity>
       </View>
+
+      {/* Custom Location Permission Dialog */}
+      <CustomDialog
+        visible={showLocationDialog}
+        title="Location Permission"
+        message="Allow Kikwetu to access your location for automatic detection?"
+        confirmText="Allow"
+        denyText="Deny"
+        onConfirm={handleLocationConfirm}
+        onDeny={handleLocationDeny}
+        icon="location-outline"
+        iconColor={Colors.primary}
+      />
     </View>
   );
 }
@@ -435,6 +497,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.lightgrey,
     borderRadius: 8,
     padding: 12,
+    minWidth: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locationButtonLoading: {
+    opacity: 0.7,
   },
   conditionContainer: {
     flexDirection: 'row',
@@ -580,5 +648,31 @@ const styles = StyleSheet.create({
     color: Colors.grey,
     textAlign: 'center',
     paddingVertical: 12,
+  },
+  // Checkbox styles
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Colors.lightgrey,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: Colors.black,
+    fontWeight: '500',
   },
 });

@@ -4,6 +4,7 @@ interface PostAdState {
   title: string;
   description: string;
   price: number | null;
+  isNegotiable: boolean;
   location: string;
   condition: string;
   categoryId: number | null;
@@ -14,6 +15,7 @@ interface PostAdState {
   setTitle: (title: string) => void;
   setDescription: (description: string) => void;
   setPrice: (price: number | null) => void;
+  setIsNegotiable: (isNegotiable: boolean) => void;
   setLocation: (location: string) => void;
   setCondition: (condition: string) => void;
   setCategoryId: (categoryId: number | null) => void;
@@ -32,6 +34,7 @@ export const useAppStore = create<AppState>((set) => ({
     title: '',
     description: '',
     price: null,
+    isNegotiable: false,
     location: '',
     condition: '',
     categoryId: null,
@@ -43,6 +46,7 @@ export const useAppStore = create<AppState>((set) => ({
     setDescription: (description) =>
       set((state) => ({ postAd: { ...state.postAd, description } })),
     setPrice: (price) => set((state) => ({ postAd: { ...state.postAd, price } })),
+    setIsNegotiable: (isNegotiable) => set((state) => ({ postAd: { ...state.postAd, isNegotiable } })),
     setLocation: (location) => set((state) => ({ postAd: { ...state.postAd, location } })),
     setCondition: (condition) => set((state) => ({ postAd: { ...state.postAd, condition } })),
     setCategoryId: (categoryId) => set((state) => ({ postAd: { ...state.postAd, categoryId, subcategoryId: null } })),

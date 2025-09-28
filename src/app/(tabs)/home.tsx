@@ -2,7 +2,7 @@ import ListingCard from '@/components/ListingCard';
 import NotificationBadge from '@/components/NotificationBadge';
 import VideoCard from '@/components/VideoCard';
 import { useAuth } from '@/contexts/authContext';
-import { useCategories } from '@/hooks/useCategories';
+import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
 import SignIn from '@/src/app/(screens)/(auth)/signin';
 import SignUp from '@/src/app/(screens)/(auth)/signup';
 import { Colors } from '@/src/constants/constant';
@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = Record<string, never>;
@@ -21,9 +21,11 @@ const Home = (props: Props) => {
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [isSignIn, setIsSignIn] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [loadingCategoryId, setLoadingCategoryId] = useState<number | null>(null);
     
-    // Fetch categories
+    // Fetch categories and preload subcategories
     const { data: categories, isLoading: categoriesLoading } = useCategories();
+    const { prefetchSubcategories } = useCategoryMutations();
     
     // Map emoji icons to Ionicons - memoized for performance
     const getIconFromEmoji = useCallback((emoji: string) => {
@@ -193,6 +195,24 @@ const Home = (props: Props) => {
         console.log('Toggle favorite for listing:', listingId);
     }, []);
 
+    // Preload subcategories data when categories are loaded
+    React.useEffect(() => {
+        if (categories && categories.length > 0) {
+            prefetchSubcategories();
+        }
+    }, [categories, prefetchSubcategories]);
+
+    // Optimized category navigation with loading state
+    const handleCategoryPress = useCallback((categoryId: number) => {
+        setLoadingCategoryId(categoryId);
+        // Use requestAnimationFrame to ensure UI updates before navigation
+        requestAnimationFrame(() => {
+            router.push(`/(screens)/subcategories/${categoryId}`);
+            // Clear loading state after a short delay
+            setTimeout(() => setLoadingCategoryId(null), 1000);
+        });
+    }, [router]);
+
     return (
         <View style={styles.container}>
             <StatusBar style="light" />
@@ -257,15 +277,23 @@ const Home = (props: Props) => {
                             {categories?.slice(0, 8).map((category) => (
                                 <TouchableOpacity 
                                     key={category.id} 
-                                    style={styles.categoryItem}
-                                    onPress={() => router.push(`/(screens)/subcategories/${category.id}`)}
+                                    style={[
+                                        styles.categoryItem,
+                                        loadingCategoryId === category.id && styles.categoryItemLoading
+                                    ]}
+                                    onPress={() => handleCategoryPress(category.id)}
+                                    activeOpacity={0.7}
                                 >
                                     <View style={styles.categoryIconContainer}>
-                                        <Ionicons 
-                                            name={getIconFromEmoji(category.icon || "") as any} 
-                                            size={24} 
-                                            color={Colors.primary} 
-                                        />
+                                        {loadingCategoryId === category.id ? (
+                                            <ActivityIndicator size="small" color={Colors.primary} />
+                                        ) : (
+                                            <Ionicons 
+                                                name={getIconFromEmoji(category.icon || "") as any} 
+                                                size={24} 
+                                                color={Colors.primary} 
+                                            />
+                                        )}
                                     </View>
                                     <Text style={styles.categoryName}>{category.name}</Text>
                                 </TouchableOpacity>
@@ -496,6 +524,9 @@ const styles = StyleSheet.create({
         color: Colors.black,
         textAlign: 'center',
         fontWeight: '500',
+    },
+    categoryItemLoading: {
+        opacity: 0.7,
     },
     // Video Cards Styles
     videoScrollContent: {
