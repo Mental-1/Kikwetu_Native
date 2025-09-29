@@ -1,3 +1,4 @@
+import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -8,9 +9,38 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Dashboard = () => {
   const router = useRouter();
+  const { user } = useAuth();
 
   const handleBack = () => {
     router.back();
+  };
+
+  const handlePostListing = () => {
+    router.push('/(screens)/post-ad/step1');
+  };
+
+  const handleMyListings = () => {
+    router.push('/(screens)/(dashboard)/mylistings');
+  };
+
+  const handleSavedItems = () => {
+    router.push('/(screens)/(dashboard)/saved');
+  };
+
+  const handleMessages = () => {
+    router.push('/(screens)/(dashboard)/conversations');
+  };
+
+  const handleSettings = () => {
+    router.push('/(screens)/(settings)');
+  };
+
+  const handleTransactions = () => {
+    router.push('/(screens)/(dashboard)/transactions');
+  };
+
+  const handlePlansBilling = () => {
+    router.push('/(screens)/(dashboard)/plans-billing');
   };
 
   return (
@@ -24,7 +54,7 @@ const Dashboard = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Dashboard</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIcon}>
+          <TouchableOpacity style={styles.headerIcon} onPress={handleSettings}>
             <Ionicons name="settings-outline" size={24} color={Colors.black} />
           </TouchableOpacity>
         </View>
@@ -33,7 +63,9 @@ const Dashboard = () => {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeTitle}>Welcome back!</Text>
+          <Text style={styles.welcomeTitle}>
+            Welcome back, {user?.user_metadata?.full_name || user?.email || 'User'}!
+          </Text>
           <Text style={styles.welcomeSubtitle}>Manage your listings and account</Text>
         </View>
 
@@ -59,22 +91,71 @@ const Dashboard = () => {
         {/* Quick Actions */}
         <View style={styles.actionsSection}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.actionsGrid}>
-            <TouchableOpacity style={styles.actionCard}>
-              <Ionicons name="add-circle-outline" size={32} color={Colors.primary} />
-              <Text style={styles.actionText}>Post New Listing</Text>
+          <View style={styles.actionsContainer}>
+            <TouchableOpacity style={styles.actionCard} onPress={handlePostListing}>
+              <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
+                <Ionicons name="add-circle-outline" size={24} color="#1976D2" />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>Post New Listing</Text>
+                <Text style={styles.actionSubtitle}>Create a new listing</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <Ionicons name="list-outline" size={32} color={Colors.primary} />
-              <Text style={styles.actionText}>My Listings</Text>
+            
+            <TouchableOpacity style={styles.actionCard} onPress={handleMyListings}>
+              <View style={[styles.actionIcon, { backgroundColor: '#F3E5F5' }]}>
+                <Ionicons name="list-outline" size={24} color="#7B1FA2" />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>My Listings</Text>
+                <Text style={styles.actionSubtitle}>Manage your listings</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <Ionicons name="heart-outline" size={32} color={Colors.primary} />
-              <Text style={styles.actionText}>Saved Items</Text>
+            
+            <TouchableOpacity style={styles.actionCard} onPress={handleSavedItems}>
+              <View style={[styles.actionIcon, { backgroundColor: '#FFEBEE' }]}>
+                <Ionicons name="heart-outline" size={24} color="#C62828" />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>Saved Items</Text>
+                <Text style={styles.actionSubtitle}>Your favorite listings</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <Ionicons name="chatbubble-outline" size={32} color={Colors.primary} />
-              <Text style={styles.actionText}>Messages</Text>
+            
+            <TouchableOpacity style={styles.actionCard} onPress={handleMessages}>
+              <View style={[styles.actionIcon, { backgroundColor: '#E8F5E8' }]}>
+                <Ionicons name="chatbubble-outline" size={24} color="#2E7D32" />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>Messages</Text>
+                <Text style={styles.actionSubtitle}>Chat with buyers and sellers</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.actionCard} onPress={handlePlansBilling}>
+              <View style={[styles.actionIcon, { backgroundColor: '#E8F5E8' }]}>
+                <Ionicons name="card-outline" size={24} color="#4CAF50" />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>Plans & Billing</Text>
+                <Text style={styles.actionSubtitle}>Manage subscription & billing</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.actionCard} onPress={handleTransactions}>
+              <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
+                <Ionicons name="receipt-outline" size={24} color="#EF6C00" />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>Transactions</Text>
+                <Text style={styles.actionSubtitle}>View payment history</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
             </TouchableOpacity>
           </View>
         </View>
@@ -217,18 +298,17 @@ const styles = StyleSheet.create({
     color: Colors.black,
     marginBottom: 16,
   },
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  actionsContainer: {
     gap: 12,
   },
   actionCard: {
-    width: '48%',
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    elevation: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    elevation: 0.6,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -237,12 +317,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
-  actionText: {
-    fontSize: 14,
+  actionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  actionContent: {
+    flex: 1,
+  },
+  actionTitle: {
+    fontSize: 16,
     fontWeight: '600',
     color: Colors.black,
-    marginTop: 8,
-    textAlign: 'center',
+    marginBottom: 2,
+  },
+  actionSubtitle: {
+    fontSize: 12,
+    color: Colors.grey,
   },
   activitySection: {
     paddingHorizontal: 16,
@@ -272,7 +366,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.lightgrey,
+    backgroundColor: Colors.white,
+    borderWidth: 0.5,
+    borderColor: Colors.lightgrey,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,

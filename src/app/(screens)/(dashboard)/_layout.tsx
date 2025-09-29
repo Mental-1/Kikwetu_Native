@@ -25,6 +25,27 @@ const DashboardLayout = () => {
           title: 'Chat'
         }} 
       />
+      <Stack.Screen 
+        name="plans-billing" 
+        options={{ 
+          headerShown: false,
+          title: 'Plans & Billing'
+        }} 
+      />
+      <Stack.Screen 
+        name="transactions" 
+        options={{ 
+          headerShown: false,
+          title: 'Transactions'
+        }} 
+      />
+      <Stack.Screen 
+        name="payment" 
+        options={{ 
+          headerShown: false,
+          title: 'Payment'
+        }} 
+      />
     </Stack>
   );
 };
