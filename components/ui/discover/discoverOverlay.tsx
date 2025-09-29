@@ -36,6 +36,8 @@ interface DiscoverOverlayProps {
     onSave: (videoId: string) => void;
     onMessage: (videoId: string) => void;
     onReview: (videoId: string) => void;
+    isMuted?: boolean;
+    onToggleMute?: () => void;
 }
 
 const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
@@ -51,6 +53,8 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
     onSave,
     onMessage,
     onReview,
+    isMuted = true,
+    onToggleMute,
 }) => {
     const [expandedHashtags, setExpandedHashtags] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -128,7 +132,7 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
 
             {/* Left Side Content */}
             <View style={styles.leftContent}>
-                <SafeAreaView style={styles.leftSafeArea}>
+                <View style={styles.leftSafeArea}>
                     {/* User Info */}
                     <View style={styles.userInfo}>
                         <Text style={styles.username}>{video.username}</Text>
@@ -158,12 +162,12 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                             </TouchableOpacity>
                         )}
                     </View>
-                </SafeAreaView>
+                </View>
             </View>
 
             {/* Right Side Actions */}
             <View style={styles.rightActions}>
-                <SafeAreaView style={styles.rightSafeArea}>
+                <View style={styles.rightSafeArea}>
                     {/* Account Avatar and Follow */}
                     <View style={styles.actionItem}>
                         <TouchableOpacity
@@ -191,7 +195,7 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                         <View style={styles.actionIcon}>
                             <Ionicons
                                 name={video.isLiked ? "heart" : "heart-outline"}
-                                size={24} // Reduced size
+                                size={24}
                                 color={video.isLiked ? "#ff4444" : Colors.white}
                             />
                         </View>
@@ -243,7 +247,23 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                             />
                         </View>
                     </TouchableOpacity>
-                </SafeAreaView>
+
+                    {/* Mute/Unmute */}
+                    {onToggleMute && (
+                        <TouchableOpacity
+                            style={styles.actionItem}
+                            onPress={onToggleMute}
+                        >
+                            <View style={styles.actionIcon}>
+                                <Ionicons
+                                    name={isMuted ? "volume-mute" : "volume-high"}
+                                    size={24}
+                                    color={Colors.white}
+                                />
+                            </View>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
         </View>
     );
@@ -322,7 +342,7 @@ const styles = StyleSheet.create({
     },
     leftSafeArea: {
         paddingHorizontal: 16,
-        paddingBottom: 150,
+        paddingBottom: 40,
     },
     userInfo: {
         marginBottom: 8,
@@ -342,7 +362,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 8,
-        gap: 12,
+        gap: 4,
     },
     location: {
         fontSize: 12,
@@ -382,7 +402,7 @@ const styles = StyleSheet.create({
     },
     rightSafeArea: {
         paddingHorizontal: 16,
-        paddingBottom: 150,
+        paddingBottom: 50,
         alignItems: 'center',
     },
     actionItem: {

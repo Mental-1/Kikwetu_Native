@@ -1,4 +1,4 @@
-import AuthProvider from '@/contexts/authContext';
+import { AuthProvider } from '@/contexts/authContext';
 import '@/global.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
@@ -10,8 +10,25 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 SplashScreen.preventAutoHideAsync();
 
-// Create a client
-const queryClient = new QueryClient();
+// Create a client with optimized settings for better performance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Reduce stale time to improve data freshness
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      // Reduce garbage collection time
+      gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime)
+      // Reduce retry attempts for faster failures
+      retry: 1,
+      // Don't refetch on window focus for better performance
+      refetchOnWindowFocus: false,
+      // Don't refetch on reconnect
+      refetchOnReconnect: false,
+      // Don't refetch on mount if data exists
+      refetchOnMount: false,
+    },
+  },
+});
 
 function Navigator() {
     // Removed auth protection for development

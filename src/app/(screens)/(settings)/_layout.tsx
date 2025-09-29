@@ -1,12 +1,14 @@
-import React from 'react';
-import { View, Text } from 'react-native';
+import { Stack } from 'expo-router';
 
-const SettingsLayout = () => {
+export default function SettingsLayout() {
   return (
-    <View>
-      <Text>Settings Layout</Text>
-    </View>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="account" />
+      <Stack.Screen name="preferences" />
+      <Stack.Screen name="privacy" />
+      <Stack.Screen name="payment_methods" />
+      <Stack.Screen name="billing" />
+    </Stack>
   );
-};
-
-export default SettingsLayout;
+}

@@ -57,7 +57,7 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                         <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
                             <Ionicons name="close" size={24} color={Colors.primary} />
                         </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Sign In</Text>
+                        <Text style={styles.modalTitle}>Welcome Back!</Text>
                     </View>
                     
                     <View style={styles.modalContent}>
@@ -66,7 +66,6 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                             contentContainerStyle={styles.authFormContent}
                             showsVerticalScrollIndicator={false}
                         >
-                            <Text style={styles.welcomeText}>Welcome Back!</Text>
                             <Text style={styles.subtitle}>Sign in to continue</Text>
                             
                             <View style={styles.formContainer}>
@@ -172,7 +171,7 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     modalContainer: {
-        height: '65%',
+        height: '60%',
         backgroundColor: Colors.white,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
@@ -197,6 +196,7 @@ const styles = StyleSheet.create({
         flex: 1,
         textAlign: 'center',
         marginRight: 40,
+        letterSpacing: 1,
     },
     modalContent: {
         flex: 1,
@@ -211,18 +211,11 @@ const styles = StyleSheet.create({
         paddingTop: 10,
         paddingBottom: 20,
     },
-    welcomeText: {
-        fontSize: 26,
-        color: Colors.primary,
-        letterSpacing: 1.5,
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
     subtitle: {
         fontSize: 16,
         color: Colors.grey,
         textAlign: 'center',
-        marginBottom: 20,
+        marginBottom: 15,
     },
     formContainer: {
         marginVertical: 10,

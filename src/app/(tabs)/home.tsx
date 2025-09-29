@@ -1,15 +1,15 @@
 import ListingCard from '@/components/ListingCard';
 import NotificationBadge from '@/components/NotificationBadge';
 import VideoCard from '@/components/VideoCard';
-import { useCategories } from '@/hooks/useCategories';
+import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
 import SignIn from '@/src/app/(screens)/(auth)/signin';
 import SignUp from '@/src/app/(screens)/(auth)/signup';
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = Record<string, never>;
@@ -17,15 +17,16 @@ type Props = Record<string, never>;
 const Home = (props: Props) => {
     const router = useRouter();
     const [showAuthModal, setShowAuthModal] = useState(false);
-    const [isSignIn, setIsSignIn] = useState(true); // Start with sign in
-    const [isAuthenticated] = useState(false); // Mock: user is unauthenticated
+    const [isSignIn, setIsSignIn] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [loadingCategoryId, setLoadingCategoryId] = useState<number | null>(null);
     
-    // Fetch categories
+    // Fetch categories and preload subcategories
     const { data: categories, isLoading: categoriesLoading } = useCategories();
+    const { prefetchSubcategories } = useCategoryMutations();
     
-    // Map emoji icons to Ionicons
-    const getIconFromEmoji = (emoji: string) => {
+    // Map emoji icons to Ionicons - memoized for performance
+    const getIconFromEmoji = useCallback((emoji: string) => {
         const iconMap: { [key: string]: string } = {
             '🎨': 'color-palette-outline',
             '🚗': 'car-outline',
@@ -41,7 +42,7 @@ const Home = (props: Props) => {
             '⚽': 'football-outline',
         };
         return iconMap[emoji] || 'grid-outline';
-    };
+    }, []);
     
     // Mock video data - vertical aspect ratio like TikTok/YouTube Shorts
     const mockVideos = [
@@ -155,42 +156,55 @@ const Home = (props: Props) => {
         },
     ];
     
-    const handleAccountPress = () => {
-        if (isAuthenticated) {
-            // Navigate to dashboard if authenticated
-            // router.push('/(screens)/(dashboard)/');
-        } else {
-            // Show auth modal if not authenticated
-            setShowAuthModal(true);
-        }
-    };
+    const handleAccountPress = useCallback(() => {
+        // Hardcode dashboard redirect for now
+        router.push('/(screens)/(dashboard)');
+    }, [router]);
     
-    const handleSignUpPress = () => {
+    const handleSignUpPress = useCallback(() => {
         setIsSignIn(false);
-    };
+    }, []);
     
-    const handleSignInPress = () => {
+    const handleSignInPress = useCallback(() => {
         setIsSignIn(true);
-    };
+    }, []);
     
-    const closeAuthModal = () => {
+    const closeAuthModal = useCallback(() => {
         setShowAuthModal(false);
-    };
+    }, []);
     
-    const handleVideoPress = (videoId: string) => {
+    const handleVideoPress = useCallback((videoId: string) => {
         // Navigate to Discover page with video ID
         router.push(`/(tabs)/discover?videoId=${videoId}`);
-    };
+    }, [router]);
 
-    const handleListingPress = (listingId: string) => {
+    const handleListingPress = useCallback((listingId: string) => {
         // Navigate to listing details page
         router.push(`/(screens)/listings/${listingId}`);
-    };
+    }, [router]);
 
-    const handleListingFavoritePress = (listingId: string) => {
+    const handleListingFavoritePress = useCallback((listingId: string) => {
         // Handle favorite toggle - could be API call in real app
         console.log('Toggle favorite for listing:', listingId);
-    };
+    }, []);
+
+    // Preload subcategories data when categories are loaded
+    React.useEffect(() => {
+        if (categories && categories.length > 0) {
+            prefetchSubcategories();
+        }
+    }, [categories, prefetchSubcategories]);
+
+    // Optimized category navigation with loading state
+    const handleCategoryPress = useCallback((categoryId: number) => {
+        setLoadingCategoryId(categoryId);
+        // Use requestAnimationFrame to ensure UI updates before navigation
+        requestAnimationFrame(() => {
+            router.push(`/(screens)/subcategories/${categoryId}`);
+            // Clear loading state after a short delay
+            setTimeout(() => setLoadingCategoryId(null), 1000);
+        });
+    }, [router]);
 
     return (
         <View style={styles.container}>
@@ -253,14 +267,26 @@ const Home = (props: Props) => {
                         </View>
                     ) : (
                         <View style={styles.categoriesGrid}>
-                            {categories?.slice(0, 8).map((category, index) => (
-                                <TouchableOpacity key={category.id} style={styles.categoryItem}>
+                            {categories?.slice(0, 8).map((category) => (
+                                <TouchableOpacity 
+                                    key={category.id} 
+                                    style={[
+                                        styles.categoryItem,
+                                        loadingCategoryId === category.id && styles.categoryItemLoading
+                                    ]}
+                                    onPress={() => handleCategoryPress(category.id)}
+                                    activeOpacity={0.7}
+                                >
                                     <View style={styles.categoryIconContainer}>
-                                        <Ionicons 
-                                            name={getIconFromEmoji(category.icon || "") as any} 
-                                            size={24} 
-                                            color={Colors.primary} 
-                                        />
+                                        {loadingCategoryId === category.id ? (
+                                            <ActivityIndicator size="small" color={Colors.primary} />
+                                        ) : (
+                                            <Ionicons 
+                                                name={getIconFromEmoji(category.icon || "") as any} 
+                                                size={24} 
+                                                color={Colors.primary} 
+                                            />
+                                        )}
                                     </View>
                                     <Text style={styles.categoryName}>{category.name}</Text>
                                 </TouchableOpacity>
@@ -273,7 +299,7 @@ const Home = (props: Props) => {
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>For You</Text>
-                        <TouchableOpacity>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/discover')}>
                             <Text style={styles.seeAllText}>See More</Text>
                         </TouchableOpacity>
                     </View>
@@ -298,7 +324,12 @@ const Home = (props: Props) => {
 
                 {/* Listings Near You Section */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Listings Near You</Text>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Listings Near You</Text>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/listings')}>
+                            <Text style={styles.seeAllText}>See More</Text>
+                        </TouchableOpacity>
+                    </View>
                     <View style={styles.listingsGrid}>
                         {mockListings.map((listing) => (
                             <ListingCard
@@ -307,12 +338,12 @@ const Home = (props: Props) => {
                                 title={listing.title}
                                 price={listing.price}
                                 condition={listing.condition}
-                                rating={listing.rating}
                                 location={listing.location}
                                 image={listing.image}
                                 description={listing.description}
                                 views={listing.views}
                                 isFavorite={listing.isFavorite}
+                                viewMode="grid"
                                 onPress={handleListingPress}
                                 onFavoritePress={handleListingFavoritePress}
                             />
@@ -354,7 +385,7 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
-        paddingTop: 0, // Ensure it goes to the very top
+        paddingTop: 0,
     },
     headerContent: {
         flexDirection: 'row',
@@ -438,6 +469,7 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: Colors.black,
+        paddingBottom: 10,
     },
     seeAllText: {
         fontSize: 14,
@@ -486,10 +518,12 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontWeight: '500',
     },
+    categoryItemLoading: {
+        opacity: 0.7,
+    },
     // Video Cards Styles
     videoScrollContent: {
         paddingRight: 16,
-        paddingTop: 8, // Add separation between heading and videos
     },
     // Listings Grid Styles
     listingsGrid: {
