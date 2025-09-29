@@ -4,48 +4,69 @@ import React from 'react';
 const DashboardLayout = () => {
   return (
     <Stack>
-      <Stack.Screen 
-        name="index" 
-        options={{ 
+      <Stack.Screen
+        name='index'
+        options={{
           headerShown: false,
-          title: 'Dashboard'
-        }} 
+          title: 'Dashboard',
+        }}
       />
-      <Stack.Screen 
-        name="conversations" 
-        options={{ 
+      <Stack.Screen
+        name='conversations'
+        options={{
           headerShown: false,
-          title: 'Messages'
-        }} 
+          title: 'Messages',
+        }}
       />
-      <Stack.Screen 
-        name="chat/[id]" 
-        options={{ 
+      <Stack.Screen
+        name='chat/[id]'
+        options={{
           headerShown: false,
-          title: 'Chat'
-        }} 
+          title: 'Chat',
+        }}
       />
-      <Stack.Screen 
-        name="plans-billing" 
-        options={{ 
+      <Stack.Screen
+        name='plans-billing'
+        options={{
           headerShown: false,
-          title: 'Plans & Billing'
-        }} 
+          title: 'Plans & Billing',
+        }}
       />
-      <Stack.Screen 
-        name="transactions" 
-        options={{ 
+      <Stack.Screen
+        name='transactions'
+        options={{
           headerShown: false,
-          title: 'Transactions'
-        }} 
+          title: 'Transactions',
+        }}
       />
-      <Stack.Screen 
-        name="payment" 
-        options={{ 
+      <Stack.Screen
+        name='payment'
+        options={{
           headerShown: false,
-          title: 'Payment'
-        }} 
+          title: 'Payment',
+        }}
       />
+      <Stack.Screen
+        name='edit-listing'
+        options={{
+          headerShown: false,
+          title: 'Edit Listing',
+        }}
+      />
+       <Stack.Screen
+         name='mylistings'
+         options={{
+            headerShown: false,
+            title: 'My Listings',
+         }}
+       />
+       <Stack.Screen
+         name='saved'
+         options={{
+            headerShown: false,
+            title: 'Saved Items',
+         }}
+       />
     </Stack>
   );
 };

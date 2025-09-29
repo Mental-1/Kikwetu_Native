@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Listing {
@@ -14,7 +14,7 @@ interface Listing {
   price: string;
   location: string;
   category: string;
-  status: 'active' | 'pending' | 'rejected' | 'under-review' | 'sold' | 'draft';
+  status: 'active' | 'pending' | 'rejected' | 'under-review' | 'sold' | 'draft' | 'expired';
   images: string[];
   createdAt: string;
   views: number;
@@ -103,6 +103,30 @@ const MyListings = () => {
       images: ['https://via.placeholder.com/300x200'],
       createdAt: '2024-01-09',
       views: 0
+    },
+    {
+      id: '7',
+      title: 'Canon EOS R5 Camera',
+      description: 'Professional mirrorless camera with 45MP sensor, 4K video recording.',
+      price: 'KES 180,000',
+      location: 'Nairobi, Kenya',
+      category: 'Electronics',
+      status: 'expired',
+      images: ['https://via.placeholder.com/300x200'],
+      createdAt: '2024-01-05',
+      views: 156
+    },
+    {
+      id: '8',
+      title: 'BMW X5 2019',
+      description: 'Luxury SUV with premium interior, low mileage, full service history.',
+      price: 'KES 4,500,000',
+      location: 'Mombasa, Kenya',
+      category: 'Vehicles',
+      status: 'expired',
+      images: ['https://via.placeholder.com/300x200'],
+      createdAt: '2024-01-03',
+      views: 203
     }
   ];
 
@@ -114,6 +138,7 @@ const MyListings = () => {
     { id: 'rejected', label: 'Rejected', count: listings.filter(l => l.status === 'rejected').length },
     { id: 'sold', label: 'Sold', count: listings.filter(l => l.status === 'sold').length },
     { id: 'draft', label: 'Draft', count: listings.filter(l => l.status === 'draft').length },
+    { id: 'expired', label: 'Expired', count: listings.filter(l => l.status === 'expired').length },
   ];
 
   const handleBack = () => {
@@ -125,15 +150,19 @@ const MyListings = () => {
   };
 
   const handleEditListing = (listingId: string) => {
-    showAlert({
-      title: 'Edit Listing',
-      message: 'Redirecting to listing editor...',
-      buttonText: 'OK',
-      icon: 'create-outline',
-      iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Edit functionality will be implemented');
+    const listing = listings.find(l => l.id === listingId);
+    if (!listing) return;
+
+    router.push({
+      pathname: '/(screens)/(dashboard)/edit-listing',
+      params: {
+        listingId: listing.id,
+        title: listing.title,
+        description: listing.description,
+        price: listing.price,
+        location: listing.location,
+        category: listing.category,
+        status: listing.status
       }
     });
   };
@@ -180,6 +209,20 @@ const MyListings = () => {
     });
   };
 
+  const handleRenewListing = (listingId: string) => {
+    showAlert({
+      title: 'Renew Listing',
+      message: 'Your listing will be renewed and made active again. This will extend the listing duration.',
+      buttonText: 'Renew Now',
+      icon: 'refresh-circle-outline',
+      iconColor: '#4CAF50',
+      buttonColor: '#4CAF50',
+      onPress: () => {
+        success('Success', 'Listing renewed successfully');
+      }
+    });
+  };
+
   const handleViewListing = (listingId: string) => {
     showAlert({
       title: 'View Listing',
@@ -202,6 +245,7 @@ const MyListings = () => {
       case 'rejected': return '#F44336';
       case 'sold': return '#9C27B0';
       case 'draft': return '#6B7280';
+      case 'expired': return '#FF5722';
       default: return Colors.grey;
     }
   };
@@ -214,6 +258,7 @@ const MyListings = () => {
       case 'rejected': return 'close-circle';
       case 'sold': return 'trophy-outline';
       case 'draft': return 'document-text-outline';
+      case 'expired': return 'time-outline';
       default: return 'help-circle';
     }
   };
@@ -226,6 +271,7 @@ const MyListings = () => {
       case 'rejected': return 'Rejected';
       case 'sold': return 'Sold';
       case 'draft': return 'Draft';
+      case 'expired': return 'Expired';
       default: return status;
     }
   };
@@ -262,17 +308,6 @@ const MyListings = () => {
 
     return (
       <View style={styles.contextMenu}>
-        <TouchableOpacity
-          style={styles.contextMenuItem}
-          onPress={() => {
-            handleViewListing(listingId);
-            setShowContextMenu(null);
-          }}
-        >
-          <Ionicons name="eye-outline" size={20} color={Colors.primary} />
-          <Text style={styles.contextMenuText}>View</Text>
-        </TouchableOpacity>
-
         {listing.status !== 'sold' && (
           <TouchableOpacity
             style={styles.contextMenuItem}
@@ -312,6 +347,19 @@ const MyListings = () => {
           </TouchableOpacity>
         )}
 
+        {listing.status === 'expired' && (
+          <TouchableOpacity
+            style={styles.contextMenuItem}
+            onPress={() => {
+              handleRenewListing(listingId);
+              setShowContextMenu(null);
+            }}
+          >
+            <Ionicons name="refresh-circle-outline" size={20} color="#4CAF50" />
+            <Text style={[styles.contextMenuText, { color: '#4CAF50' }]}>Renew Listing</Text>
+          </TouchableOpacity>
+        )}
+
         {listing.status !== 'sold' && (
           <TouchableOpacity
             style={styles.contextMenuItem}
@@ -328,57 +376,73 @@ const MyListings = () => {
     );
   };
 
-  const renderListing = (listing: Listing) => (
-    <View key={listing.id} style={styles.listingCard}>
-      <View style={styles.listingHeader}>
-        <View style={styles.listingInfo}>
-          <View style={styles.statusContainer}>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(listing.status) + '20' }]}>
-              <Ionicons 
-                name={getStatusIcon(listing.status)} 
-                size={14} 
-                color={getStatusColor(listing.status)} 
-              />
-              <Text style={[styles.statusText, { color: getStatusColor(listing.status) }]}>
-                {getStatusLabel(listing.status)}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.listingTitle}>{listing.title}</Text>
-          <Text style={styles.listingDescription} numberOfLines={2}>
-            {listing.description}
-          </Text>
-          <View style={styles.listingMeta}>
-            <Text style={styles.listingPrice}>{listing.price}</Text>
-            <Text style={styles.listingLocation}>{listing.location}</Text>
-          </View>
-        </View>
-        <View style={styles.listingActions}>
-          <Image source={{ uri: listing.images[0] }} style={styles.listingImage} />
+  const screenWidth = Dimensions.get('window').width;
+  const cardWidth = (screenWidth - 48) / 2; // Account for padding and gap
+
+  const renderListing = ({ item: listing }: { item: Listing }) => (
+    <TouchableOpacity 
+      style={[styles.listingCard, { width: cardWidth }]}
+      onPress={() => handleViewListing(listing.id)}
+      activeOpacity={0.8}
+    >
+      <View style={styles.listingImageContainer}>
+        <Image 
+          source={{ uri: listing.images[0] }} 
+          style={styles.listingImage}
+          resizeMode="cover"
+        />
+        <View style={styles.imageOverlay}>
           <TouchableOpacity
             style={styles.moreButton}
-            onPress={() => setShowContextMenu(showContextMenu === listing.id ? null : listing.id)}
+            onPress={(e) => {
+              e.stopPropagation();
+              setShowContextMenu(showContextMenu === listing.id ? null : listing.id);
+            }}
           >
-            <Ionicons name="ellipsis-vertical" size={20} color={Colors.grey} />
+            <Ionicons name="ellipsis-vertical" size={16} color={Colors.white} />
           </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.listingContent}>
+        <Text style={styles.listingTitle} numberOfLines={2}>
+          {listing.title}
+        </Text>
+        <View style={styles.priceRow}>
+          <Text style={styles.listingPrice}>{listing.price}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(listing.status) + '20' }]}>
+            <Ionicons 
+              name={getStatusIcon(listing.status)} 
+              size={10} 
+              color={getStatusColor(listing.status)} 
+            />
+            <Text style={[styles.statusText, { color: getStatusColor(listing.status), fontSize: 9 }]}>
+              {getStatusLabel(listing.status)}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.listingLocation} numberOfLines={1}>
+          {listing.location}
+        </Text>
+        <View style={styles.listingStats}>
+          <Ionicons name="eye-outline" size={12} color={Colors.grey} />
+          <Text style={styles.statsText}>{listing.views}</Text>
+          <Text style={styles.statsSeparator}>•</Text>
+          <Text style={styles.statsText}>{listing.category}</Text>
         </View>
       </View>
 
       {listing.rejectionReason && (
         <View style={styles.rejectionReason}>
-          <Ionicons name="warning-outline" size={16} color="#F44336" />
-          <Text style={styles.rejectionText}>{listing.rejectionReason}</Text>
+          <Ionicons name="warning-outline" size={12} color="#F44336" />
+          <Text style={styles.rejectionText} numberOfLines={2}>
+            {listing.rejectionReason}
+          </Text>
         </View>
       )}
 
-      <View style={styles.listingFooter}>
-        <Text style={styles.listingStats}>
-          {listing.views} views • {listing.category} • {listing.createdAt}
-        </Text>
-      </View>
-
       {showContextMenu === listing.id && renderContextMenu(listing.id)}
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -396,7 +460,7 @@ const MyListings = () => {
         </TouchableOpacity>
       </SafeAreaView>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.content}>
         {/* Search Bar */}
         <View style={styles.searchSection}>
           <View style={styles.searchContainer}>
@@ -423,8 +487,12 @@ const MyListings = () => {
           </ScrollView>
         </View>
 
-        {/* Listings */}
-        <View style={styles.listingsSection}>
+        {/* Listings Grid */}
+        <TouchableOpacity 
+          style={styles.listingsSection}
+          activeOpacity={1}
+          onPress={() => setShowContextMenu(null)}
+        >
           {filteredListings.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="list-outline" size={64} color={Colors.grey} />
@@ -437,15 +505,18 @@ const MyListings = () => {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.listingsContainer}>
-              {filteredListings.map(renderListing)}
-            </View>
+            <FlatList
+              data={filteredListings}
+              renderItem={renderListing}
+              keyExtractor={(item) => item.id}
+              numColumns={2}
+              columnWrapperStyle={styles.row}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listingsContainer}
+            />
           )}
-        </View>
-
-        {/* Bottom padding for better scrolling */}
-        <View style={styles.bottomPadding} />
-      </ScrollView>
+        </TouchableOpacity>
+      </View>
       
       {/* Custom Alert Component */}
       <AlertComponent />
@@ -546,115 +617,128 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listingsSection: {
+    flex: 1,
     paddingHorizontal: 16,
   },
   listingsContainer: {
-    gap: 16,
+    paddingBottom: 24,
+  },
+  row: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   listingCard: {
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: 16,
-    elevation: 1,
+    overflow: 'hidden',
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     position: 'relative',
   },
-  listingHeader: {
+  listingImageContainer: {
+    position: 'relative',
+    height: 120,
+  },
+  listingImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: Colors.lightgrey,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: 8,
     flexDirection: 'row',
-    marginBottom: 12,
-  },
-  listingInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  statusContainer: {
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 8,
     fontWeight: '600',
-    marginLeft: 4,
+    marginLeft: 2,
+  },
+  moreButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  listingContent: {
+    padding: 12,
   },
   listingTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: Colors.black,
-    marginBottom: 4,
+    marginBottom: 6,
+    lineHeight: 18,
   },
-  listingDescription: {
-    fontSize: 14,
-    color: Colors.grey,
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  listingMeta: {
+  priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 4,
   },
   listingPrice: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: Colors.primary,
+    flex: 1,
   },
   listingLocation: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.grey,
-  },
-  listingActions: {
-    alignItems: 'flex-end',
-  },
-  listingImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
     marginBottom: 8,
   },
-  moreButton: {
-    padding: 4,
+  listingStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statsText: {
+    fontSize: 10,
+    color: Colors.grey,
+    marginLeft: 2,
+  },
+  statsSeparator: {
+    fontSize: 10,
+    color: Colors.grey,
+    marginHorizontal: 4,
   },
   rejectionReason: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: '#FFEBEE',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
+    padding: 8,
+    margin: 12,
+    borderRadius: 6,
   },
   rejectionText: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#F44336',
-    marginLeft: 8,
+    marginLeft: 6,
     flex: 1,
-    lineHeight: 16,
-  },
-  listingFooter: {
-    borderTopWidth: 0.5,
-    borderTopColor: Colors.lightgrey,
-    paddingTop: 12,
-  },
-  listingStats: {
-    fontSize: 12,
-    color: Colors.grey,
+    lineHeight: 14,
   },
   contextMenu: {
     position: 'absolute',
     top: 60,
-    right: 16,
+    right: 8,
     backgroundColor: Colors.white,
     borderRadius: 8,
     padding: 8,
@@ -667,7 +751,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 4,
     zIndex: 1000,
-    minWidth: 160,
+    minWidth: 140,
   },
   contextMenuItem: {
     flexDirection: 'row',
@@ -676,7 +760,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   contextMenuText: {
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.black,
     marginLeft: 8,
     fontWeight: '500',
@@ -708,9 +792,6 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
-  },
-  bottomPadding: {
-    height: 24,
   },
 });
 
