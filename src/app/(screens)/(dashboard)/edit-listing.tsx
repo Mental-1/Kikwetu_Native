@@ -1,10 +1,13 @@
+import { useListingImageUpload } from '@/hooks/useImageUpload';
 import { Colors } from '@/src/constants/constant';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
+// import { formatFileSize } from '@/utils/imageUtils';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
-import { Alert, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface ListingImage {
@@ -29,12 +32,30 @@ const EditListing = () => {
   const { showAlert, AlertComponent } = useCustomAlert();
   const { success, error } = createAlertHelpers(showAlert);
 
+  // Image upload hook
+  const {
+    isProcessing,
+    isUploading,
+    progress,
+    // uploadResults,
+    error: uploadError,
+    processAndUploadImages,
+    initializeUser,
+    resetState,
+  } = useListingImageUpload(params.id as string);
+
   const [isLoading, setIsLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [images, setImages] = useState<ListingImage[]>([
     { id: '1', uri: 'https://via.placeholder.com/300x200' },
     { id: '2', uri: 'https://via.placeholder.com/300x200' },
   ]);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]); // Used in handleSaveListing
+
+  // Initialize user on component mount
+  useEffect(() => {
+    initializeUser();
+  }, [initializeUser]);
 
   const [formData, setFormData] = useState<EditListingData>({
     title: params.title as string || 'iPhone 14 Pro Max 256GB',
@@ -46,16 +67,7 @@ const EditListing = () => {
     features: ['Original Box', 'Charger Included', 'Warranty Available'],
   });
 
-  const categories = [
-    'Electronics', 'Vehicles', 'Fashion', 'Furniture', 'Home & Garden',
-    'Sports & Recreation', 'Books & Media', 'Health & Beauty', 'Baby & Kids',
-    'Business Equipment', 'Real Estate', 'Other'
-  ];
-
-  const conditions = ['Brand New', 'Like New', 'Excellent', 'Good', 'Fair', 'Poor'];
-
-  const screenWidth = Dimensions.get('window').width;
-  const imageWidth = screenWidth - 32;
+  // Removed unused variables
 
   const handleBack = () => {
     showAlert({
@@ -77,26 +89,79 @@ const EditListing = () => {
       return;
     }
 
-    // Simulate image picker
     Alert.alert(
       'Add Image',
       'Choose an image source',
       [
-        { text: 'Camera', onPress: () => simulateImagePicker('camera') },
-        { text: 'Gallery', onPress: () => simulateImagePicker('gallery') },
+        { text: 'Camera', onPress: () => pickImageFromCamera() },
+        { text: 'Gallery', onPress: () => pickImageFromGallery() },
         { text: 'Cancel', style: 'cancel' }
       ]
     );
   };
 
-  const simulateImagePicker = (source: string) => {
-    const newImage: ListingImage = {
-      id: Date.now().toString(),
-      uri: `https://via.placeholder.com/300x200?text=${source}`,
-      isNew: true
-    };
-    setImages(prev => [...prev, newImage]);
-    success('Success', `Image added from ${source}`);
+  const pickImageFromCamera = async () => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      error('Permission Required', 'Permission to access camera is required!');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const newImage: ListingImage = {
+        id: Date.now().toString(),
+        uri: result.assets[0].uri,
+        isNew: true
+      };
+      setImages(prev => [...prev, newImage]);
+      
+      // Process and upload the image
+      await handleImageUpload([result.assets[0].uri]);
+    }
+  };
+
+  const pickImageFromGallery = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      error('Permission Required', 'Permission to access photo library is required!');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      allowsEditing: false,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets) {
+      const newImages: ListingImage[] = result.assets.map(asset => ({
+        id: Date.now().toString() + Math.random(),
+        uri: asset.uri,
+        isNew: true
+      }));
+      
+      // Check if adding these images would exceed the limit
+      if (images.length + newImages.length > 10) {
+        error('Error', 'You can only add up to 10 images total');
+        return;
+      }
+      
+      setImages(prev => [...prev, ...newImages]);
+      
+      // Process and upload the images
+      const imageUris = result.assets.map(asset => asset.uri);
+      await handleImageUpload(imageUris);
+    }
   };
 
   const handleRemoveImage = (imageId: string) => {
@@ -119,11 +184,47 @@ const EditListing = () => {
     });
   };
 
-  const handleReorderImages = (fromIndex: number, toIndex: number) => {
-    const newImages = [...images];
-    const [movedImage] = newImages.splice(fromIndex, 1);
-    newImages.splice(toIndex, 0, movedImage);
-    setImages(newImages);
+  // Image reordering functionality (for future drag-and-drop implementation)
+  // const handleReorderImages = (fromIndex: number, toIndex: number) => {
+  //   const newImages = [...images];
+  //   const [movedImage] = newImages.splice(fromIndex, 1);
+  //   newImages.splice(toIndex, 0, movedImage);
+  //   setImages(newImages);
+  // };
+
+  const handleSetMainImage = (imageId: string) => {
+    const imageIndex = images.findIndex(img => img.id === imageId);
+    if (imageIndex !== -1) {
+      const newImages = [...images];
+      const [mainImage] = newImages.splice(imageIndex, 1);
+      newImages.unshift(mainImage);
+      setImages(newImages);
+      setCurrentImageIndex(0);
+      success('Success', 'Main image updated');
+    }
+  };
+
+  const handleImageUpload = async (imageUris: string[]) => {
+    try {
+      const results = await processAndUploadImages(imageUris);
+      
+      if (results && results.successCount > 0) {
+        const uploadedUrls = results.results
+          .filter(result => result.success)
+          .map(result => result.url);
+        
+        setUploadedImageUrls(prev => [...prev, ...uploadedUrls]);
+        success('Success', `${results.successCount} image(s) uploaded successfully`);
+        
+        if (results.errorCount > 0) {
+          error('Warning', `${results.errorCount} image(s) failed to upload`);
+        }
+      } else {
+        error('Upload Failed', uploadError || 'Failed to upload images');
+      }
+    } catch {
+      error('Upload Error', 'Failed to process and upload images');
+    }
   };
 
   const handleInputChange = (field: keyof EditListingData, value: string) => {
@@ -178,12 +279,20 @@ const EditListing = () => {
     setIsLoading(true);
 
     try {
-      // Simulate API call
+      // Prepare listing data with uploaded images
+      // const listingData = {
+      //   ...formData,
+      //   images: uploadedImageUrls.length > 0 ? uploadedImageUrls : images.map(img => img.uri),
+      //   updatedAt: new Date().toISOString(),
+      // };
+
+      // Simulate API call - in real app, this would update the database
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       success('Success', 'Listing updated successfully!');
+      resetState(); // Reset upload state
       router.back();
-    } catch (err) {
+    } catch {
       error('Error', 'Failed to update listing. Please try again.');
     } finally {
       setIsLoading(false);
@@ -192,18 +301,30 @@ const EditListing = () => {
 
   const renderImageItem = ({ item, index }: { item: ListingImage; index: number }) => (
     <View style={styles.imageItem}>
-      <Image source={{ uri: item.uri }} style={styles.thumbnailImage} resizeMode="cover" />
+      <TouchableOpacity 
+        onPress={() => handleSetMainImage(item.id)}
+        style={styles.thumbnailContainer}
+        activeOpacity={0.7}
+      >
+        <Image source={{ uri: item.uri }} style={styles.thumbnailImage} resizeMode="cover" />
+        {index === 0 && (
+          <View style={styles.mainImageBadge}>
+            <Text style={styles.mainImageText}>Main</Text>
+          </View>
+        )}
+        {index !== 0 && (
+          <View style={styles.setMainOverlay}>
+            <Ionicons name="star" size={16} color={Colors.white} />
+            <Text style={styles.setMainText}>Set as main</Text>
+          </View>
+        )}
+      </TouchableOpacity>
       <TouchableOpacity
         style={styles.removeImageButton}
         onPress={() => handleRemoveImage(item.id)}
       >
         <Ionicons name="close-circle" size={20} color="#F44336" />
       </TouchableOpacity>
-      {index === 0 && (
-        <View style={styles.mainImageBadge}>
-          <Text style={styles.mainImageText}>Main</Text>
-        </View>
-      )}
     </View>
   );
 
@@ -243,7 +364,19 @@ const EditListing = () => {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Images Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Images ({images.length}/10)</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Images ({images.length}/10)</Text>
+            {(isProcessing || isUploading) && (
+              <View style={styles.uploadStatus}>
+                <Text style={styles.uploadStatusText}>
+                  {isProcessing ? 'Processing...' : isUploading ? 'Uploading...' : ''}
+                </Text>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: `${progress}%` }]} />
+                </View>
+              </View>
+            )}
+          </View>
           
           {/* Main Image */}
           <View style={styles.mainImageContainer}>
@@ -436,6 +569,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  uploadStatus: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  uploadStatusText: {
+    fontSize: 12,
+    color: Colors.primary,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: Colors.lightgrey,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.primary,
+    borderRadius: 2,
+  },
   mainImageContainer: {
     position: 'relative',
     height: 200,
@@ -478,11 +632,32 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: 12,
   },
+  thumbnailContainer: {
+    position: 'relative',
+  },
   thumbnailImage: {
     width: 60,
     height: 60,
     borderRadius: 8,
     backgroundColor: Colors.lightgrey,
+  },
+  setMainOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    paddingVertical: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  setMainText: {
+    color: Colors.white,
+    fontSize: 8,
+    fontWeight: '600',
+    marginTop: 1,
   },
   removeImageButton: {
     position: 'absolute',
