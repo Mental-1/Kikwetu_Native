@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { lazy, Suspense, useEffect, useState } from 'react';
-import { Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Lazy load the modals for better performance
@@ -90,14 +90,21 @@ const mockListings = [
   },
 ];
 
-export default function Listings() {
+// Loading component for lazy loading
+const ListingsLoading = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+    <ActivityIndicator size="large" color={Colors.primary} />
+  </View>
+);
+
+function ListingsContent() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [isGridView, setIsGridView] = useState(true);
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
-  const [appliedFilters, setAppliedFilters] = useState<any>(null);
+  const [, setAppliedFilters] = useState<any>(null);
   
   // Data hooks
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -169,7 +176,6 @@ export default function Listings() {
         title={item.title}
         price={item.price}
         condition={item.condition}
-        rating={item.rating}
         location={item.location}
         image={item.image}
         description={item.description}
@@ -188,7 +194,6 @@ export default function Listings() {
       title={item.title}
       price={item.price}
       condition={item.condition}
-      rating={item.rating}
       location={item.location}
       image={item.image}
       description={item.description}
@@ -419,3 +424,11 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
 });
+
+const Listings = () => (
+  <Suspense fallback={<ListingsLoading />}>
+    <ListingsContent />
+  </Suspense>
+);
+
+export default Listings;

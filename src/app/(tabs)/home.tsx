@@ -3,15 +3,17 @@ import NotificationBadge from '@/components/NotificationBadge';
 import VideoCard from '@/components/VideoCard';
 import { useAuth } from '@/contexts/authContext';
 import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
-import SignIn from '@/src/app/(screens)/(auth)/signin';
-import SignUp from '@/src/app/(screens)/(auth)/signup';
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Lazy load auth modals for better performance
+const LazySignIn = lazy(() => import('@/src/app/(screens)/(auth)/signin'));
+const LazySignUp = lazy(() => import('@/src/app/(screens)/(auth)/signup'));
 
 type Props = Record<string, never>;
 
@@ -345,12 +347,12 @@ const Home = (props: Props) => {
                                 title={listing.title}
                                 price={listing.price}
                                 condition={listing.condition}
-                                rating={listing.rating}
                                 location={listing.location}
                                 image={listing.image}
                                 description={listing.description}
                                 views={listing.views}
                                 isFavorite={listing.isFavorite}
+                                viewMode="grid"
                                 onPress={handleListingPress}
                                 onFavoritePress={handleListingFavoritePress}
                             />
@@ -362,17 +364,25 @@ const Home = (props: Props) => {
                 <View style={styles.bottomPadding} />
             </ScrollView>
             
-            {/* Auth Modals */}
-            <SignIn 
-                visible={showAuthModal && isSignIn}
-                onClose={closeAuthModal}
-                onSwitchToSignUp={handleSignUpPress}
-            />
-            <SignUp 
-                visible={showAuthModal && !isSignIn}
-                onClose={closeAuthModal}
-                onSwitchToSignIn={handleSignInPress}
-            />
+            {/* Auth Modals - Lazy Loaded */}
+            {showAuthModal && isSignIn && (
+                <Suspense fallback={<View />}>
+                    <LazySignIn 
+                        visible={showAuthModal && isSignIn}
+                        onClose={closeAuthModal}
+                        onSwitchToSignUp={handleSignUpPress}
+                    />
+                </Suspense>
+            )}
+            {showAuthModal && !isSignIn && (
+                <Suspense fallback={<View />}>
+                    <LazySignUp 
+                        visible={showAuthModal && !isSignIn}
+                        onClose={closeAuthModal}
+                        onSwitchToSignIn={handleSignInPress}
+                    />
+                </Suspense>
+            )}
         </View>
   );
 };

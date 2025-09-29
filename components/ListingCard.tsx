@@ -8,7 +8,6 @@ interface ListingCardProps {
     title: string;
     price: string;
     condition: string;
-    rating: string;
     location: string;
     image: string;
     description?: string;
@@ -27,7 +26,6 @@ const ListingCard: React.FC<ListingCardProps> = ({
     title,
     price,
     condition,
-    rating,
     location,
     image,
     description,
@@ -138,13 +136,10 @@ const ListingCard: React.FC<ListingCardProps> = ({
                     </Text>
                 )}
 
-                {/* Condition and Rating Tags */}
+                {/* Condition Tag */}
                 <View style={styles.tagsContainer}>
-                    <View style={styles.tag}>
-                        <Text style={styles.tagText}>{condition}</Text>
-                    </View>
-                    <View style={styles.tag}>
-                        <Text style={styles.tagText}>{rating}</Text>
+                    <View style={styles.conditionTag}>
+                        <Text style={styles.conditionTagText}>{condition}</Text>
                     </View>
                 </View>
 
@@ -227,15 +222,15 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         gap: 6,
     },
-    tag: {
-        backgroundColor: Colors.lightgrey,
+    conditionTag: {
+        backgroundColor: Colors.black,
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 12,
     },
-    tagText: {
+    conditionTagText: {
         fontSize: 12,
-        color: Colors.black,
+        color: Colors.white,
         fontWeight: '500',
     },
     footer: {

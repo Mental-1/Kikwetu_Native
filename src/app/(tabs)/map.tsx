@@ -4,14 +4,21 @@ import { getLocationWithAddress, LocationData } from '@/utils/locationUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { Suspense, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const MapScreen = () => {
+// Loading component for lazy loading
+const MapLoading = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.black }}>
+    <ActivityIndicator size="large" color={Colors.primary} />
+  </View>
+);
+
+const MapScreenContent = () => {
   const router = useRouter();
-  const [userLocation, setUserLocation] = useState<LocationData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [, setUserLocation] = useState<LocationData | null>(null);
+  const [, setLoading] = useState(true);
 
   // Mock listings with coordinates for demonstration
   const mockListings = [
@@ -285,5 +292,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
 });
+
+const MapScreen = () => (
+  <Suspense fallback={<MapLoading />}>
+    <MapScreenContent />
+  </Suspense>
+);
 
 export default MapScreen;

@@ -1,8 +1,8 @@
 import DiscoverOverlay from '@/components/ui/discover/discoverOverlay';
 import { Colors } from '@/src/constants/constant';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Dimensions, FlatList, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Dimensions, FlatList, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,7 +23,14 @@ interface VideoItem {
     userAvatar: string;
 }
 
-const Discover = () => {
+// Loading component for lazy loading
+const DiscoverLoading = () => (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.black }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+    </View>
+);
+
+const DiscoverContent = () => {
     const [activeTab, setActiveTab] = useState<'Following' | 'Near You' | 'For You'>('For You');
     const [showSearch, setShowSearch] = useState(false);
     const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
@@ -114,7 +121,7 @@ const Discover = () => {
     };
 
     const VideoItemComponent = ({ item, index }: { item: VideoItem; index: number }) => {
-        const [isPlaying, setIsPlaying] = useState(false);
+        const [, setIsPlaying] = useState(false);
         const [isMuted, setIsMuted] = useState(true);
         
         const player = useVideoPlayer(item.videoUrl, player => {
@@ -132,7 +139,7 @@ const Discover = () => {
                 player.pause();
                 setIsPlaying(false);
             }
-        }, [currentVideoIndex, index, player]);
+        }, [currentVideoIndex, index, player]); // eslint-disable-line react-hooks/exhaustive-deps
 
         // Handle mute/unmute
         const toggleMute = useCallback(() => {
@@ -251,5 +258,11 @@ const styles = StyleSheet.create({
         height: '100%',
     },
 });
+
+const Discover = () => (
+    <Suspense fallback={<DiscoverLoading />}>
+        <DiscoverContent />
+    </Suspense>
+);
 
 export default Discover;
