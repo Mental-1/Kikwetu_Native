@@ -124,7 +124,7 @@ const MapScreen = () => {
       </View>
 
       {/* Floating Header */}
-      <SafeAreaView style={styles.floatingHeader}>
+      <SafeAreaView style={styles.floatingHeader} pointerEvents="box-none">
         <View style={styles.headerContent}>
           <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
             <Ionicons name="chevron-back" size={24} color={Colors.white} />

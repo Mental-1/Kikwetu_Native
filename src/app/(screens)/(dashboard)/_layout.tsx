@@ -1,11 +1,31 @@
+import { Stack } from 'expo-router';
 import React from 'react';
-import { View, Text } from 'react-native';
 
 const DashboardLayout = () => {
   return (
-    <View>
-      <Text>Dashboard Layout</Text>
-    </View>
+    <Stack>
+      <Stack.Screen 
+        name="index" 
+        options={{ 
+          headerShown: false,
+          title: 'Dashboard'
+        }} 
+      />
+      <Stack.Screen 
+        name="conversations" 
+        options={{ 
+          headerShown: false,
+          title: 'Messages'
+        }} 
+      />
+      <Stack.Screen 
+        name="chat/[id]" 
+        options={{ 
+          headerShown: false,
+          title: 'Chat'
+        }} 
+      />
+    </Stack>
   );
 };
 

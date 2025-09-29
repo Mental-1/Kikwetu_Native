@@ -24,8 +24,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.kawa_ida.Kikwetu",
-      "appAuthRedirectScheme": "kikwetu"
+      "package": "com.kawa_ida.Kikwetu"
     },
     "web": {
       "output": "server",

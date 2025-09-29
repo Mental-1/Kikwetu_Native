@@ -2,7 +2,7 @@ import { Colors } from '@/src/constants/constant';
 import * as Location from 'expo-location';
 import React, { useEffect, useState } from 'react';
 import { Alert, Dimensions, StyleSheet, View } from 'react-native';
-import MapView, { Marker, Region } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT, Region } from 'react-native-maps';
 
 const { width, height } = Dimensions.get('window');
 
@@ -85,9 +85,10 @@ const MapViewComponent: React.FC<MapViewComponentProps> = ({
   return (
     <View style={[styles.container, style]}>
       <MapView
+        provider={PROVIDER_DEFAULT}
         style={styles.map}
         region={region}
-        onRegionChange={handleRegionChange}
+        onRegionChangeComplete={handleRegionChange}
         showsUserLocation={showUserLocation}
         showsMyLocationButton={false}
         showsCompass={false}
@@ -106,6 +107,9 @@ const MapViewComponent: React.FC<MapViewComponentProps> = ({
         pitchEnabled={true}
         rotateEnabled={true}
         cacheEnabled={true}
+        followsUserLocation={false}
+        userLocationAnnotationTitle=""
+        userLocationCalloutEnabled={false}
       >
         {/* User Location Marker */}
         {userLocation && showUserLocation && (

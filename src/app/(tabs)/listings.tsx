@@ -1,13 +1,16 @@
-import FiltersModal from '@/components/FiltersModal';
 import ListingCard from '@/components/ListingCard';
 import SortModal from '@/components/SortModal';
+import { useCategories, useCategoryMutations, useSubcategories } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Lazy load the modals for better performance
+const LazyFiltersModal = lazy(() => import('@/components/FiltersModal'));
 
 const { width } = Dimensions.get('window');
 
@@ -95,6 +98,21 @@ export default function Listings() {
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<any>(null);
+  
+  // Data hooks
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+  const { data: subcategories, isLoading: subcategoriesLoading } = useSubcategories();
+  const { prefetchSubcategories } = useCategoryMutations();
+
+  // Prefetch subcategories when filters modal opens
+  useEffect(() => {
+    if (showFilters && categories && categories.length > 0) {
+      // Prefetch all subcategories for better performance
+      categories.forEach(() => {
+        prefetchSubcategories();
+      });
+    }
+  }, [showFilters, categories, prefetchSubcategories]);
 
   const handleBackPress = () => {
     router.push('/(tabs)/home');
@@ -267,12 +285,19 @@ export default function Listings() {
         )}
       </View>
 
-      {/* Filters Modal */}
-      <FiltersModal
-        visible={showFilters}
-        onClose={() => setShowFilters(false)}
-        onApplyFilters={handleApplyFilters}
-      />
+      {/* Filters Modal - Lazy Loaded */}
+      {showFilters && (
+        <Suspense fallback={<View />}>
+          <LazyFiltersModal
+            visible={showFilters}
+            onClose={() => setShowFilters(false)}
+            onApplyFilters={handleApplyFilters}
+            categories={categories || []}
+            subcategories={subcategories || []}
+            isLoading={categoriesLoading || subcategoriesLoading}
+          />
+        </Suspense>
+      )}
 
       {/* Sort Modal */}
       <SortModal

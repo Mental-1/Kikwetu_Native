@@ -20,7 +20,7 @@ const Profile = () => {
   };
 
   const handleMessage = () => {
-    console.log('Open message');
+    router.push('/(screens)/(dashboard)/conversations');
   };
 
   // Mock data for listings and stores

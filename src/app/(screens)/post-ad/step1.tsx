@@ -2,6 +2,7 @@ import CustomDialog from '@/components/ui/CustomDialog';
 import { useCategories, useSubcategoriesByCategory } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { useAppStore } from '@/stores/useAppStore';
+import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { getLocationWithAddress } from '@/utils/locationUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -41,6 +42,9 @@ export default function Step1() {
   const [priceInput, setPriceInput] = useState('');
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
+  
+  const { showAlert, AlertComponent } = useCustomAlert();
+  const { locationSuccess: showLocationSuccessAlert, error: showErrorAlert } = createAlertHelpers(showAlert);
 
   // Fetch categories and subcategories
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -124,13 +128,15 @@ export default function Step1() {
         const locationText = locationData.address || 
           `${locationData.latitude.toFixed(6)}, ${locationData.longitude.toFixed(6)}`;
         setLocation(locationText);
-        Alert.alert('Success', 'Location detected successfully!');
+        
+        // Show success alert with auto-dismiss after 2 seconds
+        showLocationSuccessAlert('Your location has been automatically detected and filled in.');
       } else {
-        Alert.alert('Error', 'Unable to detect your location. Please enter it manually.');
+        showErrorAlert('Location Error', 'Unable to detect your location. Please enter it manually.');
       }
     } catch (error) {
       console.error('Location error:', error);
-      Alert.alert(
+      showErrorAlert(
         'Location Error', 
         'Failed to get your location. Please check your location permissions and try again, or enter your location manually.'
       );
@@ -422,6 +428,9 @@ export default function Step1() {
         icon="location-outline"
         iconColor={Colors.primary}
       />
+
+      {/* Custom Alert */}
+      <AlertComponent />
     </View>
   );
 }
@@ -494,8 +503,10 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   locationButton: {
-    backgroundColor: Colors.lightgrey,
+    backgroundColor: Colors.white,
     borderRadius: 8,
+    borderColor: Colors.lightgrey,
+    borderWidth: 0.6,
     padding: 12,
     minWidth: 44,
     alignItems: 'center',
@@ -582,7 +593,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  // New dropdown styles
   rowContainer: {
     flexDirection: 'row',
     gap: 12,
@@ -649,7 +659,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 12,
   },
-  // Checkbox styles
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',

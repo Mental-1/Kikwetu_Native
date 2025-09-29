@@ -1,6 +1,5 @@
-import ContactSellerModal from '@/components/ContactSellerModal';
-import WriteReviewModal from '@/components/WriteReviewModal';
 import { Colors } from '@/src/constants/constant';
+import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -22,6 +21,7 @@ const { width } = Dimensions.get('window');
 // Lazy load the modals for better performance
 const LazyContactSellerModal = lazy(() => import('@/components/ContactSellerModal'));
 const LazyWriteReviewModal = lazy(() => import('@/components/WriteReviewModal'));
+const LazyReportListingModal = lazy(() => import('@/components/ReportListingModal'));
 
 // Mock listing data - in real app, this would come from API
 const mockListing = {
@@ -60,8 +60,12 @@ export default function ListingDetails() {
   const [isFavorite, setIsFavorite] = useState(mockListing.isFavorite);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const wiggleAnim = useRef(new Animated.Value(0)).current;
+  
+  const { showAlert, AlertComponent } = useCustomAlert();
+  const { success: showSuccessAlert } = createAlertHelpers(showAlert);
 
   const handleBack = () => {
     router.back();
@@ -105,6 +109,16 @@ export default function ListingDetails() {
 
   const handleViewProfile = () => {
     router.push('/(screens)/(profile)/profile');
+  };
+
+  const handleReportListing = () => {
+    setShowReportModal(true);
+  };
+
+  const handleReportSubmit = (reason: string) => {
+    console.log('Report submitted:', { listingId: mockListing.id, reason });
+    // Show success alert
+    showSuccessAlert('Listing Reported', 'Thank you for reporting this listing. We will review it shortly.');
   };
 
 
@@ -366,6 +380,15 @@ export default function ListingDetails() {
             </TouchableOpacity>
           </View>
 
+          {/* Report Listing */}
+          <TouchableOpacity style={styles.reportSection} onPress={handleReportListing} activeOpacity={0.7}>
+            <View style={styles.reportButton}>
+              <Ionicons name="flag-outline" size={20} color={Colors.grey} />
+              <Text style={styles.reportButtonText}>Report this listing</Text>
+              <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
+            </View>
+          </TouchableOpacity>
+
           {/* Safety Tips */}
           <View style={styles.safetyTips}>
             <View style={styles.safetyHeader}>
@@ -399,7 +422,7 @@ export default function ListingDetails() {
       {/* Contact Seller Modal - Lazy Loaded */}
       {showContactModal && (
         <Suspense fallback={<View />}>
-          <ContactSellerModal
+          <LazyContactSellerModal
             visible={showContactModal}
             onClose={() => setShowContactModal(false)}
             seller={mockListing.seller}
@@ -411,13 +434,27 @@ export default function ListingDetails() {
       {/* Write Review Modal - Lazy Loaded */}
       {showReviewModal && (
         <Suspense fallback={<View />}>
-          <WriteReviewModal
+          <LazyWriteReviewModal
             visible={showReviewModal}
             onClose={() => setShowReviewModal(false)}
             listingTitle={mockListing.title}
           />
         </Suspense>
       )}
+
+      {/* Report Listing Modal - Lazy Loaded */}
+      {showReportModal && (
+        <Suspense fallback={<View />}>
+          <LazyReportListingModal
+            visible={showReportModal}
+            onClose={() => setShowReportModal(false)}
+            onSubmit={handleReportSubmit}
+          />
+        </Suspense>
+      )}
+
+      {/* Custom Alert */}
+      <AlertComponent />
     </View>
   );
 }
@@ -780,6 +817,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.primary,
     fontWeight: '500',
+  },
+  reportSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.lightgrey,
+    backgroundColor: Colors.white,
+  },
+  reportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  reportButtonText: {
+    fontSize: 14,
+    color: Colors.grey,
+    fontWeight: '400',
+    marginLeft: 8,
+    flex: 1,
   },
   safetyTips: {
     backgroundColor: '#F0F8FF',

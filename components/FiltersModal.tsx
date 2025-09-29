@@ -1,3 +1,4 @@
+import { useSubcategoriesByCategory } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
@@ -9,6 +10,9 @@ interface FiltersModalProps {
   visible: boolean;
   onClose: () => void;
   onApplyFilters: (filters: FilterOptions) => void;
+  categories: any[];
+  subcategories: any[];
+  isLoading: boolean;
 }
 
 interface FilterOptions {
@@ -25,6 +29,9 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
   visible,
   onClose,
   onApplyFilters,
+  categories,
+  subcategories,
+  isLoading,
 }) => {
   const [filters, setFilters] = useState<FilterOptions>({
     priceRange: { min: 0, max: 1000000 },
@@ -39,18 +46,28 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
   });
 
   const [distance, setDistance] = useState(50);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   const conditionOptions = ['New', 'Like New', 'Used', 'Refurbished'];
-  const categoryOptions = ['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books', 'Vehicles'];
   
-  const subcategoryOptions: { [key: string]: string[] } = {
-    'Electronics': ['Smartphones', 'Laptops', 'Tablets', 'Audio', 'Cameras', 'Gaming'],
-    'Fashion': ['Men\'s Clothing', 'Women\'s Clothing', 'Shoes', 'Accessories', 'Jewelry'],
-    'Home & Garden': ['Furniture', 'Appliances', 'Decor', 'Tools', 'Plants'],
-    'Sports': ['Fitness', 'Outdoor', 'Team Sports', 'Water Sports', 'Winter Sports'],
-    'Books': ['Fiction', 'Non-Fiction', 'Textbooks', 'Children\'s', 'Comics'],
-    'Vehicles': ['Cars', 'Motorcycles', 'Bicycles', 'Parts', 'Accessories']
-  };
+  // Use live categories data
+  const categoryOptions = categories.map(cat => ({
+    id: cat.id,
+    name: cat.name,
+    emoji: cat.emoji
+  }));
+
+  // Show limited categories initially, all when "See All" is clicked
+  const displayedCategories = showAllCategories ? categoryOptions : categoryOptions.slice(0, 8);
+
+  // Get subcategories for selected category
+  const { data: categorySubcategories, isLoading: subcategoriesLoading } = useSubcategoriesByCategory(
+    selectedCategoryId || 0
+  );
+
+  // Use live subcategories data
+  const subcategoryOptions = categorySubcategories || [];
 
   const handleConditionToggle = (condition: string) => {
     setFilters(prev => ({
@@ -58,6 +75,14 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
       condition: prev.condition.includes(condition)
         ? prev.condition.filter(c => c !== condition)
         : [...prev.condition, condition]
+    }));
+  };
+
+  const handleCategorySelect = (categoryId: number) => {
+    setSelectedCategoryId(prev => prev === categoryId ? null : categoryId);
+    setFilters(prev => ({
+      ...prev,
+      category: prev.category === categoryId.toString() ? '' : categoryId.toString()
     }));
   };
 
@@ -85,7 +110,27 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
       max: '1000000',
     });
     setDistance(50);
+    setSelectedCategoryId(null);
+    setShowAllCategories(false);
   };
+
+  // Skeleton loading component for categories
+  const CategorySkeleton = () => (
+    <View style={styles.pillsContainer}>
+      {Array.from({ length: 6 }).map((_, index) => (
+        <View key={index} style={styles.skeletonPill} />
+      ))}
+    </View>
+  );
+
+  // Skeleton loading component for subcategories
+  const SubcategorySkeleton = () => (
+    <View style={styles.pillsContainer}>
+      {Array.from({ length: 4 }).map((_, index) => (
+        <View key={index} style={styles.skeletonPill} />
+      ))}
+    </View>
+  );
 
   return (
     <Modal
@@ -122,56 +167,89 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
             {/* Category Section */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Category</Text>
-              <View style={styles.pillsContainer}>
-                {categoryOptions.map((category) => (
-                  <TouchableOpacity
-                    key={category}
-                    style={[
-                      styles.pill,
-                      filters.category === category && styles.selectedPill
-                    ]}
-                    onPress={() => setFilters(prev => ({
-                      ...prev,
-                      category: prev.category === category ? '' : category
-                    }))}
-                  >
-                    <Text style={[
-                      styles.pillText,
-                      filters.category === category && styles.selectedPillText
-                    ]}>
-                      {category}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              {isLoading ? (
+                <CategorySkeleton />
+              ) : (
+                <>
+                  <View style={styles.pillsContainer}>
+                    {displayedCategories.map((category) => (
+                      <TouchableOpacity
+                        key={category.id}
+                        style={[
+                          styles.pill,
+                          selectedCategoryId === category.id && styles.selectedPill
+                        ]}
+                        onPress={() => handleCategorySelect(category.id)}
+                      >
+                        <Text style={[
+                          styles.pillText,
+                          selectedCategoryId === category.id && styles.selectedPillText
+                        ]}>
+                          {category.emoji} {category.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  
+                  {/* See All Button */}
+                  {!showAllCategories && categoryOptions.length > 8 && (
+                    <TouchableOpacity 
+                      style={styles.seeAllButton}
+                      onPress={() => setShowAllCategories(true)}
+                    >
+                      <Text style={styles.seeAllButtonText}>
+                        See All ({categoryOptions.length})
+                      </Text>
+                      <Ionicons name="chevron-down" size={16} color={Colors.primary} />
+                    </TouchableOpacity>
+                  )}
+                  
+                  {/* Show Less Button */}
+                  {showAllCategories && (
+                    <TouchableOpacity 
+                      style={styles.seeAllButton}
+                      onPress={() => setShowAllCategories(false)}
+                    >
+                      <Text style={styles.seeAllButtonText}>
+                        Show Less
+                      </Text>
+                      <Ionicons name="chevron-up" size={16} color={Colors.primary} />
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
             </View>
 
             {/* Subcategory Section */}
-            {filters.category && subcategoryOptions[filters.category] && (
+            {selectedCategoryId && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Subcategory</Text>
-                <View style={styles.pillsContainer}>
-                  {subcategoryOptions[filters.category].map((subcategory) => (
-                    <TouchableOpacity
-                      key={subcategory}
-                      style={[
-                        styles.pill,
-                        filters.location === subcategory && styles.selectedPill
-                      ]}
-                      onPress={() => setFilters(prev => ({
-                        ...prev,
-                        location: prev.location === subcategory ? '' : subcategory
-                      }))}
-                    >
-                      <Text style={[
-                        styles.pillText,
-                        filters.location === subcategory && styles.selectedPillText
-                      ]}>
-                        {subcategory}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                {subcategoriesLoading ? (
+                  <SubcategorySkeleton />
+                ) : (
+                  <View style={styles.pillsContainer}>
+                    {subcategoryOptions.map((subcategory) => (
+                      <TouchableOpacity
+                        key={subcategory.id}
+                        style={[
+                          styles.pill,
+                          filters.location === subcategory.name && styles.selectedPill
+                        ]}
+                        onPress={() => setFilters(prev => ({
+                          ...prev,
+                          location: prev.location === subcategory.name ? '' : subcategory.name
+                        }))}
+                      >
+                        <Text style={[
+                          styles.pillText,
+                          filters.location === subcategory.name && styles.selectedPillText
+                        ]}>
+                          {subcategory.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
             )}
 
@@ -429,6 +507,45 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.white,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  loadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: Colors.grey,
+  },
+  skeletonPill: {
+    backgroundColor: Colors.lightgrey,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    height: 36,
+    width: 80,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
+  },
+  seeAllButtonText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '500',
+    marginRight: 4,
   },
 });
 

@@ -6,6 +6,15 @@ export interface LocationData {
   address?: string;
   city?: string;
   country?: string;
+  region?: string;
+  street?: string;
+  postalCode?: string;
+}
+
+export interface StoredLocationData extends LocationData {
+  id: string;
+  timestamp: number;
+  displayName: string;
 }
 
 export interface LocationPermission {
@@ -87,6 +96,42 @@ export const getAddressFromCoordinates = async (
 };
 
 /**
+ * Get detailed location data from coordinates (reverse geocoding)
+ */
+export const getDetailedLocationFromCoordinates = async (
+  latitude: number,
+  longitude: number
+): Promise<LocationData | null> => {
+  try {
+    const addresses = await Location.reverseGeocodeAsync({
+      latitude,
+      longitude,
+    });
+
+    if (addresses.length > 0) {
+      const address = addresses[0];
+      const fullAddress = `${address.street || ''} ${address.city || ''} ${address.region || ''} ${address.country || ''}`.trim();
+      
+      return {
+        latitude,
+        longitude,
+        address: fullAddress,
+        street: address.street || undefined,
+        city: address.city || undefined,
+        region: address.region || undefined,
+        country: address.country || undefined,
+        postalCode: address.postalCode || undefined,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error getting detailed location:', error);
+    return null;
+  }
+};
+
+/**
  * Get coordinates from address (geocoding)
  */
 export const getCoordinatesFromAddress = async (
@@ -153,14 +198,43 @@ export const getLocationWithAddress = async (): Promise<LocationData | null> => 
     const location = await getCurrentLocation();
     if (!location) return null;
 
-    const address = await getAddressFromCoordinates(location.latitude, location.longitude);
+    const detailedLocation = await getDetailedLocationFromCoordinates(location.latitude, location.longitude);
     
-    return {
-      ...location,
-      address: address || undefined,
-    };
+    return detailedLocation || location;
   } catch (error) {
     console.error('Error getting location with address:', error);
     return null;
   }
+};
+
+/**
+ * Create a stored location data object for saving/displaying
+ */
+export const createStoredLocationData = (
+  location: LocationData,
+  displayName?: string
+): StoredLocationData => {
+  return {
+    ...location,
+    id: `location_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    timestamp: Date.now(),
+    displayName: displayName || location.address || `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
+  };
+};
+
+/**
+ * Format location coordinates for directions/maps
+ */
+export const formatCoordinatesForDirections = (location: LocationData): string => {
+  return `${location.latitude},${location.longitude}`;
+};
+
+/**
+ * Format location for display
+ */
+export const formatLocationForDisplay = (location: LocationData): string => {
+  if (location.address) {
+    return location.address;
+  }
+  return `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`;
 };

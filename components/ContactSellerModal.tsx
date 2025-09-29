@@ -1,13 +1,14 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    Linking,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Linking,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface ContactSellerModalProps {
@@ -28,6 +29,7 @@ export default function ContactSellerModal({
   seller,
   listingTitle
 }: ContactSellerModalProps) {
+  const router = useRouter();
   const handleCallSeller = () => {
     Linking.openURL(`tel:${seller.phone}`);
     onClose();
@@ -49,8 +51,8 @@ export default function ContactSellerModal({
   };
 
   const handleInAppMessage = () => {
-    // TODO: Implement in-app messaging
-    console.log('Open in-app chat');
+    // Navigate to conversations screen
+    router.push('/(screens)/(dashboard)/conversations');
     onClose();
   };
 
