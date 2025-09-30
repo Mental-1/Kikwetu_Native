@@ -1,6 +1,6 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { height } = Dimensions.get('window');
@@ -19,6 +19,12 @@ const SortModal: React.FC<SortModalProps> = ({
   onSortChange,
 }) => {
   const [tempSortBy, setTempSortBy] = useState(currentSortBy);
+
+  useEffect(() => {
+    if (visible) {
+      setTempSortBy(currentSortBy);
+    }
+  }, [visible, currentSortBy]);
 
   const sortOptions = [
     { value: 'newest', label: 'Newest First' },

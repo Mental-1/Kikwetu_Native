@@ -12,14 +12,14 @@ interface CategoryItemProps {
   getIconFromEmoji: (emoji: string) => string;
 }
 
-const CategoryItem = memo<CategoryItemProps>(({ 
+const CategoryItem = memo(({ 
   id, 
   name, 
   icon, 
   isLoading, 
   onPress, 
   getIconFromEmoji 
-}) => {
+}: CategoryItemProps) => {
   const handlePress = useCallback(() => {
     onPress(id);
   }, [id, onPress]);

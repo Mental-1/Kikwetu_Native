@@ -2,15 +2,16 @@ import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    Dimensions,
-    FlatList,
-    Image,
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
 } from 'react-native';
 
 const { height } = Dimensions.get('window');
@@ -188,11 +189,8 @@ export default function WriteReviewModal({
         activeOpacity={1}
         onPress={onClose}
       >
-        <TouchableOpacity 
-          style={styles.reviewModal}
-          activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
-        >
+        <TouchableWithoutFeedback>
+          <View style={styles.reviewModal}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Reviews ({formatCount(mockReviews.length)})</Text>
             <TouchableOpacity 
@@ -255,7 +253,8 @@ export default function WriteReviewModal({
               </TouchableOpacity>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
+      </TouchableWithoutFeedback>
       </TouchableOpacity>
     </Modal>
   );

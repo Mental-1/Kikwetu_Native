@@ -3,7 +3,7 @@ import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -34,6 +34,7 @@ const Payment = () => {
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('1');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Get plan data from navigation parameters
   const selectedPlan: SubscriptionPlan = {
@@ -88,8 +89,13 @@ const Payment = () => {
   const handleProcessPayment = () => {
     setIsProcessing(true);
     
+    // Clear any existing timeout
+    if (processingTimeoutRef.current) {
+      clearTimeout(processingTimeoutRef.current);
+    }
+
     // Simulate payment processing
-    setTimeout(() => {
+    processingTimeoutRef.current = setTimeout(() => {
       setIsProcessing(false);
       showAlert({
         title: 'Payment Successful!',
@@ -105,6 +111,14 @@ const Payment = () => {
       });
     }, 2000);
   };
+
+  useEffect(() => {
+    return () => {
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const getPaymentMethodIcon = (method: PaymentMethod) => {
     if (method.type === 'card') {

@@ -301,12 +301,15 @@ const Transactions = () => {
     </TouchableOpacity>
   );
 
+  const parseAmountValue = (raw: string) => {
+    const normalized = raw.replace(/[^\d.-]/g, '');
+    const value = Number(normalized);
+    return Number.isFinite(value) ? value : 0;
+  };
+
   const totalAmount = filteredTransactions
-    .filter(t => t.status === 'completed')
-    .reduce((sum, t) => {
-      const amount = parseFloat(t.amount.replace(/[KES,]/g, ''));
-      return sum + amount;
-    }, 0);
+    .filter((t) => t.status === 'completed')
+    .reduce((sum, t) => sum + parseAmountValue(t.amount), 0);
 
   return (
     <View style={styles.container}>

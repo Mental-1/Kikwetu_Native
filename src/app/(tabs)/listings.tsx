@@ -115,9 +115,7 @@ function ListingsContent() {
   useEffect(() => {
     if (showFilters && categories && categories.length > 0) {
       // Prefetch all subcategories for better performance
-      categories.forEach(() => {
-        prefetchSubcategories();
-      });
+      prefetchSubcategories();
     }
   }, [showFilters, categories, prefetchSubcategories]);
 

@@ -5,7 +5,7 @@ import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,20 +16,31 @@ const Account = () => {
   const { success } = createAlertHelpers(showAlert);
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [formData, setFormData] = useState({
+  const computeFormData = React.useCallback(() => ({
     fullName: user?.user_metadata?.full_name || '',
     username: user?.user_metadata?.username || '',
     email: user?.email || '',
     phoneNumber: user?.user_metadata?.phone_number || '',
     bio: 'Mobile app enthusiast and tech lover',
-  });
+  }), [user]);
+
+  const [formData, setFormData] = useState(computeFormData);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setFormData(computeFormData());
+    }
+  }, [computeFormData, isEditing]);
 
   const handleBack = () => {
     router.back();
   };
 
   const handleEdit = () => {
-    setIsEditing(!isEditing);
+    if (isEditing) {
+      setFormData(computeFormData());
+    }
+    setIsEditing((prev) => !prev);
   };
 
   const handleSave = () => {

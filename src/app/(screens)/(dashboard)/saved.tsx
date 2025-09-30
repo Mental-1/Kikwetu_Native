@@ -26,7 +26,7 @@ interface SavedListing {
 const Saved = () => {
   const router = useRouter();
   const { showAlert, AlertComponent } = useCustomAlert();
-  const { success, error } = createAlertHelpers(showAlert);
+  const { success } = createAlertHelpers(showAlert);
 
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   conditionBadge: {
-    backgroundColor: Colors.primary + '20',
+    backgroundColor: 'rgba(3, 65, 252, 0.12)',
     paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 4,

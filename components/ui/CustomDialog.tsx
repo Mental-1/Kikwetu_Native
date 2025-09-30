@@ -43,6 +43,7 @@ const CustomDialog: React.FC<CustomDialogProps> = ({
       transparent
       animationType="fade"
       statusBarTranslucent
+      onRequestClose={onDeny}
     >
       <View style={styles.overlay}>
         <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
