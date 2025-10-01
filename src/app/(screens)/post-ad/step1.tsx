@@ -1,6 +1,7 @@
 import CustomDialog from '@/components/ui/CustomDialog';
 import { useCategories, useSubcategoriesByCategory } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
+import { useStores } from '@/src/hooks/useStores';
 import { useAppStore } from '@/stores/useAppStore';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { getLocationWithAddress } from '@/utils/locationUtils';
@@ -24,6 +25,7 @@ export default function Step1() {
     condition, 
     categoryId,
     subcategoryId,
+    storeId,
     tags,
     setTitle,
     setDescription,
@@ -33,12 +35,14 @@ export default function Step1() {
     setCondition,
     setCategoryId,
     setSubcategoryId,
+    setStoreId,
     setTags
   } = useAppStore((state) => state.postAd);
 
   const [tagInput, setTagInput] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showSubcategoryDropdown, setShowSubcategoryDropdown] = useState(false);
+  const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   const [priceInput, setPriceInput] = useState('');
 
   useEffect(() => {
@@ -54,9 +58,10 @@ export default function Step1() {
   const { showAlert, AlertComponent } = useCustomAlert();
   const { locationSuccess: showLocationSuccessAlert, error: showErrorAlert } = createAlertHelpers(showAlert);
 
-  // Fetch categories and subcategories
+  // Fetch categories, subcategories, and stores
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { data: subcategories } = useSubcategoriesByCategory(categoryId);
+  const { data: stores, isLoading: storesLoading } = useStores();
 
   const handleBack = () => {
     router.push('/(tabs)/listings');
@@ -85,6 +90,10 @@ export default function Step1() {
     }
     if (!categoryId) {
       Alert.alert('Required Field', 'Please select a category');
+      return;
+    }
+    if (!storeId) {
+      Alert.alert('Required Field', 'Please select a store');
       return;
     }
     router.push('/(screens)/post-ad/step2');
@@ -303,6 +312,56 @@ export default function Step1() {
           </View>
         </View>
 
+        {/* Store Selection */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Store *</Text>
+          <TouchableOpacity 
+            style={styles.dropdown} 
+            onPress={() => setShowStoreDropdown(!showStoreDropdown)}
+          >
+            <Text style={[
+              styles.dropdownText, 
+              !storeId && styles.placeholderText
+            ]}>
+              {storeId ? stores?.find(s => s.id === storeId)?.name : 'Select Store'}
+            </Text>
+            <Ionicons 
+              name={showStoreDropdown ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              color={Colors.grey} 
+            />
+          </TouchableOpacity>
+          
+          {showStoreDropdown && (
+            <View style={styles.dropdownList}>
+              <ScrollView 
+                style={styles.dropdownScroll}
+                showsVerticalScrollIndicator={true}
+                nestedScrollEnabled={true}
+              >
+                {storesLoading ? (
+                  <Text style={styles.loadingText}>Loading stores...</Text>
+                ) : stores?.length === 0 ? (
+                  <Text style={styles.loadingText}>No stores available. Create a store first.</Text>
+                ) : (
+                  stores?.map((store) => (
+                    <TouchableOpacity
+                      key={store.id}
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setStoreId(store.id);
+                        setShowStoreDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownItemText}>{store.name}</Text>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
         {/* Price */}
         <View style={styles.section}>
           <Text style={styles.label}>Price (Kes) *</Text>
@@ -455,7 +514,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.white,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.4,
     borderBottomColor: Colors.lightgrey,
   },
   backButton: {

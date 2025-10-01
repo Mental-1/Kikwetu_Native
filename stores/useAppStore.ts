@@ -9,6 +9,7 @@ interface PostAdState {
   condition: string;
   categoryId: number | null;
   subcategoryId: number | null;
+  storeId: number | null;
   tags: string[];
   images: string[];
   videos: string[];
@@ -20,6 +21,7 @@ interface PostAdState {
   setCondition: (condition: string) => void;
   setCategoryId: (categoryId: number | null) => void;
   setSubcategoryId: (subcategoryId: number | null) => void;
+  setStoreId: (storeId: number | null) => void;
   setTags: (tags: string[]) => void;
   setImages: (images: string[]) => void;
   setVideos: (videos: string[]) => void;
@@ -39,6 +41,7 @@ export const useAppStore = create<AppState>((set) => ({
     condition: '',
     categoryId: null,
     subcategoryId: null,
+    storeId: null,
     tags: [],
     images: [],
     videos: [],
@@ -51,6 +54,7 @@ export const useAppStore = create<AppState>((set) => ({
     setCondition: (condition) => set((state) => ({ postAd: { ...state.postAd, condition } })),
     setCategoryId: (categoryId) => set((state) => ({ postAd: { ...state.postAd, categoryId, subcategoryId: null } })),
     setSubcategoryId: (subcategoryId) => set((state) => ({ postAd: { ...state.postAd, subcategoryId } })),
+    setStoreId: (storeId) => set((state) => ({ postAd: { ...state.postAd, storeId } })),
     setTags: (tags) => set((state) => ({ postAd: { ...state.postAd, tags } })),
     setImages: (images) => set((state) => ({ postAd: { ...state.postAd, images } })),
     setVideos: (videos) => set((state) => ({ postAd: { ...state.postAd, videos } })),

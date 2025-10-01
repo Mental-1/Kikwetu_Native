@@ -1,99 +1,25 @@
+import FiltersModal from '@/components/FiltersModal';
 import ListingCard from '@/components/ListingCard';
+import ListingsSkeleton from '@/components/ListingsSkeleton';
 import SortModal from '@/components/SortModal';
 import { useCategories, useCategoryMutations, useSubcategories } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
+import { useFilteredListings } from '@/src/hooks/useListings';
+import type { ListingItem } from '@/types/types';
+import { showErrorToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { lazy, Suspense, useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// Lazy load the modals for better performance
-const LazyFiltersModal = lazy(() => import('@/components/FiltersModal'));
 
 const { width } = Dimensions.get('window');
 
-// Mock listings data
-const mockListings = [
-  {
-    id: '1',
-    title: 'iPhone 14 Pro Max',
-    price: 'Kes 400,000',
-    condition: 'New',
-    rating: '10/10',
-    location: 'Westlands, Nairobi',
-    description: 'Brand new iPhone 14 Pro Max in Space Black. Still in original packaging with all accessories included.',
-    views: 156,
-    image: 'https://via.placeholder.com/200x140',
-    isFavorite: false,
-  },
-  {
-    id: '2',
-    title: 'MacBook Pro M2',
-    price: 'Kes 250,000',
-    condition: 'Used',
-    rating: '9/10',
-    location: 'Kilimani, Nairobi',
-    description: 'Excellent condition MacBook Pro M2. Perfect for developers and creative professionals.',
-    views: 89,
-    image: 'https://via.placeholder.com/200x140',
-    isFavorite: true,
-  },
-  {
-    id: '3',
-    title: 'Samsung Galaxy S23',
-    price: 'Kes 180,000',
-    condition: 'New',
-    rating: '10/10',
-    location: 'Karen, Nairobi',
-    description: 'Latest Samsung Galaxy S23 with amazing camera quality and fast performance.',
-    views: 234,
-    image: 'https://via.placeholder.com/200x140',
-    isFavorite: false,
-  },
-  {
-    id: '4',
-    title: 'iPad Air 5th Gen',
-    price: 'Kes 120,000',
-    condition: 'Like New',
-    rating: '9/10',
-    location: 'Runda, Nairobi',
-    description: 'iPad Air 5th generation in mint condition. Great for work and entertainment.',
-    views: 67,
-    image: 'https://via.placeholder.com/200x140',
-    isFavorite: true,
-  },
-  {
-    id: '5',
-    title: 'Dell XPS 13',
-    price: 'Kes 180,000',
-    condition: 'Used',
-    rating: '8/10',
-    location: 'Kileleshwa, Nairobi',
-    description: 'High-performance Dell XPS 13 laptop with excellent build quality and display.',
-    views: 123,
-    image: 'https://via.placeholder.com/200x140',
-    isFavorite: false,
-  },
-  {
-    id: '6',
-    title: 'AirPods Pro 2nd Gen',
-    price: 'Kes 35,000',
-    condition: 'New',
-    rating: '10/10',
-    location: 'Lavington, Nairobi',
-    description: 'Latest AirPods Pro with active noise cancellation and spatial audio.',
-    views: 89,
-    image: 'https://via.placeholder.com/200x140',
-    isFavorite: false,
-  },
-];
-
 // Loading component for lazy loading
 const ListingsLoading = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
-    <ActivityIndicator size="large" color={Colors.primary} />
+  <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <ListingsSkeleton viewMode="grid" count={6} />
   </View>
 );
 
@@ -106,10 +32,33 @@ function ListingsContent() {
   const [showSort, setShowSort] = useState(false);
   const [, setAppliedFilters] = useState<any>(null);
   
+  // Back to top functionality
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  
   // Data hooks
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { data: subcategories, isLoading: subcategoriesLoading } = useSubcategories();
   const { prefetchSubcategories } = useCategoryMutations();
+  
+  // React Query hook for listings
+  const { 
+    listings, 
+    isLoading, 
+    error, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage,
+    refetch
+  } = useFilteredListings(searchQuery);
+
+  // Show error toast when there's an error
+  useEffect(() => {
+    if (error) {
+      showErrorToast(error.message || 'Failed to load listings', 'Network Error');
+    }
+  }, [error]);
 
   // Prefetch subcategories when filters modal opens
   useEffect(() => {
@@ -118,6 +67,27 @@ function ListingsContent() {
       prefetchSubcategories();
     }
   }, [showFilters, categories, prefetchSubcategories]);
+
+  // Handle scroll for back-to-top button
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { useNativeDriver: false }
+  );
+
+  // Show/hide back-to-top button based on scroll position
+  useEffect(() => {
+    const listener = scrollY.addListener(({ value }) => {
+      const screenHeight = Dimensions.get('window').height;
+      setShowBackToTop(value > screenHeight * 2);
+    });
+
+    return () => scrollY.removeListener(listener);
+  }, [scrollY]);
+
+  // Scroll to top function
+  const scrollToTop = () => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  };
 
   const handleBackPress = () => {
     router.push('/(tabs)/home');
@@ -129,6 +99,8 @@ function ListingsContent() {
 
   const handleListingFavoritePress = (listingId: string) => {
     console.log('Toggle favorite for listing:', listingId);
+    // TODO: Implement actual favorite toggle with API call
+    showErrorToast('Favorite functionality coming soon!');
   };
 
   const toggleView = () => {
@@ -146,11 +118,13 @@ function ListingsContent() {
   const handleApplyFilters = (filters: any) => {
     setAppliedFilters(filters);
     console.log('Applied filters:', filters);
+    // TODO: Apply filters to the listings query
   };
 
   const handleSortChange = (newSortBy: string) => {
     setSortBy(newSortBy);
     console.log('Sort changed to:', newSortBy);
+    // TODO: Apply sorting to the listings query
   };
 
   const getSearchDisplayText = () => {
@@ -162,23 +136,21 @@ function ListingsContent() {
     return searchQuery;
   };
 
-  const filteredListings = mockListings.filter(listing =>
-    listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    listing.location.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // The filtering is now handled in the useFilteredListings hook
+  const filteredListings = listings;
 
-  const renderGridItem = ({ item }: { item: any }) => (
+  const renderGridItem = ({ item }: { item: ListingItem }) => (
     <View style={styles.gridItem}>
       <ListingCard
         id={item.id}
         title={item.title}
-        price={item.price}
-        condition={item.condition}
-        location={item.location}
-        image={item.image}
-        description={item.description}
-        views={item.views}
-        isFavorite={item.isFavorite}
+        price={item.price ? `Kes ${item.price.toLocaleString()}` : 'Price not set'}
+        condition={item.condition || 'Not specified'}
+        location={item.location || 'Location not specified'}
+        image={item.images && item.images.length > 0 ? item.images[0] : 'https://via.placeholder.com/200x140'}
+        description={item.description || undefined}
+        views={item.views || 0}
+        isFavorite={false} // TODO: Implement favorites functionality
         viewMode="grid"
         onPress={handleListingPress}
         onFavoritePress={handleListingFavoritePress}
@@ -186,17 +158,17 @@ function ListingsContent() {
     </View>
   );
 
-  const renderListItem = ({ item }: { item: any }) => (
+  const renderListItem = ({ item }: { item: ListingItem }) => (
     <ListingCard
       id={item.id}
       title={item.title}
-      price={item.price}
-      condition={item.condition}
-      location={item.location}
-      image={item.image}
-      description={item.description}
-      views={item.views}
-      isFavorite={item.isFavorite}
+      price={item.price ? `Kes ${item.price.toLocaleString()}` : 'Price not set'}
+      condition={item.condition || 'Not specified'}
+      location={item.location || 'Location not specified'}
+      image={item.images && item.images.length > 0 ? item.images[0] : 'https://via.placeholder.com/200x140'}
+        description={item.description || undefined}
+      views={item.views || 0}
+      isFavorite={false} // TODO: Implement favorites functionality
       viewMode="list"
       onPress={handleListingPress}
       onFavoritePress={handleListingFavoritePress}
@@ -266,8 +238,31 @@ function ListingsContent() {
 
       {/* Content */}
       <View style={styles.content}>
-        {isGridView ? (
+        {isLoading ? (
+          <ListingsSkeleton viewMode={isGridView ? 'grid' : 'list'} count={6} />
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error?.message || 'Something went wrong'}</Text>
+            <TouchableOpacity 
+              style={styles.retryButton} 
+              onPress={() => {
+                refetch();
+                showErrorToast('Retrying to load listings...', 'Retry');
+              }}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : filteredListings.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No listings found</Text>
+            <Text style={styles.emptySubtext}>
+              {searchQuery ? 'Try adjusting your search terms' : 'Check back later for new listings'}
+            </Text>
+          </View>
+        ) : isGridView ? (
           <FlatList
+            ref={flatListRef}
             key="grid"
             data={filteredListings}
             renderItem={renderGridItem}
@@ -275,32 +270,61 @@ function ListingsContent() {
             numColumns={2}
             contentContainerStyle={styles.gridContainer}
             showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            onEndReached={() => {
+              if (hasNextPage && !isFetchingNextPage) {
+                fetchNextPage();
+              }
+            }}
+            onEndReachedThreshold={0.1}
+            ListFooterComponent={() => 
+              isFetchingNextPage ? (
+                <View style={styles.loadingFooter}>
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <Text style={styles.loadingFooterText}>Loading more...</Text>
+                </View>
+              ) : null
+            }
           />
         ) : (
           <FlatList
+            ref={flatListRef}
             key="list"
             data={filteredListings}
             renderItem={renderListItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}
             showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            onEndReached={() => {
+              if (hasNextPage && !isFetchingNextPage) {
+                fetchNextPage();
+              }
+            }}
+            onEndReachedThreshold={0.1}
+            ListFooterComponent={() => 
+              isFetchingNextPage ? (
+                <View style={styles.loadingFooter}>
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <Text style={styles.loadingFooterText}>Loading more...</Text>
+                </View>
+              ) : null
+            }
           />
         )}
       </View>
 
-      {/* Filters Modal - Lazy Loaded */}
-      {showFilters && (
-        <Suspense fallback={<View />}>
-          <LazyFiltersModal
-            visible={showFilters}
-            onClose={() => setShowFilters(false)}
-            onApplyFilters={handleApplyFilters}
-            categories={categories || []}
-            subcategories={subcategories || []}
-            isLoading={categoriesLoading || subcategoriesLoading}
-          />
-        </Suspense>
-      )}
+      {/* Filters Modal */}
+      <FiltersModal
+        visible={showFilters}
+        onClose={() => setShowFilters(false)}
+        onApplyFilters={handleApplyFilters}
+        categories={categories || []}
+        subcategories={subcategories || []}
+        isLoading={categoriesLoading || subcategoriesLoading}
+      />
 
       {/* Sort Modal */}
       <SortModal
@@ -309,6 +333,19 @@ function ListingsContent() {
         currentSortBy={sortBy}
         onSortChange={handleSortChange}
       />
+
+      {/* Back to Top Button */}
+      {showBackToTop && (
+        <Animated.View style={[styles.backToTopButton, { opacity: scrollY.interpolate({
+          inputRange: [Dimensions.get('window').height * 2, Dimensions.get('window').height * 3],
+          outputRange: [0.7, 1],
+          extrapolate: 'clamp',
+        })}]}>
+          <TouchableOpacity style={styles.backToTopTouchable} onPress={scrollToTop}>
+            <Ionicons name="chevron-up" size={24} color={Colors.white} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -420,6 +457,81 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingTop: 16,
     paddingBottom: 100,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    color: Colors.grey,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.black,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
+  },
+  loadingFooter: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  loadingFooterText: {
+    fontSize: 14,
+    color: Colors.grey,
+  },
+  backToTopButton: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    zIndex: 1000,
+  },
+  backToTopTouchable: {
+    backgroundColor: Colors.primary,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
 });
 
