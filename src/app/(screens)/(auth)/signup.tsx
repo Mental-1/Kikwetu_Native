@@ -1,4 +1,6 @@
+import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
+import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
@@ -30,6 +32,8 @@ interface SignUpProps {
 const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const { signUp } = useAuth();
     
     const { control, handleSubmit, formState: { errors }, reset } = useForm<SignUpFormData>({
         resolver: zodResolver(signUpSchema),
@@ -42,11 +46,24 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
         },
     });
     
-    const onSubmitSignUp = (data: SignUpFormData) => {
-        console.log('Sign up data:', data);
-        // TODO: Implement actual sign up logic
-        onClose();
-        reset();
+    const onSubmitSignUp = async (data: SignUpFormData) => {
+        try {
+            setIsLoading(true);
+            const { error } = await signUp(data.email, data.password, data.fullName, data.phoneNumber);
+            
+            if (error) {
+                showErrorToast(error.message || 'Failed to create account', 'Sign Up Error');
+            } else {
+                showSuccessToast('Account created successfully! Please check your email to verify your account.', 'Welcome');
+                onClose();
+                reset();
+            }
+        } catch (error) {
+            console.error('Sign up error:', error);
+            showErrorToast('An unexpected error occurred', 'Sign Up Error');
+        } finally {
+            setIsLoading(false);
+        }
     };
     
     const handleClose = () => {
@@ -248,8 +265,10 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                                 onPress={handleSubmit(onSubmitSignUp)}
                                 style={styles.submitButton}
                                 labelStyle={styles.submitButtonText}
+                                loading={isLoading}
+                                disabled={isLoading}
                             >
-                                Create Account
+                                {isLoading ? 'Creating Account...' : 'Create Account'}
                             </Button>
                             <Divider style={styles.divider}/>
                             <TouchableOpacity style={styles.authButton} onPress={() => {}}>

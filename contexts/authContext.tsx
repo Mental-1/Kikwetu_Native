@@ -1,109 +1,138 @@
-
-import { supabase } from "@/lib/supabase";
-import { Session, User } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
+import type { Session, User } from '@supabase/supabase-js';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type AuthContextType = {
-    user: User | null;
-    session: Session | null;
-    loading: boolean;
-    signUp: (email: string, password: string, full_name: string, username: string, phone_number: string) => Promise<void>;
-    signInWithPassword: (email: string, password: string) => Promise<void>;
-    signInWithGoogle: () => Promise<void>;
-    sendPasswordResetEmail: (email: string) => Promise<void>;
-    signOut: () => Promise<void>;
-};
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string, phoneNumber: string) => Promise<{ error: any }>;
+  signOut: () => Promise<{ error: any }>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    // Mock authenticated state for development
-    const [user, setUser] = useState<User | null>({
-        id: 'mock-user-id',
-        email: 'john.doe@example.com',
-        app_metadata: {},
-        aud: 'authenticated',
-        created_at: new Date().toISOString(),
-        user_metadata: {
-            full_name: 'John Doe',
-            username: 'johndoe',
-            phone_number: '+254712345678'
-        }
-    } as User);
-    const [session, setSession] = useState<Session | null>({
-        access_token: 'mock-token',
-        refresh_token: 'mock-refresh-token',
-        expires_in: 3600,
-        token_type: 'bearer',
-        user: user
-    } as Session);
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        const getSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            setSession(session);
-            setUser(session?.user ?? null);
-            setLoading(false);
-        };
-
-        getSession().then(r => {});
-
-        const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-        });
-
-        return () => {
-            authListener.subscription.unsubscribe();
-        };
-    }, []);
-
-    const signUp = async (email: string, password: string, full_name: string, username: string, phone_number: string) => {
-        const { error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    full_name,
-                    username,
-                    phone_number,
-                },
-            },
-        });
-        if (error) throw error;
-    };
-
-    const signInWithPassword = async (email: string, password: string) => {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-    };
-
-    const signInWithGoogle = async () => {
-        const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
-        if (error) throw error;
-    };
-
-    const sendPasswordResetEmail = async (email: string) => {
-        const { error } = await supabase.auth.resetPasswordForEmail(email);
-        if (error) throw error;
-    };
-
-    const signOut = async () => {
-        await supabase.auth.signOut();
-    };
-
-    return (
-        <AuthContext.Provider value={{ user, session, loading, signUp, signInWithPassword, signInWithGoogle, sendPasswordResetEmail, signOut }}>
-            {children}
-        </AuthContext.Provider>
-    );
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
 
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Get initial session
+    const getInitialSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Error getting session:', error);
+      } else {
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
+      setLoading(false);
+    };
+
+    getInitialSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error };
+    } catch (error) {
+      console.error('Sign in error:', error);
+      return { error };
+    } finally {
+      setLoading(false);
     }
-    return context;
+  };
+
+  const signUp = async (email: string, password: string, fullName: string, phoneNumber: string) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            phone_number: phoneNumber,
+          },
+        },
+      });
+      return { error };
+    } catch (error) {
+      console.error('Sign up error:', error);
+      return { error };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signOut();
+      return { error };
+    } catch (error) {
+      console.error('Sign out error:', error);
+      return { error };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      return { error };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return { error };
+    }
+  };
+
+  const value: AuthContextType = {
+    user,
+    session,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    resetPassword,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

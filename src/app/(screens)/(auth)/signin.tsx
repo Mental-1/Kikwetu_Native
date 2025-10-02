@@ -1,4 +1,6 @@
+import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
+import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
@@ -23,6 +25,8 @@ interface SignInProps {
 
 const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
     const [showPassword, setShowPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const { signIn } = useAuth();
     
     const { control, handleSubmit, formState: { errors }, reset } = useForm<SignInFormData>({
         resolver: zodResolver(signInSchema),
@@ -32,11 +36,24 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
         },
     });
     
-    const onSubmitSignIn = (data: SignInFormData) => {
-        console.log('Sign in data:', data);
-        // TODO: Implement actual sign in logic
-        onClose();
-        reset();
+    const onSubmitSignIn = async (data: SignInFormData) => {
+        try {
+            setIsLoading(true);
+            const { error } = await signIn(data.email, data.password);
+            
+            if (error) {
+                showErrorToast(error.message || 'Failed to sign in', 'Sign In Error');
+            } else {
+                showSuccessToast('Successfully signed in!', 'Welcome Back');
+                onClose();
+                reset();
+            }
+        } catch (error) {
+            console.error('Sign in error:', error);
+            showErrorToast('An unexpected error occurred', 'Sign In Error');
+        } finally {
+            setIsLoading(false);
+        }
     };
     
     const handleClose = () => {
@@ -142,8 +159,10 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                                 onPress={handleSubmit(onSubmitSignIn)}
                                 style={styles.submitButton}
                                 labelStyle={styles.submitButtonText}
+                                loading={isLoading}
+                                disabled={isLoading}
                             >
-                                Sign In with Email
+                                {isLoading ? 'Signing In...' : 'Sign In with Email'}
                             </Button>
                             
                             <TouchableOpacity style={styles.authButton} onPress={() => {}}>

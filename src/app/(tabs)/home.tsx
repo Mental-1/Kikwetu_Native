@@ -1,10 +1,14 @@
+import AvatarDropdown from '@/components/AvatarDropdown';
 import ListingCard from '@/components/ListingCard';
 import NotificationBadge from '@/components/NotificationBadge';
 import VideoCard from '@/components/VideoCard';
+import { useAuth } from '@/contexts/authContext';
 import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
 import SignIn from '@/src/app/(screens)/(auth)/signin';
 import SignUp from '@/src/app/(screens)/(auth)/signup';
 import { Colors } from '@/src/constants/constant';
+import { useCustomAlert } from '@/utils/alertUtils';
+import { showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -16,10 +20,15 @@ type Props = Record<string, never>;
 
 const Home = (props: Props) => {
     const router = useRouter();
+    const { user, signOut } = useAuth();
     const [showAuthModal, setShowAuthModal] = useState(false);
+    const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
     const [isSignIn, setIsSignIn] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [loadingCategoryId, setLoadingCategoryId] = useState<number | null>(null);
+    
+    // Custom alert hook
+    const { showAlert, AlertComponent } = useCustomAlert();
     
     // Fetch categories and preload subcategories
     const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -157,9 +166,15 @@ const Home = (props: Props) => {
     ];
     
     const handleAccountPress = useCallback(() => {
-        // Hardcode dashboard redirect for now
-        router.push('/(screens)/(dashboard)');
-    }, [router]);
+        if (user) {
+            // Show avatar dropdown for authenticated users
+            setShowAvatarDropdown(true);
+        } else {
+            // Show sign-in modal for unauthenticated users
+            setIsSignIn(true);
+            setShowAuthModal(true);
+        }
+    }, [user]);
     
     const handleSignUpPress = useCallback(() => {
         setIsSignIn(false);
@@ -172,6 +187,36 @@ const Home = (props: Props) => {
     const closeAuthModal = useCallback(() => {
         setShowAuthModal(false);
     }, []);
+
+    const handleDashboard = useCallback(() => {
+        setShowAvatarDropdown(false);
+        router.push('/(screens)/(dashboard)');
+    }, [router]);
+
+    const handleSignOut = useCallback(() => {
+        setShowAvatarDropdown(false);
+        showAlert({
+            title: 'Sign Out',
+            message: 'Are you sure you want to sign out?',
+            icon: 'log-out-outline',
+            iconColor: Colors.red,
+            buttonText: 'Sign Out',
+            buttonColor: Colors.red,
+            onPress: async () => {
+                const { error } = await signOut();
+                if (error) {
+                    showAlert({
+                        title: 'Error',
+                        message: 'Failed to sign out. Please try again.',
+                        icon: 'alert-circle-outline',
+                        iconColor: Colors.red,
+                    });
+                } else {
+                    showSuccessToast('Successfully signed out!', 'Goodbye');
+                }
+            }
+        });
+    }, [signOut, showAlert]);
     
     const handleVideoPress = useCallback((videoId: string) => {
         // Navigate to Discover page with video ID
@@ -228,8 +273,14 @@ const Home = (props: Props) => {
                     
                     {/* Account Avatar */}
                     <TouchableOpacity style={styles.avatarContainer} onPress={handleAccountPress}>
-                        <View style={styles.avatar}>
-                            <Ionicons name="person-outline" size={20} color={Colors.white} />
+                        <View style={[styles.avatar, user && styles.authenticatedAvatar]}>
+                            {user ? (
+                                <Text style={styles.avatarText}>
+                                    {user.user_metadata?.full_name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
+                                </Text>
+                            ) : (
+                                <Ionicons name="person-outline" size={20} color={Colors.white} />
+                            )}
                         </View>
                     </TouchableOpacity>
                 </View>
@@ -366,6 +417,19 @@ const Home = (props: Props) => {
                 onClose={closeAuthModal}
                 onSwitchToSignIn={handleSignInPress}
             />
+
+            {/* Avatar Dropdown */}
+            <AvatarDropdown
+                visible={showAvatarDropdown}
+                onClose={() => setShowAvatarDropdown(false)}
+                onDashboard={handleDashboard}
+                onSignOut={handleSignOut}
+                userName={user?.user_metadata?.full_name}
+                userEmail={user?.email}
+            />
+
+            {/* Custom Alert */}
+            <AlertComponent />
         </View>
   );
 };
@@ -419,6 +483,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    authenticatedAvatar: {
+        backgroundColor: Colors.green,
+        borderColor: Colors.green,
+    },
+    avatarText: {
+        color: Colors.white,
+        fontSize: 14,
+        fontWeight: 'bold',
     },
     content: {
         flex: 1,
