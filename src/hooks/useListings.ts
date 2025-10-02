@@ -1,9 +1,6 @@
 import type { ListingItem } from '@/types/types';
 import { useInfiniteQuery } from '@tanstack/react-query';
 
-// API base URL
-const API_BASE_URL = 'http://localhost:8081';
-
 interface ListingsResponse {
   data: ListingItem[];
   total: number;
@@ -14,7 +11,8 @@ interface ListingsResponse {
 // Fetch function for listings
 const fetchListings = async (pageParam: number = 1): Promise<ListingsResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/listings?page=${pageParam}`);
+    // Use the correct localhost URL for the Expo dev server
+    const response = await fetch(`http://localhost:8081/api/listings?page=${pageParam}`);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

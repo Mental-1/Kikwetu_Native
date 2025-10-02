@@ -78,7 +78,7 @@ function ListingsContent() {
   useEffect(() => {
     const listener = scrollY.addListener(({ value }) => {
       const screenHeight = Dimensions.get('window').height;
-      setShowBackToTop(value > screenHeight * 2);
+      setShowBackToTop(value > screenHeight * 1.5);
     });
 
     return () => scrollY.removeListener(listener);
@@ -337,7 +337,7 @@ function ListingsContent() {
       {/* Back to Top Button */}
       {showBackToTop && (
         <Animated.View style={[styles.backToTopButton, { opacity: scrollY.interpolate({
-          inputRange: [Dimensions.get('window').height * 2, Dimensions.get('window').height * 3],
+          inputRange: [Dimensions.get('window').height * 1.5, Dimensions.get('window').height * 2],
           outputRange: [0.7, 1],
           extrapolate: 'clamp',
         })}]}>
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
   },
   backToTopButton: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 20,
     right: 20,
     zIndex: 1000,
   },
