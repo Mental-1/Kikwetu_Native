@@ -1,13 +1,13 @@
 import AvatarDropdown from '@/components/AvatarDropdown';
 import ListingCard from '@/components/ListingCard';
 import NotificationBadge from '@/components/NotificationBadge';
+import CustomDialog from '@/components/ui/CustomDialog';
 import VideoCard from '@/components/VideoCard';
 import { useAuth } from '@/contexts/authContext';
 import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
 import SignIn from '@/src/app/(screens)/(auth)/signin';
 import SignUp from '@/src/app/(screens)/(auth)/signup';
 import { Colors } from '@/src/constants/constant';
-import { useCustomAlert } from '@/utils/alertUtils';
 import { showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -28,7 +28,7 @@ const Home = (props: Props) => {
     const [loadingCategoryId, setLoadingCategoryId] = useState<number | null>(null);
     
     // Custom alert hook
-    const { showAlert, AlertComponent } = useCustomAlert();
+    const [showSignOutDialog, setShowSignOutDialog] = useState(false);
     
     // Fetch categories and preload subcategories
     const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -195,28 +195,27 @@ const Home = (props: Props) => {
 
     const handleSignOut = useCallback(() => {
         setShowAvatarDropdown(false);
-        showAlert({
-            title: 'Sign Out',
-            message: 'Are you sure you want to sign out?',
-            icon: 'log-out-outline',
-            iconColor: Colors.red,
-            buttonText: 'Sign Out',
-            buttonColor: Colors.red,
-            onPress: async () => {
-                const { error } = await signOut();
-                if (error) {
-                    showAlert({
-                        title: 'Error',
-                        message: 'Failed to sign out. Please try again.',
-                        icon: 'alert-circle-outline',
-                        iconColor: Colors.red,
-                    });
-                } else {
-                    showSuccessToast('Successfully signed out!', 'Goodbye');
-                }
+        setShowSignOutDialog(true);
+    }, []);
+
+    const handleConfirmSignOut = useCallback(async () => {
+        try {
+            const { error } = await signOut();
+            setShowSignOutDialog(false);
+            if (error) {
+                console.error('Sign out error:', error);
+            } else {
+                showSuccessToast('Successfully signed out!', 'Goodbye');
             }
-        });
-    }, [signOut, showAlert]);
+        } catch (error) {
+            console.error('Sign out error:', error);
+            setShowSignOutDialog(false);
+        }
+    }, [signOut]);
+
+    const handleCancelSignOut = useCallback(() => {
+        setShowSignOutDialog(false);
+    }, []);
     
     const handleVideoPress = useCallback((videoId: string) => {
         // Navigate to Discover page with video ID
@@ -428,8 +427,22 @@ const Home = (props: Props) => {
                 userEmail={user?.email}
             />
 
-            {/* Custom Alert */}
-            <AlertComponent />
+            {/* Sign Out Confirmation Dialog */}
+            <CustomDialog
+                visible={showSignOutDialog}
+                title="Sign Out"
+                message="Are you sure you want to sign out?"
+                confirmText="Sign Out"
+                denyText="Cancel"
+                onConfirm={handleConfirmSignOut}
+                onDeny={handleCancelSignOut}
+                icon="log-out-outline"
+                iconColor={Colors.red}
+                confirmColor={Colors.red}
+                denyColor={Colors.grey}
+                confirmWeight="600"
+                denyWeight="400"
+            />
         </View>
   );
 };
