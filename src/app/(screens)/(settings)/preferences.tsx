@@ -1,11 +1,11 @@
 import { Colors } from '@/src/constants/constant';
+import { useProfile, useUpdateProfile } from '@/src/hooks/useProfile';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
-
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Preferences = () => {
@@ -13,7 +13,11 @@ const Preferences = () => {
   const { showAlert, AlertComponent } = useCustomAlert();
   const { success, error } = createAlertHelpers(showAlert);
   
-  // Notification preferences
+  // Profile hooks
+  const { data: profile, isLoading: profileLoading } = useProfile();
+  const updateProfileMutation = useUpdateProfile();
+  
+  // Notification preferences - initialized from profile
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [marketingEmails, setMarketingEmails] = useState(false);
@@ -26,13 +30,54 @@ const Preferences = () => {
   const [locationServices, setLocationServices] = useState(true);
   const [analytics, setAnalytics] = useState(true);
   
-  // Language and region
+  // Language and region - initialized from profile
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [selectedRegion, setSelectedRegion] = useState('United States');
 
+  // Initialize preferences from profile data
+  useEffect(() => {
+    if (profile) {
+      setPushNotifications(profile.push_notifications);
+      setEmailNotifications(profile.email_notifications);
+      setMarketingEmails(profile.marketing_emails);
+      setPriceAlerts(profile.price_alerts);
+      setMessageNotifications(profile.new_messages);
+      setDarkMode(profile.theme === 'dark');
+      setSelectedLanguage(profile.language || 'English');
+      setSelectedCurrency(profile.currency || 'USD');
+    }
+  }, [profile]);
+
   const handleBack = () => {
     router.back();
+  };
+
+  const updatePreference = async (field: string, value: any) => {
+    try {
+      await updateProfileMutation.mutateAsync({
+        [field]: value,
+      });
+    } catch (err) {
+      console.error('Error updating preference:', err);
+      error('Error', 'Failed to update preference. Please try again.');
+    }
+  };
+
+  const handleNotificationToggle = async (field: string, value: boolean) => {
+    await updatePreference(field, value);
+  };
+
+  const handleThemeToggle = async (value: boolean) => {
+    await updatePreference('theme', value ? 'dark' : 'light');
+  };
+
+  const handleLanguageChange = async (language: string) => {
+    await updatePreference('language', language);
+  };
+
+  const handleCurrencyChange = async (currency: string) => {
+    await updatePreference('currency', currency);
   };
 
   const handleLanguageSelect = () => {
@@ -114,35 +159,50 @@ const Preferences = () => {
           title: 'Push Notifications',
           subtitle: 'Receive notifications on your device',
           value: pushNotifications,
-          onToggle: setPushNotifications,
+          onToggle: (value: boolean) => {
+            setPushNotifications(value);
+            handleNotificationToggle('push_notifications', value);
+          },
           type: 'switch',
         },
         {
           title: 'Email Notifications',
           subtitle: 'Receive notifications via email',
           value: emailNotifications,
-          onToggle: setEmailNotifications,
+          onToggle: (value: boolean) => {
+            setEmailNotifications(value);
+            handleNotificationToggle('email_notifications', value);
+          },
           type: 'switch',
         },
         {
           title: 'Marketing Emails',
           subtitle: 'Receive promotional offers and updates',
           value: marketingEmails,
-          onToggle: setMarketingEmails,
+          onToggle: (value: boolean) => {
+            setMarketingEmails(value);
+            handleNotificationToggle('marketing_emails', value);
+          },
           type: 'switch',
         },
         {
           title: 'Price Alerts',
           subtitle: 'Get notified when prices change',
           value: priceAlerts,
-          onToggle: setPriceAlerts,
+          onToggle: (value: boolean) => {
+            setPriceAlerts(value);
+            handleNotificationToggle('price_alerts', value);
+          },
           type: 'switch',
         },
         {
           title: 'Message Notifications',
           subtitle: 'Get notified about new messages',
           value: messageNotifications,
-          onToggle: setMessageNotifications,
+          onToggle: (value: boolean) => {
+            setMessageNotifications(value);
+            handleNotificationToggle('new_messages', value);
+          },
           type: 'switch',
         },
       ],
@@ -154,7 +214,10 @@ const Preferences = () => {
           title: 'Dark Mode',
           subtitle: 'Use dark theme throughout the app',
           value: darkMode,
-          onToggle: setDarkMode,
+          onToggle: (value: boolean) => {
+            setDarkMode(value);
+            handleThemeToggle(value);
+          },
           type: 'switch',
         },
         {

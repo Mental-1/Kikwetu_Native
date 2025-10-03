@@ -82,6 +82,7 @@
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.5.1",
     "react-stately": "^3.41.0",
+    "supabase": "^2.48.3",
     "tailwind-variants": "^0.1.20",
     "tailwindcss": "^3.4.17",
     "zod": "^4.1.9",

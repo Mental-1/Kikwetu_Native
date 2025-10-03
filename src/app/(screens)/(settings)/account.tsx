@@ -1,12 +1,14 @@
 import CustomDialog from '@/components/ui/CustomDialog';
 import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
+import { useProfile, useUpdateAvatar, useUpdateProfile } from '@/src/hooks/useProfile';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Account = () => {
@@ -16,13 +18,21 @@ const Account = () => {
   const { success } = createAlertHelpers(showAlert);
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Profile hooks
+  const { data: profile, isLoading: profileLoading, error: profileError } = useProfile();
+  const updateProfileMutation = useUpdateProfile();
+  const updateAvatarMutation = useUpdateAvatar();
+
   const computeFormData = React.useCallback(() => ({
-    fullName: user?.user_metadata?.full_name || '',
-    username: user?.user_metadata?.username || '',
-    email: user?.email || '',
-    phoneNumber: user?.user_metadata?.phone_number || '',
-    bio: 'Mobile app enthusiast and tech lover',
-  }), [user]);
+    fullName: profile?.full_name || '',
+    username: profile?.username || '',
+    email: profile?.email || user?.email || '',
+    phoneNumber: profile?.phone_number || '',
+    bio: profile?.bio || '',
+    location: profile?.location || '',
+    website: profile?.website || '',
+  }), [profile, user]);
 
   const [formData, setFormData] = useState(computeFormData);
 
@@ -43,10 +53,50 @@ const Account = () => {
     setIsEditing((prev) => !prev);
   };
 
-  const handleSave = () => {
-    // TODO: Implement save functionality
-    success('Success', 'Account information updated successfully!');
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      await updateProfileMutation.mutateAsync({
+        full_name: formData.fullName,
+        username: formData.username,
+        phone_number: formData.phoneNumber,
+        bio: formData.bio,
+        location: formData.location,
+        website: formData.website,
+      });
+      
+      success('Success', 'Account information updated successfully!');
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      success('Error', 'Failed to update account information. Please try again.');
+    }
+  };
+
+  const handleAvatarUpload = async () => {
+    try {
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        success('Permission Required', 'Please grant permission to access your photos.');
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await updateAvatarMutation.mutateAsync(result.assets[0].uri);
+        success('Success', 'Avatar updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      success('Error', 'Failed to update avatar. Please try again.');
+    }
   };
 
 
@@ -100,17 +150,30 @@ const Account = () => {
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
             <Image
-              source={{ uri: 'https://via.placeholder.com/100x100?text=User' }}
+              source={{ 
+                uri: profile?.avatar_url || 'https://via.placeholder.com/100x100?text=User' 
+              }}
               style={styles.avatar}
             />
-            <TouchableOpacity style={styles.avatarEditButton} disabled={!isEditing}>
-              <Ionicons name="camera-outline" size={16} color={Colors.white} />
+            <TouchableOpacity 
+              style={styles.avatarEditButton} 
+              onPress={handleAvatarUpload}
+              disabled={updateAvatarMutation.isPending}
+            >
+              {updateAvatarMutation.isPending ? (
+                <ActivityIndicator size="small" color={Colors.white} />
+              ) : (
+                <Ionicons name="camera-outline" size={16} color={Colors.white} />
+              )}
             </TouchableOpacity>
           </View>
           <Text style={styles.profileName}>
             {formData.fullName || 'Your Name'}
           </Text>
           <Text style={styles.profileEmail}>{formData.email}</Text>
+          {profileLoading && (
+            <Text style={styles.loadingText}>Loading profile...</Text>
+          )}
         </View>
 
         {/* Personal Information */}
@@ -191,11 +254,52 @@ const Account = () => {
                 <Text style={styles.displayText}>{formData.bio || 'Not provided'}</Text>
               )}
             </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Location</Text>
+              {isEditing ? (
+                <TextInput
+                  style={styles.textInput}
+                  value={formData.location}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, location: text }))}
+                  placeholder="Enter your location"
+                />
+              ) : (
+                <Text style={styles.displayText}>{formData.location || 'Not provided'}</Text>
+              )}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Website</Text>
+              {isEditing ? (
+                <TextInput
+                  style={styles.textInput}
+                  value={formData.website}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, website: text }))}
+                  placeholder="Enter your website URL"
+                  keyboardType="url"
+                  autoCapitalize="none"
+                />
+              ) : (
+                <Text style={styles.displayText}>{formData.website || 'Not provided'}</Text>
+              )}
+            </View>
           </View>
 
           {isEditing && (
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveButtonText}>Save Changes</Text>
+            <TouchableOpacity 
+              style={[
+                styles.saveButton,
+                updateProfileMutation.isPending && styles.saveButtonDisabled
+              ]} 
+              onPress={handleSave}
+              disabled={updateProfileMutation.isPending}
+            >
+              {updateProfileMutation.isPending ? (
+                <ActivityIndicator color={Colors.white} />
+              ) : (
+                <Text style={styles.saveButtonText}>Save Changes</Text>
+              )}
             </TouchableOpacity>
           )}
         </View>
@@ -404,10 +508,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
   },
+  saveButtonDisabled: {
+    backgroundColor: Colors.lightgrey,
+    opacity: 0.6,
+  },
   saveButtonText: {
     color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.grey,
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   sectionList: {
     backgroundColor: Colors.white,
