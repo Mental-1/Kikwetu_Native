@@ -1,11 +1,12 @@
 import * as FileSystem from 'expo-file-system';
+import { File } from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 export interface ImageProcessingOptions {
   maxWidth?: number;
   maxHeight?: number;
   quality?: number;
-  maxFileSize?: number; // in bytes
+  maxFileSize?: number;
   format?: 'jpeg' | 'png' | 'webp';
 }
 
@@ -21,7 +22,7 @@ export const DEFAULT_IMAGE_OPTIONS: ImageProcessingOptions = {
   maxWidth: 1920,
   maxHeight: 1080,
   quality: 0.8,
-  maxFileSize: 5 * 1024 * 1024, // 5MB
+  maxFileSize: 5 * 1024 * 1024,
   format: 'webp',
 };
 
@@ -33,14 +34,15 @@ export async function processImage(
   options: ImageProcessingOptions = DEFAULT_IMAGE_OPTIONS
 ): Promise<ProcessedImage> {
   try {
-    // Get original image info
-    const originalInfo = await FileSystem.getInfoAsync(imageUri);
+    // Get original image info using modern File API
+    const file = new File(imageUri);
+    const originalInfo = await file.info();
     if (!originalInfo.exists) {
       throw new Error('Image file does not exist');
     }
 
     // Check original file size
-    const originalSize = 'size' in originalInfo ? originalInfo.size : 0;
+    const originalSize = originalInfo.size || 0;
     if (originalSize > (options.maxFileSize || DEFAULT_IMAGE_OPTIONS.maxFileSize!)) {
       throw new Error(`Image is too large. Maximum size: ${formatFileSize(options.maxFileSize || DEFAULT_IMAGE_OPTIONS.maxFileSize!)}`);
     }
@@ -62,9 +64,10 @@ export async function processImage(
       }
     );
 
-    // Get processed image info
-    const processedInfo = await FileSystem.getInfoAsync(manipulatedImage.uri);
-    const processedSize = 'size' in processedInfo ? processedInfo.size : 0;
+    // Get processed image info using modern File API
+    const processedFile = new File(manipulatedImage.uri);
+    const processedInfo = await processedFile.info();
+    const processedSize = processedInfo.size || 0;
 
     // Check if processed image is still too large
     if (processedSize > (options.maxFileSize || DEFAULT_IMAGE_OPTIONS.maxFileSize!)) {
@@ -86,8 +89,9 @@ export async function processImage(
         }
       );
 
-      const recompressedInfo = await FileSystem.getInfoAsync(recompressedImage.uri);
-      const recompressedSize = 'size' in recompressedInfo ? recompressedInfo.size : 0;
+      const recompressedFile = new File(recompressedImage.uri);
+      const recompressedInfo = await recompressedFile.info();
+      const recompressedSize = recompressedInfo.size || 0;
 
       if (recompressedSize > (options.maxFileSize || DEFAULT_IMAGE_OPTIONS.maxFileSize!)) {
         throw new Error(`Unable to compress image below ${formatFileSize(options.maxFileSize || DEFAULT_IMAGE_OPTIONS.maxFileSize!)}. Please try a smaller image.`);
@@ -140,11 +144,16 @@ export async function processImages(
 /**
  * Validate image file size
  */
-export function validateImageSize(uri: string, maxSize: number = DEFAULT_IMAGE_OPTIONS.maxFileSize!): Promise<boolean> {
-  return FileSystem.getInfoAsync(uri).then(info => {
-    const size = 'size' in info ? info.size : 0;
+export async function validateImageSize(uri: string, maxSize: number = DEFAULT_IMAGE_OPTIONS.maxFileSize!): Promise<boolean> {
+  try {
+    const file = new File(uri);
+    const info = await file.info();
+    const size = info.size || 0;
     return size <= maxSize;
-  });
+  } catch (error) {
+    console.error('Error validating image size:', error);
+    return false;
+  }
 }
 
 /**

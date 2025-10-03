@@ -8,7 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Account = () => {
@@ -115,6 +115,7 @@ const Account = () => {
   };
 
 
+
   const accountSections = [
     {
       title: 'Account Actions',
@@ -145,7 +146,11 @@ const Account = () => {
         </TouchableOpacity>
       </SafeAreaView>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+      >
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Profile Section */}
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
@@ -326,12 +331,19 @@ const Account = () => {
                     />
                   </View>
                   <View style={styles.itemContent}>
-                    <Text style={[
-                      styles.itemTitle,
-                      item.isDestructive && styles.destructiveText
-                    ]}>
-                      {item.title}
-                    </Text>
+                    <View style={styles.itemTitleRow}>
+                      <Text style={[
+                        styles.itemTitle,
+                        item.isDestructive && styles.destructiveText
+                      ]}>
+                        {item.title}
+                      </Text>
+                      {(item as any).showStatus && (
+                        <View style={styles.statusBadge}>
+                          <Text style={styles.statusText}>ON</Text>
+                        </View>
+                      )}
+                    </View>
                     <Text style={styles.itemSubtitle}>{item.subtitle}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
@@ -343,7 +355,8 @@ const Account = () => {
 
         {/* Bottom padding for better scrolling */}
         <View style={styles.bottomPadding} />
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
       
       {/* Custom Alert Component */}
       <AlertComponent />
@@ -364,6 +377,7 @@ const Account = () => {
         confirmWeight="600"
         denyWeight="400"
       />
+
     </View>
   );
 };
@@ -406,6 +420,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.primary,
     fontWeight: '600',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   content: {
     flex: 1,
@@ -558,11 +575,29 @@ const styles = StyleSheet.create({
   itemContent: {
     flex: 1,
   },
+  itemTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
   itemTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.black,
-    marginBottom: 2,
+    flex: 1,
+  },
+  statusBadge: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: Colors.white,
   },
   itemSubtitle: {
     fontSize: 12,
