@@ -20,7 +20,7 @@ const Account = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Profile hooks
-  const { data: profile, isLoading: profileLoading, error: profileError } = useProfile();
+  const { data: profile, isLoading: profileLoading} = useProfile();
   const updateProfileMutation = useUpdateProfile();
   const updateAvatarMutation = useUpdateAvatar();
 

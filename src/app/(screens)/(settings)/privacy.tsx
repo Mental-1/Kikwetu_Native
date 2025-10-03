@@ -17,7 +17,7 @@ const Privacy = () => {
   const { user } = useAuth();
   const { data: profile } = useProfile();
   const { showAlert, AlertComponent } = useCustomAlert();
-  const { success, error } = createAlertHelpers(showAlert);
+  const { error } = createAlertHelpers(showAlert);
   const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);

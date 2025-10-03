@@ -14,7 +14,7 @@ const Preferences = () => {
   const { success, error } = createAlertHelpers(showAlert);
   
   // Profile hooks
-  const { data: profile, isLoading: profileLoading } = useProfile();
+  const { data: profile } = useProfile();
   const updateProfileMutation = useUpdateProfile();
   
   // Notification preferences - initialized from profile
