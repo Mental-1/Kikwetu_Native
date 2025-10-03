@@ -1,11 +1,13 @@
 import { Colors } from '@/src/constants/constant';
 import { useChangePassword } from '@/src/hooks/useProfile';
+import { useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
     KeyboardAvoidingView,
+    Modal,
     Platform,
     ScrollView,
     StyleSheet,
@@ -22,6 +24,7 @@ interface ChangePasswordModalProps {
 
 const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onClose }) => {
   const changePasswordMutation = useChangePassword();
+  const { AlertComponent } = useCustomAlert();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -111,7 +114,18 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
   if (!visible) return null;
 
   return (
-    <View style={styles.overlay}>
+    <>
+      <Modal
+        visible={visible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={handleClose}
+      >
+        <TouchableOpacity 
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={handleClose}
+        >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
@@ -191,7 +205,10 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+        </TouchableOpacity>
+      </Modal>
+      <AlertComponent />
+    </>
   );
 };
 
@@ -213,8 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '75%',
-    minHeight: '60%',
+    height: '65%',
   },
   header: {
     flexDirection: 'row',

@@ -1,20 +1,21 @@
 import { Colors } from '@/src/constants/constant';
 import { useProfile, useToggleMFA } from '@/src/hooks/useProfile';
+import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
+    Modal,
     ScrollView,
     Share,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
+import { Button } from 'react-native-paper';
+import QRCode from 'react-native-qrcode-svg';
 
 interface TwoFactorAuthModalProps {
   visible: boolean;
@@ -23,6 +24,8 @@ interface TwoFactorAuthModalProps {
 
 const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClose }) => {
   const { data: profile } = useProfile();
+  const { showAlert, AlertComponent } = useCustomAlert();
+  const { success, error } = createAlertHelpers(showAlert);
   const toggleMFAMutation = useToggleMFA();
   const [verificationCode, setVerificationCode] = useState('');
   const [secretKey, setSecretKey] = useState('');
@@ -30,13 +33,7 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'setup' | 'verify'>('setup');
 
-  useEffect(() => {
-    if (visible && !profile?.mfa_enabled) {
-      generateSecretKey();
-    }
-  }, [visible, profile?.mfa_enabled]);
-
-  const generateSecretKey = async () => {
+  const generateSecretKey = useCallback(async () => {
     try {
       setIsLoading(true);
       
@@ -54,17 +51,23 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
       const qrUrl = `otpauth://totp/${appName}:${email}?secret=${secret}&issuer=${appName}`;
       setQrCodeUrl(qrUrl);
       
-    } catch (error) {
-      console.error('Error generating secret key:', error);
-      Alert.alert('Error', 'Failed to generate 2FA setup. Please try again.');
+    } catch (err) {
+      console.error('Error generating secret key:', err);
+      error('Error', 'Failed to generate 2FA setup. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [profile?.email, error]);
+
+  useEffect(() => {
+    if (visible && !profile?.mfa_enabled) {
+      generateSecretKey();
+    }
+  }, [visible, profile?.mfa_enabled, generateSecretKey]);
 
   const handleSetup2FA = () => {
     if (!secretKey) {
-      Alert.alert('Error', 'Please wait for the setup to complete.');
+      error('Error', 'Please wait for the setup to complete.');
       return;
     }
     setStep('verify');
@@ -72,12 +75,12 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
 
   const handleVerifyAndEnable = async () => {
     if (!verificationCode.trim()) {
-      Alert.alert('Error', 'Please enter the verification code from your authenticator app.');
+      error('Error', 'Please enter the verification code from your authenticator app.');
       return;
     }
 
     if (verificationCode.length !== 6) {
-      Alert.alert('Error', 'Verification code must be 6 digits.');
+      error('Error', 'Verification code must be 6 digits.');
       return;
     }
 
@@ -91,53 +94,43 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
       // Enable 2FA in the profile
       await toggleMFAMutation.mutateAsync(true);
       
-      Alert.alert(
+      success(
         '2FA Enabled',
-        'Two-factor authentication has been successfully enabled for your account.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setVerificationCode('');
-              setStep('setup');
-              onClose();
-            },
-          },
-        ]
+        'Two-factor authentication has been successfully enabled for your account.'
       );
-    } catch (error: any) {
-      console.error('Error enabling 2FA:', error);
-      Alert.alert('Error', 'Failed to enable 2FA. Please check your code and try again.');
+      setVerificationCode('');
+      setStep('setup');
+      onClose();
+    } catch (err: any) {
+      console.error('Error enabling 2FA:', err);
+      error('Error', 'Failed to enable 2FA. Please check your code and try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDisable2FA = async () => {
-    Alert.alert(
-      'Disable 2FA',
-      'Are you sure you want to disable two-factor authentication? This will make your account less secure.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Disable',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsLoading(true);
-              await toggleMFAMutation.mutateAsync(false);
-              Alert.alert('2FA Disabled', 'Two-factor authentication has been disabled.');
-              onClose();
-            } catch (error: any) {
-              console.error('Error disabling 2FA:', error);
-              Alert.alert('Error', 'Failed to disable 2FA. Please try again.');
-            } finally {
-              setIsLoading(false);
-            }
-          },
-        },
-      ]
-    );
+    showAlert({
+      title: 'Disable 2FA',
+      message: 'Are you sure you want to disable two-factor authentication? This will make your account less secure.',
+      buttonText: 'Disable',
+      icon: 'warning',
+      iconColor: '#FF9800',
+      buttonColor: '#FF9800',
+      onPress: async () => {
+        try {
+          setIsLoading(true);
+          await toggleMFAMutation.mutateAsync(false);
+          success('2FA Disabled', 'Two-factor authentication has been disabled.');
+          onClose();
+        } catch (err: any) {
+          console.error('Error disabling 2FA:', err);
+          error('Error', 'Failed to disable 2FA. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    });
   };
 
   const handleShareSecret = async () => {
@@ -161,24 +154,29 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
   if (!visible) return null;
 
   return (
-    <View style={styles.overlay}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
+    <>
+      <Modal
+        visible={visible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={handleClose}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={handleClose}
+        >
           <View style={styles.modalContainer}>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={styles.modalHeader}>
               <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
                 <Ionicons name="close" size={24} color={Colors.black} />
               </TouchableOpacity>
-              <Text style={styles.title}>Two-Factor Authentication</Text>
+              <Text style={styles.modalTitle}>Two-Factor Authentication</Text>
               <View style={styles.placeholder} />
             </View>
 
-            {/* Content */}
-            <View style={styles.content}>
+            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
               {profile?.mfa_enabled ? (
                 // 2FA is enabled - show disable option
                 <View>
@@ -190,17 +188,17 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
                     </Text>
                   </View>
 
-                  <TouchableOpacity
-                    style={[styles.button, styles.disableButton]}
-                    onPress={handleDisable2FA}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color={Colors.white} />
-                    ) : (
-                      <Text style={styles.buttonText}>Disable 2FA</Text>
-                    )}
-                  </TouchableOpacity>
+                   <Button
+                     mode="contained"
+                     onPress={handleDisable2FA}
+                     loading={isLoading}
+                     disabled={isLoading}
+                     style={[styles.button, styles.disableButton]}
+                     buttonColor="#FF3B30"
+                     textColor={Colors.white}
+                   >
+                     Disable 2FA
+                   </Button>
                 </View>
               ) : step === 'setup' ? (
                 // Setup 2FA
@@ -214,26 +212,55 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
                       <ActivityIndicator size="large" color={Colors.primary} />
                       <Text style={styles.loadingText}>Setting up 2FA...</Text>
                     </View>
-                  ) : (
-                    <View>
-                      <View style={styles.secretContainer}>
-                        <Text style={styles.secretLabel}>Secret Key:</Text>
-                        <View style={styles.secretBox}>
-                          <Text style={styles.secretText}>{secretKey}</Text>
-                          <TouchableOpacity onPress={handleShareSecret} style={styles.shareButton}>
-                            <Ionicons name="share-outline" size={20} color={Colors.primary} />
-                          </TouchableOpacity>
-                        </View>
-                        <Text style={styles.helpText}>
-                          Copy this key and enter it in your authenticator app
-                        </Text>
-                      </View>
+                   ) : (
+                     <View>
+                       {/* QR Code Section */}
+                       <View style={styles.qrContainer}>
+                         <Text style={styles.qrLabel}>Scan QR Code:</Text>
+                         <View style={styles.qrCodeWrapper}>
+                           {qrCodeUrl ? (
+                             <QRCode
+                               value={qrCodeUrl}
+                               size={200}
+                               color={Colors.black}
+                               backgroundColor={Colors.white}
+                             />
+                           ) : (
+                             <View style={styles.qrPlaceholder}>
+                               <Text style={styles.qrPlaceholderText}>Generating QR Code...</Text>
+                             </View>
+                           )}
+                         </View>
+                         <Text style={styles.qrHelpText}>
+                           Scan this QR code with your authenticator app
+                         </Text>
+                       </View>
 
-                      <TouchableOpacity style={styles.button} onPress={handleSetup2FA}>
-                        <Text style={styles.buttonText}>I&apos;ve Added the Key</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
+                       {/* Secret Key Section */}
+                       <View style={styles.secretContainer}>
+                         <Text style={styles.secretLabel}>Or enter manually:</Text>
+                         <View style={styles.secretBox}>
+                           <Text style={styles.secretText}>{secretKey}</Text>
+                           <TouchableOpacity onPress={handleShareSecret} style={styles.shareButton}>
+                             <Ionicons name="share-outline" size={20} color={Colors.primary} />
+                           </TouchableOpacity>
+                         </View>
+                         <Text style={styles.helpText}>
+                           Copy this key and enter it manually in your authenticator app
+                         </Text>
+                       </View>
+
+                       <Button
+                         mode="contained"
+                         onPress={handleSetup2FA}
+                         style={styles.button}
+                         buttonColor={Colors.primary}
+                         textColor={Colors.white}
+                       >
+                         I&apos;ve Added the Key
+                       </Button>
+                     </View>
+                   )}
                 </View>
               ) : (
                 // Verify setup
@@ -245,7 +272,10 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
                   <View style={styles.inputContainer}>
                     <Text style={styles.inputLabel}>Verification Code</Text>
                     <TextInput
-                      style={styles.textInput}
+                      style={[
+                        styles.textInput,
+                        verificationCode.length > 0 && verificationCode.length !== 6 && styles.textInputError
+                      ]}
                       placeholder="000000"
                       value={verificationCode}
                       onChangeText={setVerificationCode}
@@ -253,6 +283,9 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
                       maxLength={6}
                       autoFocus
                     />
+                    {verificationCode.length > 0 && verificationCode.length !== 6 && (
+                      <Text style={styles.errorText}>Code must be 6 digits</Text>
+                    )}
                   </View>
 
                   <TouchableOpacity
@@ -276,36 +309,29 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
               <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-            </View>
+            </ScrollView>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+        </TouchableOpacity>
+      </Modal>
+      <AlertComponent />
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
-  keyboardAvoidingView: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'flex-end',
-  },
   modalContainer: {
+    height: '65%',
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '75%',
-    minHeight: '60%',
+    paddingBottom: 34,
   },
-  header: {
+  modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -315,19 +341,23 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.lightgrey,
   },
   closeButton: {
-    padding: 4,
+    padding: 8,
   },
-  title: {
+  modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.black,
+    color: Colors.primary,
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 40,
+    letterSpacing: 1,
   },
   placeholder: {
-    width: 32,
+    width: 40,
   },
-  content: {
-    padding: 20,
+  modalContent: {
     flex: 1,
+    padding: 20,
   },
   description: {
     fontSize: 14,
@@ -360,6 +390,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.grey,
   },
+  qrContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+    padding: 20,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.lightgrey,
+  },
+  qrLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.black,
+    marginBottom: 16,
+  },
+  qrCodeWrapper: {
+    padding: 16,
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightgrey,
+    marginBottom: 12,
+  },
+  qrHelpText: {
+    fontSize: 12,
+    color: Colors.grey,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
   secretContainer: {
     marginBottom: 24,
   },
@@ -372,23 +431,29 @@ const styles = StyleSheet.create({
   secretBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.lightgrey,
+    backgroundColor: '#F5F5F5',
     borderRadius: 8,
-    padding: 12,
+    padding: 16,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightgrey,
   },
   secretText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'monospace',
     color: Colors.black,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
   shareButton: {
     padding: 4,
   },
   helpText: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.grey,
+    lineHeight: 18,
+    textAlign: 'center',
   },
   inputContainer: {
     marginBottom: 20,
@@ -446,6 +511,29 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: Colors.grey,
     fontSize: 16,
+  },
+  textInputError: {
+    borderColor: '#FF3B30',
+    borderWidth: 2,
+  },
+  errorText: {
+    color: '#FF3B30',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  qrPlaceholder: {
+    width: 200,
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.lightgrey,
+    borderRadius: 8,
+  },
+  qrPlaceholderText: {
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
   },
 });
 

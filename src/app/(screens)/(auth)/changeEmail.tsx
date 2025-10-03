@@ -76,11 +76,16 @@ const ChangeEmailModal: React.FC<ChangeEmailModalProps> = ({ visible, onClose })
     <>
       <Modal
         visible={visible}
+        transparent={true}
         animationType="slide"
-        presentationStyle="pageSheet"
         onRequestClose={handleClose}
       >
-        <View style={styles.container}>
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={handleClose}
+        >
+          <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
@@ -165,7 +170,8 @@ const ChangeEmailModal: React.FC<ChangeEmailModalProps> = ({ visible, onClose })
               </Button>
             </View>
           </ScrollView>
-        </View>
+          </View>
+        </TouchableOpacity>
       </Modal>
       <AlertComponent />
     </>
@@ -173,9 +179,16 @@ const ChangeEmailModal: React.FC<ChangeEmailModalProps> = ({ visible, onClose })
 };
 
 const styles = StyleSheet.create({
-  container: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  container: {
+    height: '65%',
     backgroundColor: Colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   header: {
     flexDirection: 'row',
