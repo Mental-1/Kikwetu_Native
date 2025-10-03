@@ -92,10 +92,7 @@ export default function Step1() {
       Alert.alert('Required Field', 'Please select a category');
       return;
     }
-    if (!storeId) {
-      Alert.alert('Required Field', 'Please select a store');
-      return;
-    }
+    // Store selection is now optional - no validation needed
     router.push('/(screens)/post-ad/step2');
   };
 
@@ -314,7 +311,7 @@ export default function Step1() {
 
         {/* Store Selection */}
         <View style={styles.section}>
-          <Text style={styles.label}>Store *</Text>
+          <Text style={styles.label}>Store (Optional)</Text>
           <TouchableOpacity 
             style={styles.dropdown} 
             onPress={() => setShowStoreDropdown(!showStoreDropdown)}
@@ -323,7 +320,7 @@ export default function Step1() {
               styles.dropdownText, 
               !storeId && styles.placeholderText
             ]}>
-              {storeId ? stores?.find(s => s.id === storeId)?.name : 'Select Store'}
+              {storeId ? stores?.find(s => s.id === storeId)?.name : 'Select Store (Optional)'}
             </Text>
             <Ionicons 
               name={showStoreDropdown ? "chevron-up" : "chevron-down"} 
@@ -341,21 +338,39 @@ export default function Step1() {
               >
                 {storesLoading ? (
                   <Text style={styles.loadingText}>Loading stores...</Text>
-                ) : stores?.length === 0 ? (
-                  <Text style={styles.loadingText}>No stores available. Create a store first.</Text>
                 ) : (
-                  stores?.map((store) => (
+                  <>
+                    {/* Create Store Option */}
                     <TouchableOpacity
-                      key={store.id}
-                      style={styles.dropdownItem}
+                      style={[styles.dropdownItem, styles.createStoreItem]}
                       onPress={() => {
-                        setStoreId(store.id);
                         setShowStoreDropdown(false);
+                        // TODO: Navigate to create store screen
+                        Alert.alert('Coming Soon', 'Store creation will be available soon!');
                       }}
                     >
-                      <Text style={styles.dropdownItemText}>{store.name}</Text>
+                      <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
+                      <Text style={[styles.dropdownItemText, styles.createStoreText]}>Create New Store</Text>
                     </TouchableOpacity>
-                  ))
+                    
+                    {/* Existing Stores */}
+                    {stores?.length === 0 ? (
+                      <Text style={styles.loadingText}>No stores available</Text>
+                    ) : (
+                      stores?.map((store) => (
+                        <TouchableOpacity
+                          key={store.id}
+                          style={styles.dropdownItem}
+                          onPress={() => {
+                            setStoreId(store.id);
+                            setShowStoreDropdown(false);
+                          }}
+                        >
+                          <Text style={styles.dropdownItemText}>{store.name}</Text>
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </>
                 )}
               </ScrollView>
             </View>
@@ -716,9 +731,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.lightgrey,
   },
+  createStoreItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(3, 65, 252, 0.05)',
+  },
   dropdownItemText: {
     fontSize: 14,
     color: Colors.black,
+  },
+  createStoreText: {
+    marginLeft: 8,
+    color: Colors.primary,
+    fontWeight: '500',
   },
   loadingText: {
     fontSize: 14,

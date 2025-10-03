@@ -43,6 +43,10 @@ const Dashboard = () => {
     router.push('/(screens)/(dashboard)/plans-billing');
   };
 
+  const handleAnalytics = () => {
+    router.push('/(screens)/(dashboard)/analytics');
+  };
+
 
   return (
     <View style={styles.container}>
@@ -144,6 +148,17 @@ const Dashboard = () => {
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>Plans & Billing</Text>
                 <Text style={styles.actionSubtitle}>Manage subscription & billing</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.actionCard} onPress={handleAnalytics}>
+              <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
+                <Ionicons name="analytics-outline" size={24} color="#1976D2" />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>Analytics</Text>
+                <Text style={styles.actionSubtitle}>View listing performance & insights</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
             </TouchableOpacity>

@@ -1,9 +1,13 @@
 import { Colors } from '@/src/constants/constant';
+import { useCreateListing, useSaveDraft } from '@/src/hooks/useListings';
+import { saveDraft } from '@/src/utils/draftManager';
+import { validateCompleteListing } from '@/src/utils/listingValidation';
 import { useAppStore } from '@/stores/useAppStore';
+import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useState } from 'react';
 import { Alert, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,6 +15,10 @@ const { width } = Dimensions.get('window');
 
 export default function Step3() {
   const router = useRouter();
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  
   const { 
     title, 
     description, 
@@ -21,26 +29,159 @@ export default function Step3() {
     subcategoryId,
     tags, 
     images, 
-    videos 
+    videos,
+    isNegotiable,
+    latitude,
+    longitude,
+    storeId,
+    resetPostAd
   } = useAppStore((state) => state.postAd);
+
+  const createListingMutation = useCreateListing();
+  const saveDraftMutation = useSaveDraft();
 
   const handleBack = () => {
     router.back();
   };
 
-  const handleFinalize = () => {
+  const handlePublish = async () => {
+    // Validate the complete listing data
+    const listingData = {
+      title,
+      description,
+      price: price || 0,
+      category_id: categoryId || 0,
+      subcategory_id: subcategoryId,
+      condition,
+      location,
+      latitude,
+      longitude,
+      negotiable: isNegotiable || false,
+      images,
+      videos: videos || [],
+      tags: tags || [],
+      store_id: storeId,
+    };
+
+    const validation = validateCompleteListing(listingData);
+    if (!validation.success) {
+      const firstError = Object.values(validation.errors || {})[0];
+      showErrorToast(firstError || 'Please check your listing details');
+      return;
+    }
+
     Alert.alert(
-      'Post Your Ad',
-      'Are you sure you want to post this listing?',
+      'Publish Your Ad',
+      'Are you sure you want to publish this listing?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
-          text: 'Post Ad', 
-          onPress: () => {
-            // TODO: Implement actual posting logic
-            Alert.alert('Success', 'Your ad has been posted successfully!', [
-              { text: 'OK', onPress: () => router.push('/(tabs)/listings') }
-            ]);
+          text: 'Publish Ad', 
+          onPress: async () => {
+            try {
+              setIsPublishing(true);
+              setUploadProgress(0);
+
+              await createListingMutation.mutateAsync({
+                listingData: {
+                  title: validation.data!.title!,
+                  description: validation.data!.description!,
+                  price: validation.data!.price!,
+                  category_id: validation.data!.category_id!,
+                  subcategory_id: validation.data!.subcategory_id,
+                  condition: validation.data!.condition!,
+                  location: validation.data!.location!,
+                  latitude: validation.data!.latitude,
+                  longitude: validation.data!.longitude,
+                  negotiable: validation.data!.negotiable!,
+                  images: validation.data!.images!,
+                  tags: validation.data!.tags!,
+                  store_id: validation.data!.store_id,
+                  status: 'active',
+                },
+                imageUris: images,
+                onUploadProgress: setUploadProgress,
+              });
+
+              showSuccessToast('Your ad has been published successfully!', 'Success');
+              resetPostAd(); // Clear the form data
+              router.push('/(tabs)/listings');
+            } catch (error: any) {
+              console.error('Error publishing listing:', error);
+              showErrorToast(error.message || 'Failed to publish listing. Please try again.');
+            } finally {
+              setIsPublishing(false);
+              setUploadProgress(0);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleSaveDraft = async () => {
+    // Validate the complete listing data for draft
+    const listingData = {
+      title,
+      description,
+      price: price || 0,
+      category_id: categoryId || 0,
+      subcategory_id: subcategoryId,
+      condition,
+      location,
+      latitude,
+      longitude,
+      negotiable: isNegotiable || false,
+      images,
+      videos: videos || [],
+      tags: tags || [],
+      store_id: storeId,
+    };
+
+    const validation = validateCompleteListing(listingData);
+    if (!validation.success) {
+      const firstError = Object.values(validation.errors || {})[0];
+      showErrorToast(firstError || 'Please check your listing details');
+      return;
+    }
+
+    Alert.alert(
+      'Save as Draft',
+      'Your listing will be saved as a draft. You can continue editing and publish it later.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Save Draft', 
+          onPress: async () => {
+            try {
+              setIsSavingDraft(true);
+
+              const draftId = await saveDraft({
+                title: validation.data!.title!,
+                description: validation.data!.description!,
+                price: validation.data!.price!,
+                category_id: validation.data!.category_id!,
+                subcategory_id: validation.data!.subcategory_id,
+                condition: validation.data!.condition!,
+                location: validation.data!.location!,
+                latitude: validation.data!.latitude,
+                longitude: validation.data!.longitude,
+                negotiable: validation.data!.negotiable!,
+                images: validation.data!.images!,
+                videos: validation.data!.videos!,
+                tags: validation.data!.tags!,
+                store_id: validation.data!.store_id,
+              });
+
+              showSuccessToast('Your listing has been saved as a draft!', 'Draft Saved');
+              resetPostAd(); // Clear the form data
+              router.push('/(tabs)/listings');
+            } catch (error: any) {
+              console.error('Error saving draft:', error);
+              showErrorToast(error.message || 'Failed to save draft. Please try again.');
+            } finally {
+              setIsSavingDraft(false);
+            }
           }
         }
       ]
@@ -70,7 +211,7 @@ export default function Step3() {
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Post Ad - Preview</Text>
+        <Text style={styles.headerTitle}>Publish Ad - Preview</Text>
         <View style={styles.placeholder} />
       </SafeAreaView>
 
@@ -79,7 +220,7 @@ export default function Step3() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Preview Your Listing</Text>
           <Text style={styles.sectionDescription}>
-            Review all the details before posting your ad
+            Review all the details before publishing your ad or saving as draft
           </Text>
         </View>
 
@@ -184,12 +325,33 @@ export default function Step3() {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.backButtonFooter} onPress={handleBack}>
-          <Text style={styles.backButtonText}>Back to Edit</Text>
+        <TouchableOpacity 
+          style={[styles.draftButton, isSavingDraft && styles.disabledButton]} 
+          onPress={handleSaveDraft}
+          disabled={isSavingDraft || isPublishing}
+        >
+          <Text style={[styles.draftButtonText, isSavingDraft && styles.disabledButtonText]}>
+            {isSavingDraft ? 'Saving...' : 'Save Draft'}
+          </Text>
+          <Ionicons 
+            name={isSavingDraft ? "hourglass-outline" : "bookmark-outline"} 
+            size={20} 
+            color={isSavingDraft ? Colors.grey : Colors.grey} 
+          />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.finalizeButton} onPress={handleFinalize}>
-          <Text style={styles.finalizeButtonText}>Post Ad</Text>
-          <Ionicons name="checkmark" size={20} color={Colors.white} />
+        <TouchableOpacity 
+          style={[styles.publishButton, (isPublishing || isSavingDraft) && styles.disabledButton]} 
+          onPress={handlePublish}
+          disabled={isPublishing || isSavingDraft}
+        >
+          <Text style={[styles.publishButtonText, isPublishing && styles.disabledButtonText]}>
+            {isPublishing ? `Publishing... ${Math.round(uploadProgress)}%` : 'Publish Ad'}
+          </Text>
+          <Ionicons 
+            name={isPublishing ? "hourglass-outline" : "checkmark"} 
+            size={20} 
+            color={isPublishing ? Colors.white : Colors.white} 
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -393,19 +555,24 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.lightgrey,
     gap: 12,
   },
-  backButtonFooter: {
+  draftButton: {
     flex: 1,
-    backgroundColor: Colors.lightgrey,
+    backgroundColor: Colors.white,
     borderRadius: 8,
     paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightgrey,
   },
-  backButtonText: {
-    color: Colors.black,
+  draftButtonText: {
+    color: Colors.grey,
     fontSize: 16,
     fontWeight: '600',
   },
-  finalizeButton: {
+  publishButton: {
     flex: 2,
     backgroundColor: Colors.primary,
     borderRadius: 8,
@@ -415,9 +582,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  finalizeButtonText: {
+  publishButtonText: {
     color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  disabledButtonText: {
+    opacity: 0.8,
   },
 });
