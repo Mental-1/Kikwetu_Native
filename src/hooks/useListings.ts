@@ -1,6 +1,6 @@
 import { createListing, CreateListingData, deleteListing, getListingById, getUserListings, updateListing, updateListingStatus } from '@/src/services/listingsService';
 import { uploadImages } from '@/src/utils/imageUpload';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 /**
  * Hook to fetch user's listings
@@ -226,4 +226,83 @@ export function useLoadDrafts() {
     },
     staleTime: 1 * 60 * 1000, // 1 minute
   });
+}
+
+/**
+ * Fetch listings with infinite scrolling
+ */
+async function fetchListings(page: number = 1): Promise<{ data: any[]; hasMore: boolean; totalCount: number }> {
+  try {
+    const response = await fetch(`http://localhost:8081/api/listings?page=${page}&limit=20`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const result = await response.json();
+    return {
+      data: result.listings || [],
+      hasMore: result.hasMore || false,
+      totalCount: result.totalCount || 0,
+    };
+  } catch (error) {
+    console.error('Error fetching listings:', error);
+    throw error;
+  }
+}
+
+/**
+ * Hook for fetching listings with infinite scrolling
+ */
+export function useListings() {
+  return useInfiniteQuery({
+    queryKey: ['listings'],
+    queryFn: ({ pageParam = 1 }) => fetchListings(pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.hasMore ? allPages.length + 1 : undefined;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+  });
+}
+
+/**
+ * Hook for filtered listings with search
+ */
+export function useFilteredListings(searchQuery: string = '') {
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+  } = useListings();
+
+  const listings = data?.pages.flatMap(page => page.data) || [];
+  const totalCount = data?.pages[0]?.totalCount || 0;
+
+  // Filter listings based on search query
+  const filteredListings = searchQuery
+    ? listings.filter((item: any) =>
+        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.location?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : listings;
+
+  return {
+    listings: filteredListings,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+    totalCount,
+  };
 }

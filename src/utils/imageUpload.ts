@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import * as FileSystem from 'expo-file-system';
+import { File } from 'expo-file-system';
 
 export interface UploadProgress {
   loaded: number;
@@ -30,8 +30,9 @@ export async function uploadImage(
   try {
     const { bucket = 'listings', folder = 'images', onProgress } = options;
     
-    // Get file info
-    const fileInfo = await FileSystem.getInfoAsync(imageUri);
+    // Get file info using the modern File API
+    const file = new File(imageUri);
+    const fileInfo = await file.info();
     if (!fileInfo.exists) {
       throw new Error('File does not exist');
     }

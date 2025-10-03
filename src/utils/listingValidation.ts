@@ -33,7 +33,7 @@ export const listingSchema = z.object({
     .string()
     .min(1, 'Condition is required')
     .refine(
-      (val) => ['new', 'like_new', 'good', 'fair', 'poor'].includes(val),
+      (val) => ['New', 'Like New', 'Good', 'Fair', 'Poor'].includes(val),
       'Invalid condition selected'
     ),
   
@@ -47,12 +47,14 @@ export const listingSchema = z.object({
     .number()
     .min(-90, 'Invalid latitude')
     .max(90, 'Invalid latitude')
+    .nullable()
     .optional(),
   
   longitude: z
     .number()
     .min(-180, 'Invalid longitude')
     .max(180, 'Invalid longitude')
+    .nullable()
     .optional(),
   
   negotiable: z
@@ -76,6 +78,7 @@ export const listingSchema = z.object({
   
   store_id: z
     .number()
+    .nullable()
     .optional(),
 });
 
