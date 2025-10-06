@@ -47,6 +47,9 @@ const Dashboard = () => {
     router.push('/(screens)/(dashboard)/analytics');
   };
 
+  const handleMyStores = () => {
+    router.push('/(screens)/(dashboard)/stores');
+  };
 
   return (
     <View style={styles.container}>
@@ -104,6 +107,17 @@ const Dashboard = () => {
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>Post New Listing</Text>
                 <Text style={styles.actionSubtitle}>Create a new listing</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.actionCard} onPress={handleMyStores}>
+              <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
+                <Ionicons name="storefront-outline" size={24} color="#E65100" />
+              </View>
+              <View style={styles.actionContent}>
+                <Text style={styles.actionTitle}>My Stores</Text>
+                <Text style={styles.actionSubtitle}>Manage your stores</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
             </TouchableOpacity>

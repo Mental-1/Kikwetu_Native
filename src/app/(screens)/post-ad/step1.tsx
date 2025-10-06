@@ -345,8 +345,7 @@ export default function Step1() {
                       style={[styles.dropdownItem, styles.createStoreItem]}
                       onPress={() => {
                         setShowStoreDropdown(false);
-                        // TODO: Navigate to create store screen
-                        Alert.alert('Coming Soon', 'Store creation will be available soon!');
+                        router.push('/(screens)/(dashboard)/stores/store-create');
                       }}
                     >
                       <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />

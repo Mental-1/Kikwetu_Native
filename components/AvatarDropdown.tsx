@@ -62,52 +62,50 @@ const AvatarDropdown: React.FC<AvatarDropdownProps> = ({
     >
       <TouchableWithoutFeedback onPress={onClose}>
         <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
-          <TouchableWithoutFeedback>
-            <Animated.View 
-              style={[
-                styles.dropdown,
-                { transform: [{ translateX: slideAnim }] }
-              ]}
-            >
-              {/* User Info Header */}
-              <View style={styles.userHeader}>
-                <View style={styles.avatarContainer}>
-                  <Text style={styles.avatarText}>
-                    {userName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || 'U'}
-                  </Text>
-                </View>
-                <View style={styles.userInfo}>
-                  <Text style={styles.userName} numberOfLines={1}>
-                    {userName || 'User'}
-                  </Text>
-                  <Text style={styles.userEmail} numberOfLines={1}>
-                    {userEmail || ''}
-                  </Text>
-                </View>
+          <Animated.View 
+            style={[
+              styles.dropdown,
+              { transform: [{ translateX: slideAnim }] }
+            ]}
+          >
+            {/* User Info Header */}
+            <View style={styles.userHeader}>
+              <View style={styles.avatarContainer}>
+                <Text style={styles.avatarText}>
+                  {userName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || 'U'}
+                </Text>
               </View>
-
-              {/* Menu Options */}
-              <View style={styles.menuOptions}>
-                <TouchableOpacity style={styles.menuItem} onPress={onDashboard}>
-                  <View style={styles.menuIconContainer}>
-                    <Ionicons name="grid-outline" size={20} color={Colors.primary} />
-                  </View>
-                  <Text style={styles.menuText}>Dashboard</Text>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
-                </TouchableOpacity>
-
-                <View style={styles.divider} />
-
-                <TouchableOpacity style={styles.menuItem} onPress={onSignOut}>
-                  <View style={styles.menuIconContainer}>
-                    <Ionicons name="log-out-outline" size={20} color={Colors.red} />
-                  </View>
-                  <Text style={[styles.menuText, { color: Colors.red }]}>Sign Out</Text>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
-                </TouchableOpacity>
+              <View style={styles.userInfo}>
+                <Text style={styles.userName} numberOfLines={1}>
+                  {userName || 'User'}
+                </Text>
+                <Text style={styles.userEmail} numberOfLines={1}>
+                  {userEmail || ''}
+                </Text>
               </View>
-            </Animated.View>
-          </TouchableWithoutFeedback>
+            </View>
+
+            {/* Menu Options */}
+            <View style={styles.menuOptions}>
+              <TouchableOpacity style={styles.menuItem} onPress={onDashboard}>
+                <View style={styles.menuIconContainer}>
+                  <Ionicons name="grid-outline" size={20} color={Colors.primary} />
+                </View>
+                <Text style={styles.menuText}>Dashboard</Text>
+                <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
+              </TouchableOpacity>
+
+              <View style={styles.divider} />
+
+              <TouchableOpacity style={styles.menuItem} onPress={onSignOut}>
+                <View style={styles.menuIconContainer}>
+                  <Ionicons name="log-out-outline" size={20} color={Colors.red} />
+                </View>
+                <Text style={[styles.menuText, { color: Colors.red }]}>Sign Out</Text>
+                <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
         </Animated.View>
       </TouchableWithoutFeedback>
     </Modal>
