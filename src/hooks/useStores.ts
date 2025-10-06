@@ -1,4 +1,4 @@
-import { createStore, CreateStoreData, deleteStore, getUserStores, updateStore } from '@/src/services/storesService';
+import { CreateStoreData, StoreImageData, storesService } from '@/src/services/storesService';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 /**
@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 export function useStores() {
   return useQuery({
     queryKey: ['stores'],
-    queryFn: getUserStores,
+    queryFn: storesService.getUserStores,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
@@ -19,7 +19,8 @@ export function useCreateStore() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createStore,
+    mutationFn: ({ storeData, images }: { storeData: CreateStoreData; images?: StoreImageData }) =>
+      storesService.createStore(storeData, images),
     onSuccess: () => {
       // Invalidate and refetch stores
       queryClient.invalidateQueries({ queryKey: ['stores'] });
@@ -34,8 +35,12 @@ export function useUpdateStore() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ storeId, data }: { storeId: number; data: Partial<CreateStoreData> }) =>
-      updateStore(storeId, data),
+    mutationFn: ({ storeId, storeData, images }: { 
+      storeId: string; 
+      storeData: Partial<CreateStoreData>; 
+      images?: StoreImageData;
+    }) =>
+      storesService.updateStore(storeId, storeData, images),
     onSuccess: () => {
       // Invalidate and refetch stores
       queryClient.invalidateQueries({ queryKey: ['stores'] });
@@ -50,10 +55,49 @@ export function useDeleteStore() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteStore,
+    mutationFn: (storeId: string) => storesService.deleteStore(storeId),
     onSuccess: () => {
       // Invalidate and refetch stores
       queryClient.invalidateQueries({ queryKey: ['stores'] });
     },
+  });
+}
+
+/**
+ * Hook to get a single store by ID
+ */
+export function useStore(storeId: string) {
+  return useQuery({
+    queryKey: ['store', storeId],
+    queryFn: () => storesService.getStoreById(storeId),
+    enabled: !!storeId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Hook to toggle store status
+ */
+export function useToggleStoreStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (storeId: string) => storesService.toggleStoreStatus(storeId),
+    onSuccess: () => {
+      // Invalidate and refetch stores
+      queryClient.invalidateQueries({ queryKey: ['stores'] });
+    },
+  });
+}
+
+/**
+ * Hook to get store statistics
+ */
+export function useStoreStats(storeId: string) {
+  return useQuery({
+    queryKey: ['store-stats', storeId],
+    queryFn: () => storesService.getStoreStats(storeId),
+    enabled: !!storeId,
+    staleTime: 2 * 60 * 1000, // 2 minutes - stats change more frequently
   });
 }

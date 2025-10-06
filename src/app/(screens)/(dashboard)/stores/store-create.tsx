@@ -1,4 +1,5 @@
 import { Colors } from '@/src/constants/constant';
+import { useCreateStore } from '@/src/hooks/useStores';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -29,7 +30,7 @@ interface StoreFormData {
 
 const StoreCreate = () => {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const createStoreMutation = useCreateStore();
   const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState<StoreFormData>({
@@ -100,13 +101,30 @@ const StoreCreate = () => {
 
     setSaving(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const storeData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        category: formData.category,
+        contact_email: formData.website.trim() || null,
+        is_active: true,
+      };
+
+      const images = {
+        banner_image: bannerImage || undefined,
+        profile_image: profileImage || undefined,
+      };
+
+      const result = await createStoreMutation.mutateAsync({ storeData, images });
       
-      Alert.alert('Success', 'Store created successfully!', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      if (result.success) {
+        Alert.alert('Success', 'Store created successfully!', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
+      } else {
+        Alert.alert('Error', result.error || 'Failed to create store');
+      }
     } catch (error) {
+      console.error('Create store error:', error);
       Alert.alert('Error', 'Failed to create store. Please try again.');
     } finally {
       setSaving(false);

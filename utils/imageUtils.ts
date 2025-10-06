@@ -1,3 +1,4 @@
+import { supabase } from '@/lib/supabase';
 import * as FileSystem from 'expo-file-system';
 import { File } from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -16,6 +17,15 @@ export interface ProcessedImage {
   height: number;
   size: number; // file size in bytes
   format: string;
+}
+
+export interface UploadResult {
+  success: boolean;
+  data?: {
+    url: string;
+    path: string;
+  };
+  error?: string;
 }
 
 export const DEFAULT_IMAGE_OPTIONS: ImageProcessingOptions = {
@@ -241,3 +251,63 @@ export const IMAGE_PRESETS = {
     format: 'webp' as const,
   },
 };
+
+/**
+ * Upload an image to Supabase Storage
+ */
+export async function uploadImage(
+  imageUri: string,
+  bucket: string,
+  fileName: string
+): Promise<UploadResult> {
+  try {
+    // Read the file as base64
+    const fileInfo = await new File(imageUri).info();
+    if (!fileInfo.exists) {
+      return {
+        success: false,
+        error: 'File does not exist'
+      };
+    }
+
+    const fileData = await FileSystem.readAsStringAsync(imageUri, {
+      encoding: 'base64' as any,
+    });
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, fileData, {
+        contentType: 'image/webp',
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('Upload error:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to upload image'
+      };
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path);
+
+    return {
+      success: true,
+      data: {
+        url: publicUrlData.publicUrl,
+        path: data.path,
+      }
+    };
+  } catch (error) {
+    console.error('Upload error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to upload image'
+    };
+  }
+}
