@@ -1,18 +1,19 @@
+import { supabase } from '@/lib/supabase';
 import { Colors } from '@/src/constants/constant';
 import { useProfile, useToggleMFA } from '@/src/hooks/useProfile';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Modal,
-    ScrollView,
-    Share,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { Button } from 'react-native-paper';
 import QRCode from 'react-native-qrcode-svg';
@@ -33,37 +34,41 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'setup' | 'verify'>('setup');
 
-  const generateSecretKey = useCallback(async () => {
+  const generateSecretKey = async () => {
     try {
       setIsLoading(true);
       
-      // Generate a random secret key (in a real app, this would come from your backend)
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-      let secret = '';
-      for (let i = 0; i < 32; i++) {
-        secret += chars.charAt(Math.floor(Math.random() * chars.length));
+      // Use Supabase TOTP enrollment
+      const { data, error: enrollError } = await supabase.auth.mfa.enroll({
+        factorType: 'totp',
+      });
+
+      if (enrollError) {
+        throw enrollError;
       }
-      setSecretKey(secret);
+
+      if (!data) {
+        throw new Error('Failed to enroll MFA');
+      }
+
+      // Set the secret and QR code from Supabase
+      setSecretKey(data.totp.secret);
+      setQrCodeUrl(data.totp.qr_code);
       
-      // Generate QR code URL (simplified - in real app, use proper TOTP library)
-      const appName = 'Kikwetu';
-      const email = profile?.email || 'user@example.com';
-      const qrUrl = `otpauth://totp/${appName}:${email}?secret=${secret}&issuer=${appName}`;
-      setQrCodeUrl(qrUrl);
-      
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error generating secret key:', err);
-      error('Error', 'Failed to generate 2FA setup. Please try again.');
+      error('Error', err.message || 'Failed to generate 2FA setup. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, [profile?.email, error]);
+  };
 
   useEffect(() => {
-    if (visible && !profile?.mfa_enabled) {
+    if (visible && !profile?.mfa_enabled && !secretKey) {
       generateSecretKey();
     }
-  }, [visible, profile?.mfa_enabled, generateSecretKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, profile?.mfa_enabled]);
 
   const handleSetup2FA = () => {
     if (!secretKey) {
@@ -87,9 +92,38 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
     try {
       setIsLoading(true);
       
-      // In a real app, you would verify the TOTP code with your backend
-      // For now, we'll simulate the verification
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Get the list of factors to find the one we just enrolled
+      const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+      
+      if (factorsError) {
+        throw factorsError;
+      }
+
+      // Find the most recent TOTP factor that's not verified
+      const totpFactor = factors?.totp?.find(f => f.status === 'unverified');
+      
+      if (!totpFactor) {
+        throw new Error('No unverified TOTP factor found. Please try again.');
+      }
+
+      // Verify the TOTP code with Supabase
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: totpFactor.id,
+      });
+
+      if (challengeError) {
+        throw challengeError;
+      }
+
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: totpFactor.id,
+        challengeId: challengeData.id,
+        code: verificationCode,
+      });
+
+      if (verifyError) {
+        throw verifyError;
+      }
       
       // Enable 2FA in the profile
       await toggleMFAMutation.mutateAsync(true);
@@ -99,11 +133,13 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
         'Two-factor authentication has been successfully enabled for your account.'
       );
       setVerificationCode('');
+      setSecretKey('');
+      setQrCodeUrl('');
       setStep('setup');
       onClose();
     } catch (err: any) {
       console.error('Error enabling 2FA:', err);
-      error('Error', 'Failed to enable 2FA. Please check your code and try again.');
+      error('Error', err.message || 'Failed to enable 2FA. Please check your code and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -305,10 +341,6 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
                   </TouchableOpacity>
                 </View>
               )}
-
-              <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
             </ScrollView>
           </View>
         </TouchableOpacity>
@@ -501,15 +533,6 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     color: Colors.primary,
-    fontSize: 16,
-  },
-  cancelButton: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 12,
-  },
-  cancelButtonText: {
-    color: Colors.grey,
     fontSize: 16,
   },
   textInputError: {

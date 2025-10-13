@@ -159,15 +159,6 @@ const ChangeEmailModal: React.FC<ChangeEmailModalProps> = ({ visible, onClose })
               >
                 Change Email
               </Button>
-
-              <Button
-                mode="outlined"
-                onPress={handleClose}
-                style={styles.cancelButton}
-                textColor={Colors.grey}
-              >
-                Cancel
-              </Button>
             </View>
           </ScrollView>
           </View>
@@ -239,10 +230,8 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 20,
-    marginBottom: 12,
-  },
-  cancelButton: {
     marginBottom: 20,
+    borderRadius: 8,
   },
 });
 
