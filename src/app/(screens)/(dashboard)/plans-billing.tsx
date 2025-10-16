@@ -1,17 +1,18 @@
 import { Colors } from '@/src/constants/constant';
+import { useCurrentSubscription, useSubscriptionHistory, useSubscriptionPlans } from '@/src/hooks/useApiSubscriptions';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SubscriptionPlan {
   id: string;
   name: string;
-  monthlyPrice: string;
-  annualPrice: string;
+  monthlyPrice: number;
+  annualPrice: number;
   period: string;
   features: string[];
   isPopular?: boolean;
@@ -38,120 +39,41 @@ const PlansBilling = () => {
   const [selectedPlan, setSelectedPlan] = useState<string>('basic');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
 
-  const subscriptionPlans: SubscriptionPlan[] = [
-    {
-      id: 'free',
-      name: 'Free',
-      monthlyPrice: 'KES 0',
-      annualPrice: 'KES 0',
-      period: 'forever',
-      features: [
-        'Up to 5 listings',
-        'Basic search',
-        'Community support',
-        'Mobile app access'
-      ],
-      color: '#6B7280',
-      icon: 'person-outline',
-      isCurrent: true
-    },
-    {
-      id: 'basic',
-      name: 'Basic',
-      monthlyPrice: 'KES 1,200',
-      annualPrice: 'KES 12,000',
-      period: 'month',
-      features: [
-        'Up to 50 listings',
-        'Advanced search filters',
-        'Priority support',
-        'Analytics dashboard',
-        'Email notifications'
-      ],
-      color: '#3B82F6',
-      icon: 'star-outline',
-      isPopular: true,
-      annualDiscount: 'Save 17%'
-    },
-    {
-      id: 'premium',
-      name: 'Premium',
-      monthlyPrice: 'KES 2,400',
-      annualPrice: 'KES 24,000',
-      period: 'month',
-      features: [
-        'Unlimited listings',
-        'Premium search filters',
-        '24/7 phone support',
-        'Advanced analytics',
-        'Custom branding',
-        'API access'
-      ],
-      color: '#8B5CF6',
-      icon: 'diamond-outline',
-      annualDiscount: 'Save 17%'
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      monthlyPrice: 'Custom',
-      annualPrice: 'Custom',
-      period: 'contact',
-      features: [
-        'Everything in Premium',
-        'Dedicated account manager',
-        'Custom integrations',
-        'White-label solution',
-        'SLA guarantee',
-        'On-premise deployment'
-      ],
-      color: '#F59E0B',
-      icon: 'business-outline'
-    }
-  ];
+  // Fetch plans and subscription data from API
+  const { data: plansData } = useSubscriptionPlans();
+  const { data: currentSubscription } = useCurrentSubscription();
+  const { data: historyData } = useSubscriptionHistory();
 
-  const billingHistory: BillingTransaction[] = [
-    {
-      id: '1',
-      date: '2024-01-15',
-      description: 'Premium Plan - Monthly',
-      amount: 'KES 2,400',
-      status: 'completed',
-      type: 'subscription'
-    },
-    {
-      id: '2',
-      date: '2023-12-15',
-      description: 'Premium Plan - Monthly',
-      amount: 'KES 2,400',
-      status: 'completed',
-      type: 'subscription'
-    },
-    {
-      id: '3',
-      date: '2023-11-15',
-      description: 'Premium Plan - Monthly',
-      amount: 'KES 2,400',
-      status: 'completed',
-      type: 'subscription'
-    },
-    {
-      id: '4',
-      date: '2023-10-15',
-      description: 'Basic Plan - Monthly',
-      amount: 'KES 1,200',
-      status: 'completed',
-      type: 'subscription'
-    },
-    {
-      id: '5',
-      date: '2023-09-20',
-      description: 'Premium Upgrade',
-      amount: 'KES 1,200',
-      status: 'completed',
-      type: 'one-time'
-    }
-  ];
+  // Transform API plans to UI format
+  const subscriptionPlans: SubscriptionPlan[] = useMemo(() => {
+    return (plansData || []).map(plan => ({
+      id: plan.id,
+      name: plan.name,
+      monthlyPrice: plan.monthly_price,
+      annualPrice: plan.annual_price,
+      period: 'month',
+      features: plan.features,
+      isPopular: plan.is_popular,
+      isCurrent: currentSubscription?.plan_id === plan.id,
+      color: plan.color,
+      icon: plan.icon,
+      annualDiscount: 'Save 17%',
+    }));
+  }, [plansData, currentSubscription]);
+
+  // Transform subscription history
+  const billingHistory: BillingTransaction[] = useMemo(() => {
+    return (historyData || []).map(sub => ({
+      id: sub.id,
+      date: new Date(sub.created_at).toLocaleDateString(),
+      description: `${sub.billing_cycle} subscription`,
+      amount: `KES ${sub.amount.toLocaleString()}`,
+      status: sub.status as any,
+      type: 'subscription' as const,
+    }));
+  }, [historyData]);
+
+  
 
   const handleBack = () => {
     router.back();
@@ -803,6 +725,23 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 24,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.grey,
+    marginTop: 12,
+  },
+  emptyHistory: {
+    paddingVertical: 32,
+    alignItems: 'center',
+  },
+  emptyHistoryText: {
+    fontSize: 14,
+    color: Colors.grey,
   },
 });
 

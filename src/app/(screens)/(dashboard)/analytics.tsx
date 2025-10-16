@@ -1,25 +1,26 @@
 import PremiumFeatureModal from '@/components/PremiumFeatureModal';
 import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
+import { useDashboardAnalytics, useListingAnalytics } from '@/src/hooks/useApiAnalytics';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-    Dimensions,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Dimensions,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { BarChart, LineChart, PieChart } from 'react-native-gifted-charts';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
-// Mock analytics data - will be replaced with real API data
+// Fetch from API, fallback to mock for development
 const mockAnalyticsData = {
   listingPerformance: [
     { month: 'Jan', views: 120, saves: 15, inquiries: 8 },
@@ -65,8 +66,15 @@ export default function Analytics() {
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
+  // Fetch analytics from API
+  const { data: dashboardData, isLoading, refetch } = useDashboardAnalytics();
+  const { data: listingData } = useListingAnalytics();
+
+  // Use API data if available, otherwise fallback to mock
+  const analyticsData = dashboardData || mockAnalyticsData;
+
   // Mock premium status - in real app, this would come from user's subscription
-  const isPremium = false; // user?.user_metadata?.subscription_plan === 'premium';
+  const isPremium = false;
 
   const handleBack = () => {
     router.back();
@@ -78,8 +86,8 @@ export default function Analytics() {
       return;
     }
     setRefreshing(true);
-    // TODO: Fetch fresh analytics data
-    setTimeout(() => setRefreshing(false), 1000);
+    await refetch();
+    setRefreshing(false);
   };
 
   const handlePremiumModalClose = () => {

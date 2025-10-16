@@ -12,6 +12,7 @@ import { z } from 'zod';
 // Form validation schema
 const signUpSchema = z.object({
     fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+    username: z.string().min(3, 'Username must be at least 3 characters').regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers and underscores'),
     email: z.string().email('Please enter a valid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
@@ -39,6 +40,7 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
         resolver: zodResolver(signUpSchema),
         defaultValues: {
             fullName: '',
+            username: '',
             email: '',
             password: '',
             confirmPassword: '',
@@ -49,7 +51,7 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
     const onSubmitSignUp = async (data: SignUpFormData) => {
         try {
             setIsLoading(true);
-            const { error } = await signUp(data.email, data.password, data.fullName, data.phoneNumber);
+            const { error } = await signUp(data.email, data.password, data.username, data.fullName);
             
             if (error) {
                 showErrorToast(error.message || 'Failed to create account', 'Sign Up Error');
@@ -125,6 +127,36 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                                     )}
                                 />
                                 {errors.fullName && <Text style={styles.errorText}>{errors.fullName.message}</Text>}
+                                
+                                {/* Username */}
+                                <Controller
+                                    control={control}
+                                    name="username"
+                                    render={({ field: { onChange, onBlur, value } }) => (
+                                        <TextInput
+                                            label="Username"
+                                            value={value}
+                                            onBlur={onBlur}
+                                            onChangeText={onChange}
+                                            error={!!errors.username}
+                                            mode="outlined"
+                                            autoCapitalize="none"
+                                            style={styles.textInput}
+                                            textColor={Colors.black}
+                                            outlineColor={Colors.primary}
+                                            activeOutlineColor={Colors.primary}
+                                            theme={{
+                                                colors: {
+                                                    primary: Colors.primary,
+                                                    placeholder: Colors.black,
+                                                    text: Colors.black,
+                                                    outline: Colors.primary,
+                                                }
+                                            }}
+                                        />
+                                    )}
+                                />
+                                {errors.username && <Text style={styles.errorText}>{errors.username.message}</Text>}
                                 
                                 {/* Email */}
                                 <Controller

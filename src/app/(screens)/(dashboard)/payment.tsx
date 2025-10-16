@@ -1,10 +1,12 @@
+import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
+import { useInitializePaystackPayment, useInitiateMpesaPayment, usePaymentMethods } from '@/src/hooks/useApiPayments';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface PaymentMethod {
@@ -29,11 +31,13 @@ interface SubscriptionPlan {
 const Payment = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user } = useAuth();
   const { showAlert, AlertComponent } = useCustomAlert();
   const { success } = createAlertHelpers(showAlert);
 
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('1');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('mpesa');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
   const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Get plan data from navigation parameters
@@ -45,38 +49,44 @@ const Payment = () => {
     billingCycle: (params.billingCycle as 'monthly' | 'annual') || 'monthly'
   };
 
-  const paymentMethods: PaymentMethod[] = [
+  // Fetch payment methods from API
+  const { data: paymentMethodsData, isLoading: methodsLoading } = usePaymentMethods();
+  const initiateMpesa = useInitiateMpesaPayment();
+  const initializePaystack = useInitializePaystackPayment();
+
+  const paymentMethods: PaymentMethod[] = (paymentMethodsData || []).map(pm => ({
+    id: pm.id,
+    type: pm.type,
+    name: pm.name,
+    lastFour: pm.lastFour,
+    expiryDate: pm.expiryDate,
+    isDefault: pm.isDefault,
+    icon: pm.type === 'card' ? 'card-outline' : pm.type === 'bank' ? 'business-outline' : 'phone-portrait-outline',
+    brand: 'visa',
+  }));
+
+  // Add M-Pesa and Paystack as payment options
+  const allPaymentOptions = [
     {
-      id: '1',
-      type: 'card',
-      name: 'John Doe',
-      lastFour: '4242',
-      expiryDate: '12/25',
-      isDefault: true,
-      icon: 'card-outline',
-      brand: 'visa'
+      id: 'mpesa',
+      type: 'mobile' as const,
+      name: 'M-Pesa',
+      lastFour: '',
+      isDefault: false,
+      icon: 'phone-portrait-outline',
     },
     {
-      id: '2',
-      type: 'card',
-      name: 'John Doe',
-      lastFour: '5555',
-      expiryDate: '08/26',
+      id: 'paystack',
+      type: 'card' as const,
+      name: 'Paystack',
+      lastFour: '',
       isDefault: false,
       icon: 'card-outline',
-      brand: 'mastercard'
     },
-    {
-      id: '3',
-      type: 'bank',
-      name: 'Chase Bank',
-      lastFour: '7890',
-      isDefault: false,
-      icon: 'business-outline'
-    }
+    ...paymentMethods,
   ];
 
-  const defaultPaymentMethod = paymentMethods.find(pm => pm.isDefault) || paymentMethods[0];
+  const defaultPaymentMethod = allPaymentOptions.find(pm => pm.isDefault) || allPaymentOptions[0];
 
   const handleBack = () => {
     router.back();
@@ -86,30 +96,88 @@ const Payment = () => {
     router.push('/(screens)/(settings)/payment_methods');
   };
 
-  const handleProcessPayment = () => {
+  const handleProcessPayment = async () => {
     setIsProcessing(true);
-    
-    // Clear any existing timeout
-    if (processingTimeoutRef.current) {
-      clearTimeout(processingTimeoutRef.current);
-    }
 
-    // Simulate payment processing
-    processingTimeoutRef.current = setTimeout(() => {
-      setIsProcessing(false);
-      showAlert({
-        title: 'Payment Successful!',
-        message: `Your ${selectedPlan.name} plan has been activated successfully. You will be charged ${selectedPlan.price}/${selectedPlan.period}.`,
-        buttonText: 'Continue',
-        icon: 'checkmark-circle',
-        iconColor: '#4CAF50',
-        buttonColor: '#4CAF50',
-        onPress: () => {
-          success('Success', 'Welcome to your new plan!');
-          router.back(); // Go back to plans screen
+    try {
+      // Parse amount from price string (e.g., "KES 1,200" -> 1200)
+      const amount = parseFloat(selectedPlan.price.replace(/[^\d.-]/g, ''));
+
+      if (selectedPaymentMethod === 'mpesa') {
+        // M-Pesa STK Push
+        if (!phoneNumber) {
+          showAlert({
+            title: 'Phone Number Required',
+            message: 'Please enter your M-Pesa phone number',
+            buttonText: 'OK',
+            icon: 'alert-circle-outline',
+            iconColor: '#FF9800',
+            buttonColor: Colors.primary,
+          });
+          setIsProcessing(false);
+          return;
         }
-      });
-    }, 2000);
+
+        const result = await initiateMpesa.mutateAsync({
+          amount,
+          phoneNumber: phoneNumber.replace(/\s/g, ''),
+        });
+
+        showAlert({
+          title: 'Payment Initiated',
+          message: result.message || 'Please check your phone and enter your M-Pesa PIN to complete the payment.',
+          buttonText: 'OK',
+          icon: 'checkmark-circle',
+          iconColor: '#4CAF50',
+          buttonColor: '#4CAF50',
+          onPress: () => {
+            router.back();
+          }
+        });
+      } else if (selectedPaymentMethod === 'paystack') {
+        // Paystack Payment
+        const result = await initializePaystack.mutateAsync({
+          amount,
+          email: user?.email || '',
+        });
+
+        // Open Paystack authorization URL
+        if (result.authorization_url) {
+          await Linking.openURL(result.authorization_url);
+          
+          showAlert({
+            title: 'Redirecting to Paystack',
+            message: 'Complete your payment on the Paystack page that just opened.',
+            buttonText: 'OK',
+            icon: 'card-outline',
+            iconColor: Colors.primary,
+            buttonColor: Colors.primary,
+            onPress: () => {
+              router.back();
+            }
+          });
+        }
+      } else {
+        // Other payment methods (cards, bank)
+        showAlert({
+          title: 'Payment Successful!',
+          message: `Your ${selectedPlan.name} plan has been activated successfully. You will be charged ${selectedPlan.price}/${selectedPlan.period}.`,
+          buttonText: 'Continue',
+          icon: 'checkmark-circle',
+          iconColor: '#4CAF50',
+          buttonColor: '#4CAF50',
+          onPress: () => {
+            success('Success', 'Welcome to your new plan!');
+            router.back();
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      // Error toast already shown by mutation
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   useEffect(() => {
@@ -140,7 +208,7 @@ const Payment = () => {
     }
   };
 
-  const renderPaymentMethod = (method: PaymentMethod) => (
+  const renderPaymentMethod = (method: any) => (
     <TouchableOpacity
       key={method.id}
       style={[
@@ -159,13 +227,21 @@ const Payment = () => {
         </View>
         <View style={styles.paymentDetails}>
           <Text style={styles.paymentName}>{method.name}</Text>
-          <Text style={styles.paymentNumber}>
-            {method.type === 'card' ? `**** **** **** ${method.lastFour}` :
-             method.type === 'bank' ? `**** **** **** ${method.lastFour}` :
-             `+*** *** ${method.lastFour}`}
-          </Text>
+          {method.lastFour && (
+            <Text style={styles.paymentNumber}>
+              {method.type === 'card' ? `**** **** **** ${method.lastFour}` :
+               method.type === 'bank' ? `**** **** **** ${method.lastFour}` :
+               `+*** *** ${method.lastFour}`}
+            </Text>
+          )}
           {method.expiryDate && (
             <Text style={styles.paymentExpiry}>Expires {method.expiryDate}</Text>
+          )}
+          {method.id === 'mpesa' && (
+            <Text style={styles.paymentDescription}>Pay with your M-Pesa account</Text>
+          )}
+          {method.id === 'paystack' && (
+            <Text style={styles.paymentDescription}>Pay with card via Paystack</Text>
           )}
         </View>
         <View style={styles.paymentMethodActions}>
@@ -227,13 +303,38 @@ const Payment = () => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Payment Method</Text>
             <TouchableOpacity onPress={handleChangePaymentMethod}>
-              <Text style={styles.changeButton}>Change</Text>
+              <Text style={styles.changeButton}>Manage</Text>
             </TouchableOpacity>
           </View>
           
-          <View style={styles.paymentMethodsContainer}>
-            {paymentMethods.map(renderPaymentMethod)}
-          </View>
+          {methodsLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+              <Text style={styles.loadingText}>Loading payment methods...</Text>
+            </View>
+          ) : (
+            <View style={styles.paymentMethodsContainer}>
+              {allPaymentOptions.map(renderPaymentMethod)}
+            </View>
+          )}
+
+          {/* M-Pesa Phone Number Input */}
+          {selectedPaymentMethod === 'mpesa' && (
+            <View style={styles.phoneInputContainer}>
+              <Text style={styles.inputLabel}>M-Pesa Phone Number</Text>
+              <View style={styles.phoneInput}>
+                <Ionicons name="call-outline" size={20} color={Colors.grey} />
+                <TextInput
+                  style={styles.phoneTextInput}
+                  placeholder="254712345678"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  keyboardType="phone-pad"
+                  placeholderTextColor={Colors.grey}
+                />
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Payment Terms */}
@@ -575,6 +676,47 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 24,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.grey,
+  },
+  phoneInputContainer: {
+    marginTop: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.black,
+    marginBottom: 8,
+  },
+  phoneInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: Colors.lightgrey,
+  },
+  phoneTextInput: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    color: Colors.black,
+  },
+  paymentDescription: {
+    fontSize: 12,
+    color: Colors.grey,
+    marginTop: 4,
   },
 });
 

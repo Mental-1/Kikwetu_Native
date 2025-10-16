@@ -1,17 +1,19 @@
 import { Colors } from '@/src/constants/constant';
+import { useClearAllSavedListings, useSavedListings, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
-import { Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SavedListing {
   id: string;
+  listing_id: string;
   title: string;
   description: string;
-  price: string;
+  price: number;
   location: string;
   category: string;
   images: string[];
@@ -32,98 +34,32 @@ const Saved = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showContextMenu, setShowContextMenu] = useState<string | null>(null);
 
-  const savedListings: SavedListing[] = [
-    {
-      id: '1',
-      title: 'MacBook Pro M3 2024',
-      description: 'Brand new MacBook Pro with M3 chip, 16GB RAM, 512GB SSD. Perfect for professionals.',
-      price: 'KES 280,000',
-      location: 'Nairobi, Kenya',
-      category: 'Electronics',
-      images: ['https://via.placeholder.com/300x200'],
-      sellerName: 'TechStore Kenya',
-      sellerRating: 4.8,
-      savedDate: '2024-01-15',
-      isAvailable: true,
-      views: 234,
-      condition: 'Brand New'
-    },
-    {
-      id: '2',
-      title: 'Honda CR-V 2022',
-      description: 'Well maintained Honda CR-V, automatic transmission, low mileage, full service history.',
-      price: 'KES 3,200,000',
-      location: 'Mombasa, Kenya',
-      category: 'Vehicles',
-      images: ['https://via.placeholder.com/300x200'],
-      sellerName: 'Auto Deals',
-      sellerRating: 4.6,
-      savedDate: '2024-01-14',
-      isAvailable: true,
-      views: 189,
-      condition: 'Excellent'
-    },
-    {
-      id: '3',
-      title: 'Nike Air Jordan 1 Retro',
-      description: 'Classic Nike Air Jordan 1 Retro in Chicago colorway, size 42, excellent condition.',
-      price: 'KES 25,000',
-      location: 'Kisumu, Kenya',
-      category: 'Fashion',
-      images: ['https://via.placeholder.com/300x200'],
-      sellerName: 'SneakerHead KE',
-      sellerRating: 4.9,
-      savedDate: '2024-01-13',
-      isAvailable: false,
-      views: 156,
-      condition: 'Like New'
-    },
-    {
-      id: '4',
-      title: 'Samsung 55" 4K Smart TV',
-      description: 'Samsung 55-inch 4K UHD Smart TV with HDR, perfect for home entertainment.',
-      price: 'KES 85,000',
-      location: 'Nakuru, Kenya',
-      category: 'Electronics',
-      images: ['https://via.placeholder.com/300x200'],
-      sellerName: 'Electronics Hub',
-      sellerRating: 4.7,
-      savedDate: '2024-01-12',
-      isAvailable: true,
-      views: 312,
-      condition: 'Good'
-    },
-    {
-      id: '5',
-      title: 'Modern Dining Table Set',
-      description: '6-seater modern dining table with chairs, perfect for family dining.',
-      price: 'KES 65,000',
-      location: 'Eldoret, Kenya',
-      category: 'Furniture',
-      images: ['https://via.placeholder.com/300x200'],
-      sellerName: 'Furniture World',
+  // Fetch saved listings from API
+  const { data: savedData, isLoading, error: fetchError, refetch } = useSavedListings();
+  const unsave = useUnsaveListing();
+  const clearAll = useClearAllSavedListings();
+
+  // Transform API data to match UI interface
+  const savedListings: SavedListing[] = useMemo(() => {
+    return (savedData || []).map(item => ({
+      id: item.id,
+      listing_id: item.listing_id,
+      title: item.listing?.title || '',
+      description: item.listing?.description || '',
+      price: item.listing?.price || 0,
+      location: item.listing?.location || '',
+      category: item.listing?.category_id?.toString() || '',
+      images: item.listing?.images || [],
+      sellerName: 'Seller',
       sellerRating: 4.5,
-      savedDate: '2024-01-11',
-      isAvailable: true,
-      views: 98,
-      condition: 'Excellent'
-    },
-    {
-      id: '6',
-      title: 'Canon EOS R6 Camera',
-      description: 'Professional mirrorless camera with 20MP sensor, 4K video, perfect for photography.',
-      price: 'KES 180,000',
-      location: 'Nairobi, Kenya',
-      category: 'Electronics',
-      images: ['https://via.placeholder.com/300x200'],
-      sellerName: 'Camera Pro',
-      sellerRating: 4.9,
-      savedDate: '2024-01-10',
-      isAvailable: false,
-      views: 267,
-      condition: 'Excellent'
-    }
-  ];
+      savedDate: new Date(item.created_at).toLocaleDateString(),
+      isAvailable: item.listing?.status === 'active',
+      views: item.listing?.views || 0,
+      condition: item.listing?.condition || 'good',
+    }));
+  }, [savedData]);
+
+  
 
   const filterOptions = [
     { id: 'all', label: 'All', count: savedListings.length },
@@ -161,8 +97,30 @@ const Saved = () => {
       icon: 'heart-dislike-outline',
       iconColor: '#F44336',
       buttonColor: '#F44336',
-      onPress: () => {
-        success('Success', 'Listing removed from saved items');
+      onPress: async () => {
+        try {
+          await unsave.mutateAsync(listingId);
+        } catch (err) {
+          // Error toast shown by mutation
+        }
+      }
+    });
+  };
+
+  const handleClearAll = () => {
+    showAlert({
+      title: 'Clear All Saved Items',
+      message: 'Are you sure you want to remove all saved listings? This action cannot be undone.',
+      buttonText: 'Clear All',
+      icon: 'trash-outline',
+      iconColor: '#F44336',
+      buttonColor: '#F44336',
+      onPress: async () => {
+        try {
+          await clearAll.mutateAsync();
+        } catch (err) {
+          // Error toast shown by mutation
+        }
       }
     });
   };
@@ -266,7 +224,10 @@ const Saved = () => {
         <TouchableOpacity
           style={styles.contextMenuItem}
           onPress={() => {
-            handleRemoveFromSaved(listingId);
+            const listing = savedListings.find(l => l.id === listingId);
+            if (listing) {
+              handleRemoveFromSaved(listing.listing_id);
+            }
             setShowContextMenu(null);
           }}
         >
@@ -323,7 +284,7 @@ const Saved = () => {
           {listing.title}
         </Text>
         <View style={styles.priceRow}>
-          <Text style={styles.listingPrice}>{listing.price}</Text>
+          <Text style={styles.listingPrice}>KES {listing.price.toLocaleString()}</Text>
           <View style={styles.conditionBadge}>
             <Text style={styles.conditionText}>{listing.condition}</Text>
           </View>
@@ -364,7 +325,7 @@ const Saved = () => {
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Saved Items</Text>
-        <TouchableOpacity style={styles.clearButton} onPress={() => success('Info', 'Clear all functionality will be implemented')}>
+        <TouchableOpacity style={styles.clearButton} onPress={handleClearAll}>
           <Ionicons name="trash-outline" size={24} color={Colors.primary} />
         </TouchableOpacity>
       </SafeAreaView>
@@ -402,7 +363,21 @@ const Saved = () => {
           activeOpacity={1}
           onPress={() => setShowContextMenu(null)}
         >
-          {filteredListings.length === 0 ? (
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.loadingText}>Loading saved items...</Text>
+            </View>
+          ) : fetchError ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="alert-circle-outline" size={64} color="#F44336" />
+              <Text style={styles.emptyTitle}>Failed to Load Saved Items</Text>
+              <Text style={styles.emptySubtitle}>Please check your connection and try again</Text>
+              <TouchableOpacity style={styles.emptyButton} onPress={() => refetch()}>
+                <Text style={styles.emptyButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : filteredListings.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="heart-outline" size={64} color={Colors.grey} />
               <Text style={styles.emptyTitle}>No Saved Items</Text>
@@ -719,6 +694,15 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 64,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.grey,
+    marginTop: 12,
   },
 });
 

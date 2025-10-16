@@ -1,15 +1,17 @@
 import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
+import { useUserStats } from '@/src/hooks/useDashboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Dashboard = () => {
   const router = useRouter();
   const { user } = useAuth();
+  const { data: stats, isLoading: statsLoading, error: statsError } = useUserStats();
 
   const handleBack = () => {
     router.back();
@@ -72,29 +74,41 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>
-            Welcome back, {user?.user_metadata?.full_name || user?.email || 'User'}!
+            Welcome back, {user?.full_name || user?.username || user?.email || 'User'}!
           </Text>
           <Text style={styles.welcomeSubtitle}>Manage your listings and account</Text>
         </View>
 
         {/* Quick Stats */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Ionicons name="list-outline" size={24} color={Colors.primary} />
-            <Text style={styles.statNumber}>12</Text>
-            <Text style={styles.statLabel}>Active Listings</Text>
+        {statsLoading ? (
+          <View style={styles.statsLoading}>
+            <ActivityIndicator size="large" color={Colors.primary} />
           </View>
-          <View style={styles.statCard}>
-            <Ionicons name="eye-outline" size={24} color={Colors.primary} />
-            <Text style={styles.statNumber}>1.2K</Text>
-            <Text style={styles.statLabel}>Total Views</Text>
+        ) : statsError ? (
+          <View style={styles.statsError}>
+            <Text style={styles.errorText}>Failed to load stats</Text>
           </View>
-          <View style={styles.statCard}>
-            <Ionicons name="chatbubble-outline" size={24} color={Colors.primary} />
-            <Text style={styles.statNumber}>45</Text>
-            <Text style={styles.statLabel}>Messages</Text>
+        ) : (
+          <View style={styles.statsContainer}>
+            <View style={styles.statCard}>
+              <Ionicons name="list-outline" size={24} color={Colors.primary} />
+              <Text style={styles.statNumber}>{stats?.activeListings || 0}</Text>
+              <Text style={styles.statLabel}>Active Listings</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="eye-outline" size={24} color={Colors.primary} />
+              <Text style={styles.statNumber}>
+                {stats?.totalViews ? (stats.totalViews >= 1000 ? `${(stats.totalViews / 1000).toFixed(1)}K` : stats.totalViews) : 0}
+              </Text>
+              <Text style={styles.statLabel}>Total Views</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="heart-outline" size={24} color={Colors.primary} />
+              <Text style={styles.statNumber}>{stats?.totalSaved || 0}</Text>
+              <Text style={styles.statLabel}>Saved Items</Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Quick Actions */}
         <View style={styles.actionsSection}>
@@ -415,6 +429,19 @@ const styles = StyleSheet.create({
   activityTime: {
     fontSize: 12,
     color: Colors.grey,
+  },
+  statsLoading: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  statsError: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#F44336',
+    fontSize: 14,
   },
 });
 

@@ -1,17 +1,19 @@
 import { Colors } from '@/src/constants/constant';
+import { useDownloadReceipt, useExportTransactions, useTransactions } from '@/src/hooks/useApiTransactions';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Transaction {
   id: string;
   date: string;
   description: string;
-  amount: string;
+  amount: number;
+  currency: string;
   status: 'completed' | 'pending' | 'failed' | 'refunded';
   type: 'subscription' | 'one-time' | 'refund' | 'payout';
   category: 'plan' | 'listing' | 'feature' | 'refund' | 'withdrawal';
@@ -27,96 +29,29 @@ const Transactions = () => {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const transactions: Transaction[] = [
-    {
-      id: '1',
-      date: '2024-01-15',
-      description: 'Premium Plan - Monthly Subscription',
-      amount: 'KES 2,400',
-      status: 'completed',
-      type: 'subscription',
-      category: 'plan',
-      paymentMethod: 'Visa ****4242',
-      reference: 'TXN-2024-001'
-    },
-    {
-      id: '2',
-      date: '2024-01-10',
-      description: 'Featured Listing Boost',
-      amount: 'KES 500',
-      status: 'completed',
-      type: 'one-time',
-      category: 'listing',
-      paymentMethod: 'Visa ****4242',
-      reference: 'TXN-2024-002'
-    },
-    {
-      id: '3',
-      date: '2024-01-08',
-      description: 'Premium Listing Upgrade',
-      amount: 'KES 300',
-      status: 'completed',
-      type: 'one-time',
-      category: 'feature',
-      paymentMethod: 'Visa ****4242',
-      reference: 'TXN-2024-003'
-    },
-    {
-      id: '4',
-      date: '2024-01-05',
-      description: 'Listing Promotion Package',
-      amount: 'KES 800',
-      status: 'pending',
-      type: 'one-time',
-      category: 'listing',
-      paymentMethod: 'Visa ****4242',
-      reference: 'TXN-2024-004'
-    },
-    {
-      id: '5',
-      date: '2023-12-15',
-      description: 'Premium Plan - Monthly Subscription',
-      amount: 'KES 2,400',
-      status: 'completed',
-      type: 'subscription',
-      category: 'plan',
-      paymentMethod: 'Visa ****4242',
-      reference: 'TXN-2023-045'
-    },
-    {
-      id: '6',
-      date: '2023-12-10',
-      description: 'Refund - Featured Listing',
-      amount: '-KES 500',
-      status: 'refunded',
-      type: 'refund',
-      category: 'refund',
-      paymentMethod: 'Visa ****4242',
-      reference: 'REF-2023-012'
-    },
-    {
-      id: '7',
-      date: '2023-11-15',
-      description: 'Premium Plan - Monthly Subscription',
-      amount: 'KES 2,400',
-      status: 'completed',
-      type: 'subscription',
-      category: 'plan',
-      paymentMethod: 'Visa ****4242',
-      reference: 'TXN-2023-044'
-    },
-    {
-      id: '8',
-      date: '2023-11-05',
-      description: 'Earnings Withdrawal',
-      amount: '-KES 5,200',
-      status: 'completed',
-      type: 'payout',
-      category: 'withdrawal',
-      paymentMethod: 'Bank Transfer',
-      reference: 'PAY-2023-023'
-    }
-  ];
+  // Fetch transactions from API
+  const { data: transactionsData, isLoading, error: fetchError, refetch } = useTransactions(
+    selectedFilter === 'all' ? undefined : selectedFilter
+  );
+  const downloadReceipt = useDownloadReceipt();
+  const exportTransactions = useExportTransactions();
+
+  // Transform API data to match UI
+  const transactions: Transaction[] = useMemo(() => {
+    return (transactionsData || []).map(t => ({
+      id: t.id,
+      date: new Date(t.created_at).toLocaleDateString(),
+      description: t.description,
+      amount: t.amount,
+      currency: t.currency,
+      status: t.status,
+      type: t.type,
+      category: t.category,
+      paymentMethod: t.payment_method,
+      reference: t.reference,
+    }));
+  }, [transactionsData]);
+
 
   const filterOptions = [
     { id: 'all', label: 'All', count: transactions.length },
@@ -144,21 +79,15 @@ const Transactions = () => {
     });
   };
 
-  const handleDownloadReceipt = (transaction: Transaction) => {
-    showAlert({
-      title: 'Download Receipt',
-      message: 'Receipt will be downloaded to your device',
-      buttonText: 'Download',
-      icon: 'download-outline',
-      iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Receipt downloaded successfully');
-      }
-    });
+  const handleDownloadReceipt = async (transaction: Transaction) => {
+    try {
+      await downloadReceipt.mutateAsync(transaction.id);
+        } catch {
+          // Error toast shown by mutation
+        }
   };
 
-  const handleExportTransactions = () => {
+  const handleExportTransactions = async () => {
     showAlert({
       title: 'Export Transactions',
       message: 'Choose export format',
@@ -166,8 +95,12 @@ const Transactions = () => {
       icon: 'document-outline',
       iconColor: Colors.primary,
       buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Transactions exported to CSV');
+      onPress: async () => {
+        try {
+          await exportTransactions.mutateAsync('csv');
+        } catch {
+          // Error toast shown by mutation
+        }
       }
     });
   };
@@ -265,7 +198,7 @@ const Transactions = () => {
             styles.amountText,
             transaction.type === 'refund' || transaction.type === 'payout' ? styles.refundAmount : null
           ]}>
-            {transaction.amount}
+            {transaction.currency} {transaction.amount.toLocaleString()}
           </Text>
           <View style={styles.statusContainer}>
             <Ionicons 
@@ -301,15 +234,9 @@ const Transactions = () => {
     </TouchableOpacity>
   );
 
-  const parseAmountValue = (raw: string) => {
-    const normalized = raw.replace(/[^\d.-]/g, '');
-    const value = Number(normalized);
-    return Number.isFinite(value) ? value : 0;
-  };
-
   const totalAmount = filteredTransactions
     .filter((t) => t.status === 'completed')
-    .reduce((sum, t) => sum + parseAmountValue(t.amount), 0);
+    .reduce((sum, t) => sum + t.amount, 0);
 
   return (
     <View style={styles.container}>
@@ -367,7 +294,21 @@ const Transactions = () => {
 
         {/* Transactions List */}
         <View style={styles.transactionsSection}>
-          {filteredTransactions.length === 0 ? (
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.loadingText}>Loading transactions...</Text>
+            </View>
+          ) : fetchError ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="alert-circle-outline" size={64} color="#F44336" />
+              <Text style={styles.emptyTitle}>Failed to Load Transactions</Text>
+              <Text style={styles.emptySubtitle}>Please check your connection and try again</Text>
+              <TouchableOpacity style={styles.emptyButton} onPress={() => refetch()}>
+                <Text style={styles.emptyButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : filteredTransactions.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="receipt-outline" size={64} color={Colors.grey} />
               <Text style={styles.emptyTitle}>No Transactions Found</Text>
@@ -625,9 +566,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.grey,
     textAlign: 'center',
+    marginBottom: 24,
+  },
+  emptyButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  emptyButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
   bottomPadding: {
     height: 24,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 64,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.grey,
+    marginTop: 12,
   },
 });
 
