@@ -25,44 +25,48 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.kawa_ida.Kikwetu"
-    }
-    },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "resizeMode": "cover",
-          "backgroundColor": "#1461BD",
-          "edgeToEdgeEnabled": true
-        }
-      ],
-      "expo-quick-actions",
-      "expo-secure-store",
-      "expo-font",
-      [
-        "@sentry/react-native/expo",
-        {
-          "url": "https://sentry.io/",
-          "project": "kikwetu-native",
-          "organization": "routteme"
-        }
-      ],
-      "expo-video",
-      "expo-audio",
-      "expo-web-browser"
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
     },
     "extra": {
-      "router": {},
       "eas": {
         "projectId": "7f836722-0d8e-48d8-8c53-2ebad4137d71"
       }
-    },
-    "owner": "kawa_ida"
-  }
-
+    }
+  },
+  "plugins": [
+    "expo-router",
+    [
+      "expo-splash-screen",
+      {
+        "image": "./assets/images/splash-icon.png",
+        "resizeMode": "cover",
+        "backgroundColor": "#1461BD",
+        "edgeToEdgeEnabled": true
+      }
+    ],
+    "expo-quick-actions",
+    "expo-secure-store",
+    "expo-font",
+    [
+      "@sentry/react-native/expo",
+      {
+        "url": "https://sentry.io/",
+        "project": "kikwetu-native",
+        "organization": "routteme"
+      }
+    ],
+    "expo-video",
+    "expo-audio",
+    "expo-web-browser"
+  ],
+  "experiments": {
+    "typedRoutes": true,
+    "reactCompiler": true
+  },
+  "extra": {
+    "router": {},
+    "eas": {
+      "projectId": "7f836722-0d8e-48d8-8c53-2ebad4137d71"
+    }
+  },
+  "owner": "kawa_ida"
+}
