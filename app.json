@@ -25,10 +25,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.kawa_ida.Kikwetu"
-    },
-    "web": {
-      "output": "server",
-      "favicon": "./assets/images/favicon.png"
+    }
     },
     "plugins": [
       "expo-router",
@@ -68,4 +65,4 @@
     },
     "owner": "kawa_ida"
   }
-}
+
