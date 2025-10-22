@@ -29,7 +29,7 @@ export interface UpdatePaymentMethodData {
 }
 
 class PaymentMethodsService {
-  private readonly baseEndpoint = '/payment-methods';
+  private readonly baseEndpoint = '/payments/methods';
 
   async getPaymentMethods(): Promise<ApiResponse<PaymentMethod[]>> {
     return apiClient.get<PaymentMethod[]>(this.baseEndpoint);

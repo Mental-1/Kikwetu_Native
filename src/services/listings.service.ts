@@ -31,6 +31,7 @@ interface ListingFilters {
   maxPrice?: string;
   search?: string;
   status?: string;
+  store_id?: string;
 }
 
 class ListingsService {
@@ -50,9 +51,20 @@ class ListingsService {
       if (filters.maxPrice) params.maxPrice = filters.maxPrice;
       if (filters.search) params.search = filters.search;
       if (filters.status) params.status = filters.status;
+      if (filters.store_id) params.store_id = filters.store_id;
     }
 
     return await apiClient.get('/listings', params) as any;
+  }
+
+  /**
+   * Get listings for a specific store
+   */
+  async getStoreListings(storeId: string, filters?: Omit<ListingFilters, 'store_id'>): Promise<PaginatedResponse<ApiListing>> {
+    return this.getListings({
+      ...filters,
+      store_id: storeId,
+    });
   }
 
   /**

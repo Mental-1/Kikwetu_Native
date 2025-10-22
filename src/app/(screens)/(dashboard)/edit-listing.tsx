@@ -1,13 +1,14 @@
+import { useCategories } from '@/hooks/useCategories';
 import { useListingImageUpload } from '@/hooks/useImageUpload';
 import { Colors } from '@/src/constants/constant';
+import { useListing, useUpdateListing } from '@/src/hooks/useApiListings';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
-// import { formatFileSize } from '@/utils/imageUtils';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { Alert, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface ListingImage {
@@ -21,7 +22,7 @@ interface EditListingData {
   description: string;
   price: string;
   location: string;
-  category: string;
+  category_id: number | null;
   condition: string;
   features: string[];
 }
@@ -32,17 +33,20 @@ const EditListing = () => {
   const { showAlert, AlertComponent } = useCustomAlert();
   const { success, error } = createAlertHelpers(showAlert);
 
-  // Image upload hook
+  // API hooks
+  const { data: listing, isLoading: listingLoading, error: listingError } = useListing(params.listingId as string);
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+  const updateListingMutation = useUpdateListing();
+
   const {
     isProcessing,
     isUploading,
     progress,
-    // uploadResults,
     error: uploadError,
     processAndUploadImages,
     initializeUser,
     resetState,
-  } = useListingImageUpload(params.id as string);
+  } = useListingImageUpload(params.listingId as string);
 
   const [isLoading, setIsLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -50,22 +54,35 @@ const EditListing = () => {
     { id: '1', uri: 'https://via.placeholder.com/300x200' },
     { id: '2', uri: 'https://via.placeholder.com/300x200' },
   ]);
-  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]); // Used in handleSaveListing
-
-  // Initialize user on component mount
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   useEffect(() => {
     initializeUser();
   }, [initializeUser]);
 
   const [formData, setFormData] = useState<EditListingData>({
-    title: params.title as string || 'iPhone 14 Pro Max 256GB',
-    description: params.description as string || 'Brand new iPhone 14 Pro Max in Space Black. Still in box with all accessories.',
-    price: params.price as string || 'KES 120,000',
-    location: params.location as string || 'Nairobi, Kenya',
-    category: params.category as string || 'Electronics',
-    condition: 'Excellent',
-    features: ['Original Box', 'Charger Included', 'Warranty Available'],
+    title: '',
+    description: '',
+    price: '',
+    location: '',
+    category_id: null,
+    condition: '',
+    features: [],
   });
+
+  // Update form data when listing data is loaded
+  useEffect(() => {
+    if (listing) {
+      setFormData({
+        title: listing.title || '',
+        description: listing.description || '',
+        price: listing.price?.toString() || '',
+        location: listing.location || '',
+        category_id: listing.category_id || null,
+        condition: listing.condition || '',
+        features: [], // TODO: Add features field to ApiListing if needed
+      });
+    }
+  }, [listing]);
 
   // Removed unused variables
 
@@ -279,20 +296,28 @@ const EditListing = () => {
     setIsLoading(true);
 
     try {
-      // Prepare listing data with uploaded images
-      // const listingData = {
-      //   ...formData,
-      //   images: uploadedImageUrls.length > 0 ? uploadedImageUrls : images.map(img => img.uri),
-      //   updatedAt: new Date().toISOString(),
-      // };
+      // Prepare listing data
+      const listingData = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        price: parseFloat(formData.price.replace(/[^\d.]/g, '')), // Remove currency symbols and convert to number
+        location: formData.location.trim(),
+        category_id: formData.category_id || undefined,
+        condition: formData.condition.trim(),
+        images: uploadedImageUrls.length > 0 ? uploadedImageUrls : images.map(img => img.uri),
+      };
 
-      // Simulate API call - in real app, this would update the database
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Update listing via API
+      await updateListingMutation.mutateAsync({
+        id: params.listingId as string,
+        data: listingData,
+      });
       
       success('Success', 'Listing updated successfully!');
       resetState(); // Reset upload state
       router.back();
-    } catch {
+    } catch (err) {
+      console.error('Save listing error:', err);
       error('Error', 'Failed to update listing. Please try again.');
     } finally {
       setIsLoading(false);
@@ -361,7 +386,31 @@ const EditListing = () => {
         </TouchableOpacity>
       </SafeAreaView>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Loading State */}
+      {listingLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading listing...</Text>
+        </View>
+      )}
+
+      {/* Error State */}
+      {listingError && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={Colors.red} />
+          <Text style={styles.errorTitle}>Failed to Load Listing</Text>
+          <Text style={styles.errorText}>
+            {listingError instanceof Error ? listingError.message : 'Something went wrong'}
+          </Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Main Content */}
+      {!listingLoading && !listingError && (
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Images Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -474,7 +523,14 @@ const EditListing = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Category</Text>
             <TouchableOpacity style={styles.pickerButton}>
-              <Text style={styles.pickerButtonText}>{formData.category}</Text>
+              <Text style={styles.pickerButtonText}>
+                {categoriesLoading 
+                  ? 'Loading categories...'
+                  : formData.category_id 
+                    ? categories?.find(c => c.id === formData.category_id)?.name || 'Select Category'
+                    : 'Select Category'
+                }
+              </Text>
               <Ionicons name="chevron-down" size={16} color={Colors.grey} />
             </TouchableOpacity>
           </View>
@@ -501,6 +557,7 @@ const EditListing = () => {
         {/* Bottom padding for better scrolling */}
         <View style={styles.bottomPadding} />
       </ScrollView>
+      )}
       
       {/* Custom Alert Component */}
       <AlertComponent />
@@ -773,6 +830,49 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.grey,
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 60,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.black,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

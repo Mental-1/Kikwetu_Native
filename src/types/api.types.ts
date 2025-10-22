@@ -111,6 +111,7 @@ export interface ApiListing {
   created_at: string;
   updated_at: string;
   expiry_date?: string;
+  rejectionReason?: string;
 }
 
 // Transaction types

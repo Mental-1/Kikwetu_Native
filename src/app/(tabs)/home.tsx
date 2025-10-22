@@ -8,6 +8,9 @@ import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
 import SignIn from '@/src/app/(screens)/(auth)/signin';
 import SignUp from '@/src/app/(screens)/(auth)/signup';
 import { Colors } from '@/src/constants/constant';
+import { useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
+import { useListings } from '@/src/hooks/useListings';
+import { useFeaturedVideos } from '@/src/hooks/useVideos';
 import { showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -34,6 +37,15 @@ const Home = (props: Props) => {
     const { data: categories, isLoading: categoriesLoading } = useCategories();
     const { prefetchSubcategories } = useCategoryMutations();
     
+    // Fetch real data
+    const { data: featuredVideos, isLoading: videosLoading } = useFeaturedVideos(8);
+    const { data: listingsData, isLoading: listingsLoading } = useListings();
+    
+    // Favorite functionality
+    const saveListingMutation = useSaveListing();
+    const unsaveListingMutation = useUnsaveListing();
+    const [favoriteStates, setFavoriteStates] = useState<Record<string, boolean>>({});
+    
     // Map emoji icons to Ionicons - memoized for performance
     const getIconFromEmoji = useCallback((emoji: string) => {
         const iconMap: { [key: string]: string } = {
@@ -53,117 +65,9 @@ const Home = (props: Props) => {
         return iconMap[emoji] || 'grid-outline';
     }, []);
     
-    // Mock video data - vertical aspect ratio like TikTok/YouTube Shorts
-    const mockVideos = [
-        { 
-            id: '1', 
-            title: 'Amazing Product Demo', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-            thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '1:30' 
-        },
-        { 
-            id: '2', 
-            title: 'Tech Review 2024', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-            thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '1:45' 
-        },
-        { 
-            id: '3', 
-            title: 'Unboxing Experience', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-            thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '2:00' 
-        },
-        { 
-            id: '4', 
-            title: 'How to Use Guide', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-            thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '1:20' 
-        },
-        { 
-            id: '5', 
-            title: 'Behind the Scenes', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
-            thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '1:50' 
-        },
-        { 
-            id: '6', 
-            title: 'Product Comparison', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-            thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '1:35' 
-        },
-        { 
-            id: '7', 
-            title: 'User Testimonials', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-            thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '1:40' 
-        },
-        { 
-            id: '8', 
-            title: 'Feature Spotlight', 
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-            thumbnail: 'https://via.placeholder.com/160x280', 
-            duration: '1:55' 
-        },
-    ];
-
-    // Mock listings data
-    const mockListings = [
-        {
-            id: '1',
-            title: 'iPhone 14 Pro Max',
-            price: 'Kes 400,000',
-            condition: 'New',
-            rating: '10/10',
-            location: 'Westlands, Nairobi',
-            description: 'Brand new iPhone 14 Pro Max in Space Black. Still in original packaging with all accessories included.',
-            views: 156,
-            image: 'https://via.placeholder.com/200x140',
-            isFavorite: false,
-        },
-        {
-            id: '2',
-            title: 'MacBook Pro M2',
-            price: 'Kes 250,000',
-            condition: 'Used',
-            rating: '9/10',
-            location: 'Kilimani, Nairobi',
-            description: 'Excellent condition MacBook Pro M2. Perfect for developers and creative professionals.',
-            views: 89,
-            image: 'https://via.placeholder.com/200x140',
-            isFavorite: true,
-        },
-        {
-            id: '3',
-            title: 'Samsung Galaxy S23',
-            price: 'Kes 180,000',
-            condition: 'New',
-            rating: '10/10',
-            location: 'Karen, Nairobi',
-            description: 'Latest Samsung Galaxy S23 with amazing camera quality and fast performance.',
-            views: 234,
-            image: 'https://via.placeholder.com/200x140',
-            isFavorite: false,
-        },
-        {
-            id: '4',
-            title: 'iPad Air 5th Gen',
-            price: 'Kes 120,000',
-            condition: 'Like New',
-            rating: '9/10',
-            location: 'Runda, Nairobi',
-            description: 'iPad Air 5th generation in mint condition. Great for work and entertainment.',
-            views: 67,
-            image: 'https://via.placeholder.com/200x140',
-            isFavorite: true,
-        },
-    ];
+    // Process listings data for display
+    const listings = listingsData?.pages?.flatMap(page => page.data) || [];
+    const displayListings = listings.slice(0, 4);
     
     const handleAccountPress = useCallback(() => {
         if (user) {
@@ -227,10 +131,23 @@ const Home = (props: Props) => {
         router.push(`/(screens)/listings/${listingId}`);
     }, [router]);
 
-    const handleListingFavoritePress = useCallback((listingId: string) => {
-        // Handle favorite toggle - could be API call in real app
-        console.log('Toggle favorite for listing:', listingId);
-    }, []);
+    const handleListingFavoritePress = useCallback(async (listingId: string) => {
+        const isCurrentlyFavorite = favoriteStates[listingId];
+        
+        try {
+            if (isCurrentlyFavorite) {
+                await unsaveListingMutation.mutateAsync(listingId);
+                setFavoriteStates(prev => ({ ...prev, [listingId]: false }));
+                showSuccessToast('Removed from favorites');
+            } else {
+                await saveListingMutation.mutateAsync({ listingId });
+                setFavoriteStates(prev => ({ ...prev, [listingId]: true }));
+                showSuccessToast('Added to favorites');
+            }
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+        }
+    }, [favoriteStates, saveListingMutation, unsaveListingMutation]);
 
     // Preload subcategories data when categories are loaded
     React.useEffect(() => {
@@ -275,7 +192,7 @@ const Home = (props: Props) => {
                         <View style={[styles.avatar, user && styles.authenticatedAvatar]}>
                             {user ? (
                                 <Text style={styles.avatarText}>
-                                    {user.user_metadata?.full_name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
+                                    {user.full_name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
                                 </Text>
                             ) : (
                                 <Ionicons name="person-outline" size={20} color={Colors.white} />
@@ -353,23 +270,31 @@ const Home = (props: Props) => {
                             <Text style={styles.seeAllText}>See More</Text>
                         </TouchableOpacity>
                     </View>
-                    <ScrollView 
-                        horizontal 
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.videoScrollContent}
-                    >
-                        {mockVideos.map((video) => (
-                            <VideoCard
-                                key={video.id}
-                                id={video.id}
-                                title={video.title}
-                                videoUrl={video.videoUrl}
-                                thumbnail={video.thumbnail}
-                                duration={video.duration}
-                                onPress={handleVideoPress}
-                            />
-                        ))}
-                    </ScrollView>
+                    
+                    {videosLoading ? (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="small" color={Colors.primary} />
+                            <Text style={styles.loadingText}>Loading videos...</Text>
+                        </View>
+                    ) : (
+                        <ScrollView 
+                            horizontal 
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.videoScrollContent}
+                        >
+                            {featuredVideos?.map((video) => (
+                                <VideoCard
+                                    key={video.id}
+                                    id={video.id}
+                                    title={video.title}
+                                    videoUrl={video.videoUrl}
+                                    thumbnail={video.thumbnail}
+                                    duration={video.duration?.toString()}
+                                    onPress={handleVideoPress}
+                                />
+                            ))}
+                        </ScrollView>
+                    )}
                 </View>
 
                 {/* Listings Near You Section */}
@@ -380,25 +305,33 @@ const Home = (props: Props) => {
                             <Text style={styles.seeAllText}>See More</Text>
                         </TouchableOpacity>
                     </View>
-                    <View style={styles.listingsGrid}>
-                        {mockListings.map((listing) => (
-                            <ListingCard
-                                key={listing.id}
-                                id={listing.id}
-                                title={listing.title}
-                                price={listing.price}
-                                condition={listing.condition}
-                                location={listing.location}
-                                image={listing.image}
-                                description={listing.description}
-                                views={listing.views}
-                                isFavorite={listing.isFavorite}
-                                viewMode="grid"
-                                onPress={handleListingPress}
-                                onFavoritePress={handleListingFavoritePress}
-                            />
-                        ))}
-                    </View>
+                    
+                    {listingsLoading ? (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="small" color={Colors.primary} />
+                            <Text style={styles.loadingText}>Loading listings...</Text>
+                        </View>
+                    ) : (
+                        <View style={styles.listingsGrid}>
+                            {displayListings.map((listing) => (
+                                <ListingCard
+                                    key={listing.id}
+                                    id={listing.id}
+                                    title={listing.title}
+                                    price={`Kes ${listing.price?.toLocaleString() || '0'}`}
+                                    condition={listing.condition || 'Unknown'}
+                                    location={listing.location || 'Unknown'}
+                                    image={listing.images?.[0] || 'https://via.placeholder.com/200x140'}
+                                    description={listing.description}
+                                    views={listing.views || 0}
+                                    isFavorite={favoriteStates[listing.id] || false}
+                                    viewMode="grid"
+                                    onPress={handleListingPress}
+                                    onFavoritePress={handleListingFavoritePress}
+                                />
+                            ))}
+                        </View>
+                    )}
                 </View>
 
                 {/* Bottom padding for better scrolling */}
@@ -423,7 +356,7 @@ const Home = (props: Props) => {
                 onClose={() => setShowAvatarDropdown(false)}
                 onDashboard={handleDashboard}
                 onSignOut={handleSignOut}
-                userName={user?.user_metadata?.full_name}
+                userName={user?.full_name}
                 userEmail={user?.email}
             />
 

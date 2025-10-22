@@ -1,80 +1,83 @@
+import CustomAlert from '@/components/ui/CustomAlert';
+import { useCategories } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
+import { useStore, useUpdateStore } from '@/src/hooks/useStores';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface StoreFormData {
   name: string;
   description: string;
-  category: string;
+  categoryId: number | null;
   website: string;
   instagram: string;
   facebook: string;
   twitter: string;
+  tiktok: string;
   is_active: boolean;
 }
 
 const StoreEdit = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Mock current store data
-  const currentStore = {
-    id: id || '1',
-    name: 'Tech Haven',
-    description: 'Your one-stop shop for latest tech gadgets and accessories',
-    category: 'Electronics',
-    banner_url: 'https://via.placeholder.com/800x300',
-    profile_url: 'https://via.placeholder.com/100',
-    website: 'https://techhaven.com',
-    instagram: '@techhaven',
-    facebook: 'TechHaven',
-    twitter: '@techhaven',
-    is_active: true,
-  };
+  const { data: storeResponse, isLoading: storeLoading, error: storeError } = useStore(id || '');
+  const updateStoreMutation = useUpdateStore();
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+  const currentStore = storeResponse;
 
-  const [formData, setFormData] = useState<StoreFormData>({
-    name: currentStore.name,
-    description: currentStore.description,
-    category: currentStore.category,
-    website: currentStore.website,
-    instagram: currentStore.instagram,
-    facebook: currentStore.facebook,
-    twitter: currentStore.twitter,
-    is_active: currentStore.is_active,
+  // Alert state
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    title: '',
+    message: '',
+    buttonText: 'OK',
+    onPress: () => setShowAlert(false),
   });
 
-  const [bannerImage, setBannerImage] = useState<string | null>(currentStore.banner_url);
-  const [profileImage, setProfileImage] = useState<string | null>(currentStore.profile_url);
+  const [formData, setFormData] = useState<StoreFormData>({
+    name: currentStore?.name || '',
+    description: currentStore?.description || '',
+    categoryId: null, // Will be set when categories load
+    website: (currentStore as any)?.website || '',
+    instagram: (currentStore as any)?.instagram || '',
+    facebook: (currentStore as any)?.facebook || '',
+    twitter: (currentStore as any)?.twitter || '',
+    tiktok: (currentStore as any)?.tiktok || '',
+    is_active: currentStore?.is_active || true,
+  });
 
-  const categories = [
-    'Electronics',
-    'Fashion',
-    'Home & Garden',
-    'Sports & Fitness',
-    'Books & Media',
-    'Health & Beauty',
-    'Automotive',
-    'Food & Beverages',
-    'Toys & Games',
-    'Other',
-  ];
+  const [bannerImage, setBannerImage] = useState<string | null>(currentStore?.banner_url || null);
+  const [profileImage, setProfileImage] = useState<string | null>(currentStore?.profile_url || null);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+
+  // Helper function to show alerts
+  const showCustomAlert = (title: string, message: string, buttonText = 'OK', onPress?: () => void) => {
+    setAlertConfig({
+      title,
+      message,
+      buttonText,
+      onPress: onPress || (() => setShowAlert(false)),
+    });
+    setShowAlert(true);
+  };
+
 
   const handleBack = () => {
     router.back();
@@ -82,25 +85,51 @@ const StoreEdit = () => {
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      Alert.alert('Error', 'Store name is required');
+      showCustomAlert('Error', 'Store name is required');
       return;
     }
 
     if (!formData.description.trim()) {
-      Alert.alert('Error', 'Store description is required');
+      showCustomAlert('Error', 'Store description is required');
       return;
     }
 
     setSaving(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const storeData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        category: categories?.find(c => c.id === formData.categoryId)?.name || null,
+        website: formData.website.trim() || null,
+        instagram: formData.instagram.trim() || null,
+        facebook: formData.facebook.trim() || null,
+        twitter: formData.twitter.trim() || null,
+        tiktok: formData.tiktok.trim() || null,
+        is_active: formData.is_active,
+      };
+
+      const images = {
+        banner_image: bannerImage || undefined,
+        profile_image: profileImage || undefined,
+      };
+
+      const result = await updateStoreMutation.mutateAsync({ 
+        storeId: id || '', 
+        storeData, 
+        images 
+      });
       
-      Alert.alert('Success', 'Store updated successfully', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      if (result.success) {
+        showCustomAlert('Success', 'Store updated successfully!', 'OK', () => {
+          setShowAlert(false);
+          router.back();
+        });
+      } else {
+        showCustomAlert('Error', result.error || 'Failed to update store');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update store. Please try again.');
+      console.error('Update store error:', error);
+      showCustomAlert('Error', 'Failed to update store. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -111,7 +140,7 @@ const StoreEdit = () => {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+        showCustomAlert('Permission Required', 'Permission to access camera roll is required!');
         return;
       }
 
@@ -129,8 +158,8 @@ const StoreEdit = () => {
           setProfileImage(result.assets[0].uri);
         }
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    } catch {
+      showCustomAlert('Error', 'Failed to pick image. Please try again.');
     }
   };
 
@@ -163,7 +192,7 @@ const StoreEdit = () => {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        Alert.alert('Permission Required', 'Permission to access camera is required!');
+        showCustomAlert('Permission Required', 'Permission to access camera is required!');
         return;
       }
 
@@ -180,12 +209,13 @@ const StoreEdit = () => {
           setProfileImage(result.assets[0].uri);
         }
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    } catch {
+      showCustomAlert('Error', 'Failed to take photo. Please try again.');
     }
   };
 
-  const updateFormData = (field: keyof StoreFormData, value: string | boolean) => {
+
+  const updateFormData = (field: keyof StoreFormData, value: string | boolean | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -255,10 +285,52 @@ const StoreEdit = () => {
 
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>Category</Text>
-        <TouchableOpacity style={styles.categorySelector}>
-          <Text style={styles.categoryText}>{formData.category}</Text>
-          <Ionicons name="chevron-down" size={20} color={Colors.grey} />
+        <TouchableOpacity 
+          style={styles.categorySelector}
+          onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+        >
+          <Text style={[
+            styles.categoryText,
+            !formData.categoryId && styles.placeholderText
+          ]}>
+            {formData.categoryId 
+              ? categories?.find(c => c.id === formData.categoryId)?.name 
+              : 'Select Category'
+            }
+          </Text>
+          <Ionicons 
+            name={showCategoryPicker ? "chevron-up" : "chevron-down"} 
+            size={20} 
+            color={Colors.grey} 
+          />
         </TouchableOpacity>
+        
+        {showCategoryPicker && (
+          <View style={styles.dropdownList}>
+            <ScrollView 
+              style={styles.dropdownScroll}
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
+            >
+              {categoriesLoading ? (
+                <Text style={styles.loadingText}>Loading categories...</Text>
+              ) : (
+                categories?.map((category) => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      updateFormData('categoryId', category.id);
+                      setShowCategoryPicker(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownItemText}>{category.name}</Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        )}
       </View>
 
       <TouchableOpacity 
@@ -329,6 +401,18 @@ const StoreEdit = () => {
           autoCapitalize="none"
         />
       </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.inputLabel}>TikTok</Text>
+        <TextInput
+          style={styles.textInput}
+          value={formData.tiktok}
+          onChangeText={(value) => updateFormData('tiktok', value)}
+          placeholder="@your-tiktok"
+          placeholderTextColor={Colors.grey}
+          autoCapitalize="none"
+        />
+      </View>
     </View>
   );
 
@@ -358,13 +442,44 @@ const StoreEdit = () => {
       </SafeAreaView>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {renderImageSection()}
-        {renderBasicInfoSection()}
-        {renderSocialLinksSection()}
-        
-        {/* Bottom padding for scroll */}
-        <View style={styles.bottomPadding} />
+        {storeLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>Loading store details...</Text>
+          </View>
+        ) : storeError ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={64} color={Colors.grey} />
+            <Text style={styles.errorTitle}>Failed to Load Store</Text>
+            <Text style={styles.errorText}>
+              {storeError?.message || 'Something went wrong while loading the store'}
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+              <Text style={styles.retryButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {renderImageSection()}
+            {renderBasicInfoSection()}
+            {renderSocialLinksSection()}
+            
+            {/* Bottom padding for scroll */}
+            <View style={styles.bottomPadding} />
+          </>
+        )}
       </ScrollView>
+      
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={showAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttonText={alertConfig.buttonText}
+        onPress={alertConfig.onPress}
+        icon="information-circle-outline"
+        iconColor={Colors.primary}
+      />
     </View>
   );
 };
@@ -565,6 +680,75 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  loadingContainer: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 14,
+    color: Colors.grey,
+  },
+  errorContainer: {
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.black,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  dropdownList: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightgrey,
+    maxHeight: 150,
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  dropdownScroll: {
+    maxHeight: 140,
+  },
+  dropdownItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightgrey,
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    color: Colors.black,
   },
 });
 

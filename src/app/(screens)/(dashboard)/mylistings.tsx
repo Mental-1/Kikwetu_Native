@@ -1,7 +1,8 @@
 import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
 import { useDeleteListing, useUpdateListingStatus, useUserListings } from '@/src/hooks/useApiListings';
-import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
+import { ApiListing } from '@/src/types/api.types';
+import { useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -9,25 +10,10 @@ import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-interface Listing {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  location: string;
-  category_id: number;
-  status: 'active' | 'pending' | 'rejected' | 'under_review' | 'sold' | 'draft' | 'expired';
-  images: string[];
-  created_at: string;
-  views: number;
-  rejectionReason?: string;
-}
-
 const MyListings = () => {
   const router = useRouter();
   const { user } = useAuth();
   const { showAlert, AlertComponent } = useCustomAlert();
-  const { success, error } = createAlertHelpers(showAlert);
 
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -42,7 +28,7 @@ const MyListings = () => {
   const deleteListing = useDeleteListing();
   const updateStatus = useUpdateListingStatus();
 
-  const listings = listingsData || [];
+  const listings = useMemo(() => listingsData || [], [listingsData]);
 
   const filterOptions = useMemo(() => [
     { id: 'all', label: 'All', count: listings.length },
@@ -73,9 +59,9 @@ const MyListings = () => {
         listingId: listing.id,
         title: listing.title,
         description: listing.description,
-        price: listing.price,
+        price: listing.price.toString(),
         location: listing.location,
-        category: listing.category,
+        category: listing.category_id.toString(),
         status: listing.status
       }
     });
@@ -92,7 +78,7 @@ const MyListings = () => {
       onPress: async () => {
         try {
           await deleteListing.mutateAsync(listingId);
-        } catch (err) {
+        } catch {
           // Error toast shown by mutation
         }
       }
@@ -110,7 +96,7 @@ const MyListings = () => {
       onPress: async () => {
         try {
           await updateStatus.mutateAsync({ id: listingId, status: 'sold' });
-        } catch (err) {
+        } catch {
           // Error toast shown by mutation
         }
       }
@@ -128,7 +114,7 @@ const MyListings = () => {
       onPress: async () => {
         try {
           await updateStatus.mutateAsync({ id: listingId, status: 'pending' });
-        } catch (err) {
+        } catch {
           // Error toast shown by mutation
         }
       }
@@ -146,7 +132,7 @@ const MyListings = () => {
       onPress: async () => {
         try {
           await updateStatus.mutateAsync({ id: listingId, status: 'active' });
-        } catch (err) {
+        } catch {
           // Error toast shown by mutation
         }
       }
@@ -154,17 +140,7 @@ const MyListings = () => {
   };
 
   const handleViewListing = (listingId: string) => {
-    showAlert({
-      title: 'View Listing',
-      message: 'Redirecting to listing details...',
-      buttonText: 'OK',
-      icon: 'eye-outline',
-      iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'View functionality will be implemented');
-      }
-    });
+    router.push(`/(screens)/listings/${listingId}`);
   };
 
   const getStatusColor = (status: string) => {
@@ -310,7 +286,7 @@ const MyListings = () => {
   const screenWidth = Dimensions.get('window').width;
   const cardWidth = (screenWidth - 48) / 2; // Account for padding and gap
 
-  const renderListing = ({ item: listing }: { item: Listing }) => (
+  const renderListing = ({ item: listing }: { item: ApiListing }) => (
     <TouchableOpacity 
       style={[styles.listingCard, { width: cardWidth }]}
       onPress={() => handleViewListing(listing.id)}
@@ -318,7 +294,7 @@ const MyListings = () => {
     >
       <View style={styles.listingImageContainer}>
         <Image 
-          source={{ uri: listing.images[0] }} 
+          source={{ uri: listing.images?.[0] || 'https://via.placeholder.com/300x200' }} 
           style={styles.listingImage}
           resizeMode="cover"
         />

@@ -1,57 +1,36 @@
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu';
 import { Colors } from '@/src/constants/constant';
+import { useDeleteStore, useStores, useToggleStoreStatus } from '@/src/hooks/useStores';
+import { Store } from '@/src/services/storesService';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-interface Store {
-  id: string;
-  name: string;
-  description: string;
-  banner_url: string | null;
-  profile_url: string | null;
-  category: string | null;
-  is_active: boolean;
-  total_products: number;
-  follower_count: number;
-  total_sales: number;
-  is_verified: boolean;
-}
 
 const StoresScreen = () => {
   const router = useRouter();
-  const [loading] = useState(false);
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const menuButtonRefs = useRef<{ [key: string]: any }>({});
 
-  // Mock data
-  const stores: Store[] = [
-    {
-      id: '1',
-      name: 'Tech Haven',
-      description: 'Your one-stop shop for latest tech gadgets and accessories',
-      banner_url: 'https://via.placeholder.com/800x300',
-      profile_url: 'https://via.placeholder.com/100',
-      category: 'Electronics',
-      is_active: true,
-      total_products: 24,
-      follower_count: 156,
-      total_sales: 89,
-      is_verified: true,
-    },
-  ];
+  // API hooks
+  const { data: storesResponse, isLoading: loading, error } = useStores();
+  const deleteStoreMutation = useDeleteStore();
+  const toggleStatusMutation = useToggleStoreStatus();
+
+  const stores = storesResponse || [];
 
   const handleBack = () => {
     router.back();
@@ -79,24 +58,47 @@ const StoresScreen = () => {
   };
 
   const handleStorePress = (storeId: string) => {
-    router.push(`/(screens)/(dashboard)/stores/[id]`);
+    router.push(`/(screens)/(dashboard)/stores/[id]?id=${storeId}`);
   };
 
-  const handleMenuItemPress = (storeId: string, item: ContextMenuItem) => {
+  const handleMenuItemPress = async (storeId: string, item: ContextMenuItem) => {
     hideMenu();
     
     switch (item.id) {
       case 'view':
-        router.push(`/(screens)/(dashboard)/stores/[id]`);
+        router.push(`/(screens)/(dashboard)/stores/[id]?id=${storeId}`);
         break;
       case 'edit':
         router.push(`/(screens)/(dashboard)/stores/store-edit?id=${storeId}`);
         break;
       case 'deactivate':
-        console.log('Deactivate store:', storeId);
+        try {
+          await toggleStatusMutation.mutateAsync(storeId);
+          Alert.alert('Success', 'Store status updated successfully');
+        } catch {
+          Alert.alert('Error', 'Failed to update store status');
+        }
         break;
       case 'delete':
-        console.log('Delete store:', storeId);
+        Alert.alert(
+          'Delete Store',
+          'Are you sure you want to delete this store? This action cannot be undone.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Delete',
+              style: 'destructive',
+              onPress: async () => {
+                try {
+                  await deleteStoreMutation.mutateAsync(storeId);
+                  Alert.alert('Success', 'Store deleted successfully');
+                } catch {
+                  Alert.alert('Error', 'Failed to delete store');
+                }
+              },
+            },
+          ]
+        );
         break;
     }
   };
@@ -221,6 +223,17 @@ const StoresScreen = () => {
             <ActivityIndicator size="large" color={Colors.primary} />
             <Text style={styles.loadingText}>Loading your stores...</Text>
           </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={64} color={Colors.grey} />
+            <Text style={styles.errorTitle}>Failed to Load Stores</Text>
+            <Text style={styles.errorText}>
+              {error?.message || 'Something went wrong while loading your stores'}
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => router.replace('/(screens)/(dashboard)/stores')}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
         ) : stores.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconContainer}>
@@ -245,7 +258,7 @@ const StoresScreen = () => {
       {menuVisible && (
         <ContextMenu
           visible={true}
-          items={getMenuItems(stores.find(s => s.id === menuVisible)!)}
+          items={getMenuItems(stores.find((s: Store) => s.id === menuVisible)!)}
           onItemPress={(item) => handleMenuItemPress(menuVisible, item)}
           onClose={hideMenu}
           position={menuPosition}
@@ -297,6 +310,36 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 14,
     color: Colors.grey,
+  },
+  errorContainer: {
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.black,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
   emptyContainer: {
     paddingVertical: 60,

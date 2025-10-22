@@ -1,3 +1,5 @@
+import CustomAlert from '@/components/ui/CustomAlert';
+import { useCategories } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { useCreateStore } from '@/src/hooks/useStores';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,70 +8,80 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface StoreFormData {
   name: string;
   description: string;
-  category: string;
+  categoryId: number | null;
   website: string;
   instagram: string;
   facebook: string;
   twitter: string;
+  tiktok: string;
 }
 
 const StoreCreate = () => {
   const router = useRouter();
   const createStoreMutation = useCreateStore();
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
   const [saving, setSaving] = useState(false);
+
+  // Alert state
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    title: '',
+    message: '',
+    buttonText: 'OK',
+    onPress: () => setShowAlert(false),
+  });
 
   const [formData, setFormData] = useState<StoreFormData>({
     name: '',
     description: '',
-    category: '',
+    categoryId: null,
     website: '',
     instagram: '',
     facebook: '',
     twitter: '',
+    tiktok: '',
   });
 
   const [bannerImage, setBannerImage] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
-  const categories = [
-    'Electronics',
-    'Fashion',
-    'Home & Garden',
-    'Sports & Fitness',
-    'Books & Media',
-    'Health & Beauty',
-    'Automotive',
-    'Food & Beverages',
-    'Toys & Games',
-    'Other',
-  ];
+  // Helper function to show alerts
+  const showCustomAlert = (title: string, message: string, buttonText = 'OK', onPress?: () => void) => {
+    setAlertConfig({
+      title,
+      message,
+      buttonText,
+      onPress: onPress || (() => setShowAlert(false)),
+    });
+    setShowAlert(true);
+  };
 
   const handleBack = () => {
     if (hasUnsavedChanges()) {
-      Alert.alert(
+      showCustomAlert(
         'Unsaved Changes',
         'You have unsaved changes. Are you sure you want to leave?',
-        [
-          { text: 'Stay', style: 'cancel' },
-          { text: 'Leave', style: 'destructive', onPress: () => router.back() },
-        ]
+        'Stay',
+        () => setShowAlert(false)
       );
+      // Note: In a real implementation, you'd show a custom dialog with Stay/Leave options
+      // For now, we'll just show the alert and let user decide
     } else {
       router.back();
     }
@@ -78,24 +90,29 @@ const StoreCreate = () => {
   const hasUnsavedChanges = () => {
     return formData.name.trim() || 
            formData.description.trim() || 
-           formData.category.trim() ||
+           formData.categoryId ||
+           formData.website.trim() ||
+           formData.instagram.trim() ||
+           formData.facebook.trim() ||
+           formData.twitter.trim() ||
+           formData.tiktok.trim() ||
            bannerImage || 
            profileImage;
   };
 
   const handleCreate = async () => {
     if (!formData.name.trim()) {
-      Alert.alert('Error', 'Store name is required');
+      showCustomAlert('Error', 'Store name is required');
       return;
     }
 
     if (!formData.description.trim()) {
-      Alert.alert('Error', 'Store description is required');
+      showCustomAlert('Error', 'Store description is required');
       return;
     }
 
-    if (!formData.category.trim()) {
-      Alert.alert('Error', 'Please select a category');
+    if (!formData.categoryId) {
+      showCustomAlert('Error', 'Please select a category');
       return;
     }
 
@@ -104,8 +121,12 @@ const StoreCreate = () => {
       const storeData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        category: formData.category,
-        contact_email: formData.website.trim() || null,
+        category: categories?.find(c => c.id === formData.categoryId)?.name || '',
+        website: formData.website.trim() || null,
+        instagram: formData.instagram.trim() || null,
+        facebook: formData.facebook.trim() || null,
+        twitter: formData.twitter.trim() || null,
+        tiktok: formData.tiktok.trim() || null,
         is_active: true,
       };
 
@@ -117,15 +138,16 @@ const StoreCreate = () => {
       const result = await createStoreMutation.mutateAsync({ storeData, images });
       
       if (result.success) {
-        Alert.alert('Success', 'Store created successfully!', [
-          { text: 'OK', onPress: () => router.back() }
-        ]);
+        showCustomAlert('Success', 'Store created successfully!', 'OK', () => {
+          setShowAlert(false);
+          router.back();
+        });
       } else {
-        Alert.alert('Error', result.error || 'Failed to create store');
+        showCustomAlert('Error', result.error || 'Failed to create store');
       }
     } catch (error) {
       console.error('Create store error:', error);
-      Alert.alert('Error', 'Failed to create store. Please try again.');
+      showCustomAlert('Error', 'Failed to create store. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -136,7 +158,7 @@ const StoreCreate = () => {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+        showCustomAlert('Permission Required', 'Permission to access camera roll is required!');
         return;
       }
 
@@ -154,8 +176,8 @@ const StoreCreate = () => {
           setProfileImage(result.assets[0].uri);
         }
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    } catch {
+      showCustomAlert('Error', 'Failed to pick image. Please try again.');
     }
   };
 
@@ -164,7 +186,7 @@ const StoreCreate = () => {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        Alert.alert('Permission Required', 'Permission to access camera is required!');
+        showCustomAlert('Permission Required', 'Permission to access camera is required!');
         return;
       }
 
@@ -181,8 +203,8 @@ const StoreCreate = () => {
           setProfileImage(result.assets[0].uri);
         }
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    } catch {
+      showCustomAlert('Error', 'Failed to take photo. Please try again.');
     }
   };
 
@@ -210,12 +232,12 @@ const StoreCreate = () => {
     );
   };
 
-  const updateFormData = (field: keyof StoreFormData, value: string) => {
+  const updateFormData = (field: keyof StoreFormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const selectCategory = (category: string) => {
-    setFormData(prev => ({ ...prev, category }));
+  const selectCategory = (categoryId: number) => {
+    setFormData(prev => ({ ...prev, categoryId }));
     setShowCategoryPicker(false);
   };
 
@@ -293,11 +315,41 @@ const StoreCreate = () => {
           style={styles.categorySelector} 
           onPress={() => setShowCategoryPicker(true)}
         >
-          <Text style={[styles.categoryText, !formData.category && styles.placeholderText]}>
-            {formData.category || 'Select a category'}
+          <Text style={[
+            styles.categoryText, 
+            !formData.categoryId && styles.placeholderText
+          ]}>
+            {formData.categoryId 
+              ? categories?.find(c => c.id === formData.categoryId)?.name 
+              : 'Select a category'
+            }
           </Text>
           <Ionicons name="chevron-down" size={20} color={Colors.grey} />
         </TouchableOpacity>
+        
+        {showCategoryPicker && (
+          <View style={styles.dropdownList}>
+            <ScrollView 
+              style={styles.dropdownScroll}
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
+            >
+              {categoriesLoading ? (
+                <Text style={styles.loadingText}>Loading categories...</Text>
+              ) : (
+                categories?.map((category) => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={styles.dropdownItem}
+                    onPress={() => selectCategory(category.id)}
+                  >
+                    <Text style={styles.dropdownItemText}>{category.name}</Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -354,6 +406,18 @@ const StoreCreate = () => {
           autoCapitalize="none"
         />
       </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.inputLabel}>TikTok</Text>
+        <TextInput
+          style={styles.textInput}
+          value={formData.tiktok}
+          onChangeText={(value) => updateFormData('tiktok', value)}
+          placeholder="@your-tiktok"
+          placeholderTextColor={Colors.grey}
+          autoCapitalize="none"
+        />
+      </View>
     </View>
   );
 
@@ -367,26 +431,30 @@ const StoreCreate = () => {
           </TouchableOpacity>
         </View>
         <ScrollView style={styles.categoryList}>
-          {categories.map((category) => (
-            <TouchableOpacity
-              key={category}
-              style={[
-                styles.categoryItem,
-                formData.category === category && styles.selectedCategoryItem
-              ]}
-              onPress={() => selectCategory(category)}
-            >
-              <Text style={[
-                styles.categoryItemText,
-                formData.category === category && styles.selectedCategoryItemText
-              ]}>
-                {category}
-              </Text>
-              {formData.category === category && (
-                <Ionicons name="checkmark" size={20} color={Colors.primary} />
-              )}
-            </TouchableOpacity>
-          ))}
+          {categoriesLoading ? (
+            <Text style={styles.loadingText}>Loading categories...</Text>
+          ) : (
+            categories?.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.categoryItem,
+                  formData.categoryId === category.id && styles.selectedCategoryItem
+                ]}
+                onPress={() => selectCategory(category.id)}
+              >
+                <Text style={[
+                  styles.categoryItemText,
+                  formData.categoryId === category.id && styles.selectedCategoryItemText
+                ]}>
+                  {category.name}
+                </Text>
+                {formData.categoryId === category.id && (
+                  <Ionicons name="checkmark" size={20} color={Colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))
+          )}
         </ScrollView>
       </View>
     </View>
@@ -427,6 +495,17 @@ const StoreCreate = () => {
       </ScrollView>
 
       {showCategoryPicker && renderCategoryPicker()}
+      
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={showAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttonText={alertConfig.buttonText}
+        onPress={alertConfig.onPress}
+        icon="information-circle-outline"
+        iconColor={Colors.primary}
+      />
     </View>
   );
 };
@@ -650,6 +729,42 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  dropdownList: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightgrey,
+    maxHeight: 150,
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  dropdownScroll: {
+    maxHeight: 140,
+  },
+  dropdownItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightgrey,
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    color: Colors.black,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
+    paddingVertical: 12,
   },
 });
 

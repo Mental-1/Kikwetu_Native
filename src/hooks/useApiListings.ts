@@ -9,6 +9,43 @@ import { listingsService } from '../services/listings.service';
 import { ApiListing } from '../types/api.types';
 
 /**
+ * Hook to fetch a single listing by ID
+ */
+export function useListing(listingId: string) {
+  return useQuery({
+    queryKey: ['listing', listingId],
+    queryFn: async () => {
+      const response = await listingsService.getListing(listingId);
+      return response.data;
+    },
+    enabled: !!listingId,
+    staleTime: 2 * 60 * 1000,
+    retry: 2,
+  });
+}
+
+/**
+ * Hook to fetch listings for a specific store
+ */
+export function useStoreListings(storeId: string, filters?: any) {
+  return useQuery({
+    queryKey: ['storeListings', storeId, filters],
+    queryFn: async () => {
+      const response = await listingsService.getStoreListings(storeId, {
+        ...filters,
+        page: 1,
+        pageSize: 50,
+      });
+
+      return response.data || [];
+    },
+    enabled: !!storeId,
+    staleTime: 2 * 60 * 1000,
+    retry: 2,
+  });
+}
+
+/**
  * Hook to fetch user's listings
  */
 export function useUserListings(userId: string, status?: string) {

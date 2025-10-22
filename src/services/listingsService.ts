@@ -126,7 +126,7 @@ export async function deleteListing(listingId: string): Promise<boolean> {
         updated_at: new Date().toISOString(),
       })
       .eq('id', listingId)
-      .eq('user_id', user.id); // Ensure user can only delete their own listings
+      .eq('user_id', user.id);
 
     if (error) {
       console.error('Error deleting listing:', error);

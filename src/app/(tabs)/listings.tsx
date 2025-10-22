@@ -4,13 +4,14 @@ import ListingsSkeleton from '@/components/ListingsSkeleton';
 import SortModal from '@/components/SortModal';
 import { useCategories, useCategoryMutations, useSubcategories } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
+import { useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
 import { useFilteredListings } from '@/src/hooks/useListings';
 import type { ListingItem } from '@/types/types';
-import { showErrorToast } from '@/utils/toast';
+import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -30,7 +31,12 @@ function ListingsContent() {
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
-  const [, setAppliedFilters] = useState<any>(null);
+  const [appliedFilters, setAppliedFilters] = useState<any>(null);
+  
+  // Favorites functionality
+  const [favoriteStates, setFavoriteStates] = useState<Record<string, boolean>>({});
+  const saveListingMutation = useSaveListing();
+  const unsaveListingMutation = useUnsaveListing();
   
   // Back to top functionality
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -97,11 +103,24 @@ function ListingsContent() {
     router.push(`/(screens)/listings/${listingId}`);
   };
 
-  const handleListingFavoritePress = (listingId: string) => {
-    console.log('Toggle favorite for listing:', listingId);
-    // TODO: Implement actual favorite toggle with API call
-    showErrorToast('Favorite functionality coming soon!');
-  };
+  const handleListingFavoritePress = useCallback(async (listingId: string) => {
+    const isCurrentlyFavorite = favoriteStates[listingId];
+    
+    try {
+      if (isCurrentlyFavorite) {
+        await unsaveListingMutation.mutateAsync(listingId);
+        setFavoriteStates(prev => ({ ...prev, [listingId]: false }));
+        showSuccessToast('Removed from favorites');
+      } else {
+        await saveListingMutation.mutateAsync({ listingId });
+        setFavoriteStates(prev => ({ ...prev, [listingId]: true }));
+        showSuccessToast('Added to favorites');
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      showErrorToast('Failed to update favorites');
+    }
+  }, [favoriteStates, saveListingMutation, unsaveListingMutation]);
 
   const toggleView = () => {
     setIsGridView(!isGridView);
@@ -115,17 +134,17 @@ function ListingsContent() {
     setShowFilters(!showFilters);
   };
 
-  const handleApplyFilters = (filters: any) => {
+  const handleApplyFilters = useCallback((filters: any) => {
     setAppliedFilters(filters);
     console.log('Applied filters:', filters);
-    // TODO: Apply filters to the listings query
-  };
+    // The filtering will be handled in the filteredListings calculation below
+  }, []);
 
-  const handleSortChange = (newSortBy: string) => {
+  const handleSortChange = useCallback((newSortBy: string) => {
     setSortBy(newSortBy);
     console.log('Sort changed to:', newSortBy);
-    // TODO: Apply sorting to the listings query
-  };
+    // The sorting will be handled in the filteredListings calculation below
+  }, []);
 
   const getSearchDisplayText = () => {
     if (!searchQuery) return 'All Items';
@@ -136,8 +155,103 @@ function ListingsContent() {
     return searchQuery;
   };
 
-  // The filtering is now handled in the useFilteredListings hook
-  const filteredListings = listings;
+  // Apply filters and sorting to listings
+  const filteredListings = React.useMemo(() => {
+    let filtered = listings;
+
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter((item: ListingItem) =>
+        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.location?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply additional filters
+    if (appliedFilters) {
+      // Category filter
+      if (appliedFilters.categoryId) {
+        filtered = filtered.filter((item: ListingItem) => 
+          item.category_id === appliedFilters.categoryId
+        );
+      }
+
+      // Subcategory filter
+      if (appliedFilters.subcategoryId) {
+        filtered = filtered.filter((item: ListingItem) => 
+          item.subcategory_id === appliedFilters.subcategoryId
+        );
+      }
+
+      // Price range filter
+      if (appliedFilters.minPrice !== undefined) {
+        filtered = filtered.filter((item: ListingItem) => 
+          item.price && item.price >= appliedFilters.minPrice
+        );
+      }
+      if (appliedFilters.maxPrice !== undefined) {
+        filtered = filtered.filter((item: ListingItem) => 
+          item.price && item.price <= appliedFilters.maxPrice
+        );
+      }
+
+      // Condition filter
+      if (appliedFilters.condition) {
+        filtered = filtered.filter((item: ListingItem) => 
+          item.condition === appliedFilters.condition
+        );
+      }
+
+      // Location filter
+      if (appliedFilters.location) {
+        filtered = filtered.filter((item: ListingItem) => 
+          item.location?.toLowerCase().includes(appliedFilters.location.toLowerCase())
+        );
+      }
+    }
+
+    // Apply sorting
+    switch (sortBy) {
+      case 'newest':
+        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
+          new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
+        );
+        break;
+      case 'oldest':
+        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
+          new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime()
+        );
+        break;
+      case 'price_low':
+        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
+          (a.price || 0) - (b.price || 0)
+        );
+        break;
+      case 'price_high':
+        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
+          (b.price || 0) - (a.price || 0)
+        );
+        break;
+      case 'most_viewed':
+        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
+          (b.views || 0) - (a.views || 0)
+        );
+        break;
+      case 'least_viewed':
+        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
+          (a.views || 0) - (b.views || 0)
+        );
+        break;
+      default:
+        // Default to newest
+        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
+          new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
+        );
+    }
+
+    return filtered;
+  }, [listings, searchQuery, appliedFilters, sortBy]);
 
   const renderGridItem = ({ item }: { item: ListingItem }) => (
     <View style={styles.gridItem}>
@@ -150,7 +264,7 @@ function ListingsContent() {
         image={item.images && item.images.length > 0 ? item.images[0] : 'https://via.placeholder.com/200x140'}
         description={item.description || undefined}
         views={item.views || 0}
-        isFavorite={false} // TODO: Implement favorites functionality
+        isFavorite={favoriteStates[item.id] || false}
         viewMode="grid"
         onPress={handleListingPress}
         onFavoritePress={handleListingFavoritePress}

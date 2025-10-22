@@ -1,115 +1,35 @@
 import { Colors } from '@/src/constants/constant';
+import { useStoreListings } from '@/src/hooks/useApiListings';
+import { useStore } from '@/src/hooks/useStores';
+import { ApiListing } from '@/src/types/api.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import React from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-interface Store {
-  id: string;
-  name: string;
-  description: string;
-  banner_url: string | null;
-  profile_url: string | null;
-  category: string | null;
-  is_active: boolean;
-  total_products: number;
-  follower_count: number;
-  total_sales: number;
-  is_verified: boolean;
-  social_links: {
-    website?: string;
-    instagram?: string;
-    facebook?: string;
-    twitter?: string;
-  };
-}
 
-interface Listing {
-  id: string;
-  title: string;
-  price: number;
-  image_url: string | null;
-  condition: string;
-  location: string;
-  created_at: string;
-}
 
 const StoreDetails = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [loading] = useState(false);
 
-  // Mock store data
-  const store: Store = {
-    id: id || '1',
-    name: 'Tech Haven',
-    description: 'Your one-stop shop for latest tech gadgets and accessories. We specialize in premium electronics, gaming equipment, and smart home devices. With over 5 years of experience, we ensure quality and customer satisfaction.',
-    banner_url: 'https://via.placeholder.com/800x300',
-    profile_url: 'https://via.placeholder.com/100',
-    category: 'Electronics',
-    is_active: true,
-    total_products: 24,
-    follower_count: 156,
-    total_sales: 89,
-    is_verified: true,
-    social_links: {
-      website: 'https://techhaven.com',
-      instagram: '@techhaven',
-      facebook: 'TechHaven',
-      twitter: '@techhaven',
-    },
-  };
-
-  // Mock listings data
-  const listings: Listing[] = [
-    {
-      id: '1',
-      title: 'iPhone 14 Pro Max 256GB',
-      price: 120000,
-      image_url: 'https://via.placeholder.com/300x200',
-      condition: 'New',
-      location: 'Nairobi',
-      created_at: '2024-01-15',
-    },
-    {
-      id: '2',
-      title: 'MacBook Air M2 512GB',
-      price: 180000,
-      image_url: 'https://via.placeholder.com/300x200',
-      condition: 'New',
-      location: 'Nairobi',
-      created_at: '2024-01-14',
-    },
-    {
-      id: '3',
-      title: 'Samsung Galaxy S23 Ultra',
-      price: 95000,
-      image_url: 'https://via.placeholder.com/300x200',
-      condition: 'Like New',
-      location: 'Nairobi',
-      created_at: '2024-01-13',
-    },
-    {
-      id: '4',
-      title: 'iPad Pro 12.9" M2',
-      price: 150000,
-      image_url: 'https://via.placeholder.com/300x200',
-      condition: 'New',
-      location: 'Nairobi',
-      created_at: '2024-01-12',
-    },
-  ];
+  const { data: storeResponse, isLoading: storeLoading, error: storeError } = useStore(id || '');
+  const { data: listingsResponse, isLoading: listingsLoading, error: listingsError } = useStoreListings(id || '');
+  const store = storeResponse;
+  const listings = listingsResponse || [];
 
   const handleBack = () => {
     router.back();
@@ -120,16 +40,55 @@ const StoreDetails = () => {
   };
 
   const handleListingPress = (listingId: string) => {
-    // Navigate to listing details
-    console.log('Navigate to listing:', listingId);
+    router.push(`/(screens)/listings/${listingId}`);
   };
 
-  const renderListingCard = ({ item }: { item: Listing }) => (
+  const handleSocialLinkPress = async (platform: string, value: string) => {
+    try {
+      let url = '';
+      
+      switch (platform) {
+        case 'website':
+          url = value.startsWith('http') ? value : `https://${value}`;
+          await WebBrowser.openBrowserAsync(url);
+          break;
+        case 'instagram':
+          const instagramHandle = value.startsWith('@') ? value.substring(1) : value;
+          const instagramUrl = `https://instagram.com/${instagramHandle}`;
+          await WebBrowser.openBrowserAsync(instagramUrl);
+          break;
+        case 'facebook':
+          const facebookUrl = `https://facebook.com/${value}`;
+          await WebBrowser.openBrowserAsync(facebookUrl);
+          break;
+        case 'twitter':
+          const twitterHandle = value.startsWith('@') ? value.substring(1) : value;
+          const twitterUrl = `https://twitter.com/${twitterHandle}`;
+          await WebBrowser.openBrowserAsync(twitterUrl);
+          break;
+        case 'tiktok':
+          const tiktokHandle = value.startsWith('@') ? value.substring(1) : value;
+          const tiktokUrl = `https://tiktok.com/@${tiktokHandle}`;
+          await WebBrowser.openBrowserAsync(tiktokUrl);
+          break;
+        default:
+          console.log('Unknown platform:', platform);
+      }
+    } catch (error) {
+      console.error('Error opening social link:', error);
+      Alert.alert('Error', 'Failed to open link. Please try again.');
+    }
+  };
+
+  const renderListingCard = ({ item }: { item: ApiListing }) => (
     <TouchableOpacity
       style={styles.listingCard}
       onPress={() => handleListingPress(item.id)}
     >
-      <Image source={{ uri: item.image_url || '' }} style={styles.listingImage} />
+      <Image 
+        source={{ uri: item.images?.[0] || 'https://via.placeholder.com/300x200' }} 
+        style={styles.listingImage} 
+      />
       <View style={styles.listingInfo}>
         <Text style={styles.listingTitle} numberOfLines={2}>
           {item.title}
@@ -147,7 +106,10 @@ const StoreDetails = () => {
     if (!value) return null;
     
     return (
-      <TouchableOpacity style={styles.socialLink}>
+      <TouchableOpacity 
+        style={styles.socialLink}
+        onPress={() => handleSocialLinkPress(platform, value)}
+      >
         <Ionicons name={icon as any} size={16} color={Colors.primary} />
         <Text style={styles.socialText}>{value}</Text>
       </TouchableOpacity>
@@ -172,27 +134,45 @@ const StoreDetails = () => {
       </SafeAreaView>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Banner Image */}
-        <View style={styles.bannerContainer}>
-          {store.banner_url ? (
-            <Image source={{ uri: store.banner_url }} style={styles.banner} resizeMode="cover" />
-          ) : (
-            <View style={[styles.banner, styles.bannerPlaceholder]}>
-              <Ionicons name="storefront-outline" size={64} color={Colors.grey} />
-            </View>
-          )}
-          
-          {/* Profile Image */}
-          <View style={styles.profileImageContainer}>
-            {store.profile_url ? (
-              <Image source={{ uri: store.profile_url }} style={styles.profileImage} />
-            ) : (
-              <View style={styles.profileImagePlaceholder}>
-                <Ionicons name="storefront" size={24} color={Colors.white} />
-              </View>
-            )}
+        {storeLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>Loading store details...</Text>
           </View>
-        </View>
+        ) : storeError ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={64} color={Colors.grey} />
+            <Text style={styles.errorTitle}>Failed to Load Store</Text>
+            <Text style={styles.errorText}>
+              {storeError?.message || 'Something went wrong while loading the store'}
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+              <Text style={styles.retryButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        ) : store ? (
+          <>
+            {/* Banner Image */}
+            <View style={styles.bannerContainer}>
+              {store.banner_url ? (
+                <Image source={{ uri: store.banner_url }} style={styles.banner} resizeMode="cover" />
+              ) : (
+                <View style={[styles.banner, styles.bannerPlaceholder]}>
+                  <Ionicons name="storefront-outline" size={64} color={Colors.grey} />
+                </View>
+              )}
+              
+              {/* Profile Image */}
+              <View style={styles.profileImageContainer}>
+                {store.profile_url ? (
+                  <Image source={{ uri: store.profile_url }} style={styles.profileImage} />
+                ) : (
+                  <View style={styles.profileImagePlaceholder}>
+                    <Ionicons name="storefront" size={24} color={Colors.white} />
+                  </View>
+                )}
+              </View>
+            </View>
 
         {/* Store Info */}
         <View style={styles.storeInfoContainer}>
@@ -215,10 +195,11 @@ const StoreDetails = () => {
 
           {/* Social Links */}
           <View style={styles.socialLinksContainer}>
-            {renderSocialLink('website', store.social_links.website, 'globe-outline')}
-            {renderSocialLink('instagram', store.social_links.instagram, 'logo-instagram')}
-            {renderSocialLink('facebook', store.social_links.facebook, 'logo-facebook')}
-            {renderSocialLink('twitter', store.social_links.twitter, 'logo-twitter')}
+            {renderSocialLink('website', (store as any)?.website, 'globe-outline')}
+            {renderSocialLink('instagram', (store as any)?.instagram, 'logo-instagram')}
+            {renderSocialLink('facebook', (store as any)?.facebook, 'logo-facebook')}
+            {renderSocialLink('twitter', (store as any)?.twitter, 'logo-twitter')}
+            {renderSocialLink('tiktok', (store as any)?.tiktok, 'logo-tiktok')}
           </View>
 
           {/* Stats */}
@@ -256,13 +237,24 @@ const StoreDetails = () => {
         <View style={styles.listingsSection}>
           <View style={styles.listingsHeader}>
             <Text style={styles.listingsTitle}>Store Listings</Text>
-            <Text style={styles.listingsCount}>({store.total_products} items)</Text>
+            <Text style={styles.listingsCount}>({listings.length} items)</Text>
           </View>
 
-          {loading ? (
+          {listingsLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.primary} />
               <Text style={styles.loadingText}>Loading listings...</Text>
+            </View>
+          ) : listingsError ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle-outline" size={48} color={Colors.red} />
+              <Text style={styles.errorTitle}>Failed to load listings</Text>
+              <Text style={styles.errorText}>
+                {listingsError instanceof Error ? listingsError.message : 'Something went wrong'}
+              </Text>
+              <TouchableOpacity style={styles.retryButton}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
             </View>
           ) : listings.length === 0 ? (
             <View style={styles.emptyListingsContainer}>
@@ -282,6 +274,8 @@ const StoreDetails = () => {
             />
           )}
         </View>
+          </>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -433,6 +427,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    opacity: 0.8,
   },
   socialText: {
     fontSize: 12,
@@ -518,6 +515,36 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: Colors.grey,
+  },
+  errorContainer: {
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.black,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
   emptyListingsContainer: {
     paddingVertical: 40,
