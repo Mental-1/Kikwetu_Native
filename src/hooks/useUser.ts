@@ -22,6 +22,7 @@ interface UseUserReturn {
     rating: number;
     reviewsCount: number;
   } | null>;
+  getUserById: (userId: string) => Promise<UserProfile | null>;
 }
 
 export const useUser = (): UseUserReturn => {
@@ -188,6 +189,21 @@ export const useUser = (): UseUserReturn => {
     }
   }, []);
 
+  const getUserById = useCallback(async (userId: string): Promise<UserProfile | null> => {
+    try {
+      const response = await userService.getUserById(userId);
+      if (response.success) {
+        return response.data;
+      } else {
+        setError(response.message || 'Failed to fetch user');
+        return null;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch user');
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
     fetchUserData();
   }, [fetchUserData]);
@@ -206,5 +222,6 @@ export const useUser = (): UseUserReturn => {
     confirmPhoneVerification,
     changePassword,
     getUserStats,
+    getUserById,
   };
 };

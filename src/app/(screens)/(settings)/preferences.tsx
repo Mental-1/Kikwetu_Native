@@ -1,11 +1,12 @@
 import { Colors } from '@/src/constants/constant';
 import { useProfile, useUpdateProfile } from '@/src/hooks/useProfile';
+import { useUser } from '@/src/hooks/useUser';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Preferences = () => {
@@ -13,29 +14,51 @@ const Preferences = () => {
   const { showAlert, AlertComponent } = useCustomAlert();
   const { success, error } = createAlertHelpers(showAlert);
   
-  // Profile hooks
-  const { data: profile } = useProfile();
+  const { data: profile, isLoading: profileLoading } = useProfile();
   const updateProfileMutation = useUpdateProfile();
   
-  // Notification preferences - initialized from profile
+  const { preferences, updatePreferences, loading: preferencesLoading } = useUser();
+  
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [marketingEmails, setMarketingEmails] = useState(false);
   const [priceAlerts, setPriceAlerts] = useState(true);
   const [messageNotifications, setMessageNotifications] = useState(true);
   
-  // App preferences
   const [darkMode, setDarkMode] = useState(false);
   const [autoSave, setAutoSave] = useState(true);
   const [locationServices, setLocationServices] = useState(true);
   const [analytics, setAnalytics] = useState(true);
   
-  // Language and region - initialized from profile
   const [selectedLanguage, setSelectedLanguage] = useState('English');
-  const [selectedCurrency, setSelectedCurrency] = useState('USD');
-  const [selectedRegion, setSelectedRegion] = useState('United States');
+  const [selectedCurrency, setSelectedCurrency] = useState('KES');
+  const [selectedRegion, setSelectedRegion] = useState('Kenya');
+  
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [showRegionModal, setShowRegionModal] = useState(false);
 
-  // Initialize preferences from profile data
+  const languages = [
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'sw', name: 'Kiswahili', flag: '🇰🇪' },
+    { code: 'fr', name: 'Français', flag: '🇫🇷' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
+  ];
+
+  const currencies = [
+    { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh' },
+    { code: 'USD', name: 'US Dollar', symbol: '$' },
+    { code: 'EUR', name: 'Euro', symbol: '€' },
+    { code: 'GBP', name: 'British Pound', symbol: '£' },
+  ];
+
+  const regions = [
+    { code: 'KE', name: 'Kenya', flag: '🇰🇪' },
+    { code: 'UG', name: 'Uganda', flag: '🇺🇬' },
+    { code: 'TZ', name: 'Tanzania', flag: '🇹🇿' },
+    { code: 'RW', name: 'Rwanda', flag: '🇷🇼' },
+  ];
+
   useEffect(() => {
     if (profile) {
       setPushNotifications(profile.push_notifications);
@@ -45,85 +68,92 @@ const Preferences = () => {
       setMessageNotifications(profile.new_messages);
       setDarkMode(profile.theme === 'dark');
       setSelectedLanguage(profile.language || 'English');
-      setSelectedCurrency(profile.currency || 'USD');
+      setSelectedCurrency(profile.currency || 'KES');
     }
-  }, [profile]);
+    
+    if (preferences) {
+      setDarkMode(preferences.theme === 'dark');
+      setSelectedLanguage(preferences.language || 'English');
+      setSelectedCurrency(preferences.currency || 'KES');
+    }
+  }, [profile, preferences]);
+
+  const isLoading = useMemo(() => 
+    profileLoading || preferencesLoading,
+    [profileLoading, preferencesLoading]
+  );
 
   const handleBack = () => {
     router.back();
   };
 
-  const updatePreference = async (field: string, value: any) => {
+  const updatePreference = useCallback(async (field: string, value: any) => {
     try {
-      await updateProfileMutation.mutateAsync({
-        [field]: value,
-      });
+      if (['push_notifications', 'email_notifications', 'marketing_emails', 'price_alerts', 'new_messages'].includes(field)) {
+        await updateProfileMutation.mutateAsync({
+          [field]: value,
+        });
+      } else {
+        await updatePreferences({
+          [field]: value,
+        });
+      }
     } catch (err) {
       console.error('Error updating preference:', err);
       error('Error', 'Failed to update preference. Please try again.');
     }
-  };
+  }, [updateProfileMutation, updatePreferences, error]);
 
-  const handleNotificationToggle = async (field: string, value: boolean) => {
+  const handleNotificationToggle = useCallback(async (field: string, value: boolean) => {
     await updatePreference(field, value);
-  };
+  }, [updatePreference]);
 
-  const handleThemeToggle = async (value: boolean) => {
+  const handleThemeToggle = useCallback(async (value: boolean) => {
+    setDarkMode(value);
     await updatePreference('theme', value ? 'dark' : 'light');
-  };
+  }, [updatePreference]);
 
-  const handleLanguageChange = async (language: string) => {
+  const handleLanguageChange = useCallback(async (language: string) => {
+    setSelectedLanguage(language);
     await updatePreference('language', language);
-  };
+  }, [updatePreference]);
 
-  const handleCurrencyChange = async (currency: string) => {
+  const handleCurrencyChange = useCallback(async (currency: string) => {
+    setSelectedCurrency(currency);
     await updatePreference('currency', currency);
-  };
+  }, [updatePreference]);
 
-  const handleLanguageSelect = () => {
-    showAlert({
-      title: 'Language Selection',
-      message: 'Language selection will be implemented',
-      buttonText: 'OK',
-      icon: 'language-outline',
-      iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Language selection functionality will be added');
-      }
-    });
-  };
+  const handleLanguageSelect = useCallback(() => {
+    setShowLanguageModal(true);
+  }, []);
 
-  const handleCurrencySelect = () => {
-    showAlert({
-      title: 'Currency Selection',
-      message: 'Currency selection will be implemented',
-      buttonText: 'OK',
-      icon: 'cash-outline',
-      iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Currency selection functionality will be added');
-      }
-    });
-  };
+  const handleCurrencySelect = useCallback(() => {
+    setShowCurrencyModal(true);
+  }, []);
 
-  const handleRegionSelect = () => {
-    showAlert({
-      title: 'Region Selection',
-      message: 'Region selection will be implemented',
-      buttonText: 'OK',
-      icon: 'globe-outline',
-      iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Region selection functionality will be added');
-      }
-    });
-  };
+  const handleRegionSelect = useCallback(() => {
+    setShowRegionModal(true);
+  }, []);
+
+  const handleLanguageConfirm = useCallback(async (language: string) => {
+    setShowLanguageModal(false);
+    await handleLanguageChange(language);
+  }, [handleLanguageChange]);
+
+  const handleCurrencyConfirm = useCallback(async (currency: string) => {
+    setShowCurrencyModal(false);
+    await handleCurrencyChange(currency);
+  }, [handleCurrencyChange]);
+
+  const handleRegionConfirm = useCallback(async (region: string) => {
+    setShowRegionModal(false);
+    setSelectedRegion(region);
+    // TODO: Implement region preference update
+    success('Success', 'Region updated successfully');
+  }, [success]);
 
 
-  const handleResetPreferences = () => {
+  const handleResetPreferences = useCallback(() => {
     showAlert({
       title: 'Reset Preferences',
       message: 'Are you sure you want to reset all preferences to default values?',
@@ -131,25 +161,34 @@ const Preferences = () => {
       icon: 'refresh-outline',
       iconColor: '#FF9800',
       buttonColor: '#FF9800',
-      onPress: () => {
-        // Reset all preferences to defaults
-        setPushNotifications(true);
-        setEmailNotifications(false);
-        setMarketingEmails(false);
-        setPriceAlerts(true);
-        setMessageNotifications(true);
-        setDarkMode(false);
-        setAutoSave(true);
-        setLocationServices(true);
-        setAnalytics(true);
-        setSelectedLanguage('English');
-        setSelectedCurrency('USD');
-        setSelectedRegion('United States');
-        
-        success('Success', 'All preferences have been reset to defaults');
+      onPress: async () => {
+        try {
+          setPushNotifications(true);
+          setEmailNotifications(false);
+          setMarketingEmails(false);
+          setPriceAlerts(true);
+          setMessageNotifications(true);
+          setDarkMode(false);
+          setAutoSave(true);
+          setLocationServices(true);
+          setAnalytics(true);
+          setSelectedLanguage('English');
+          setSelectedCurrency('KES');
+          setSelectedRegion('Kenya');
+          
+          await updatePreferences({
+            theme: 'light',
+            language: 'English',
+            currency: 'KES',
+          });
+          
+          success('Success', 'All preferences have been reset to defaults');
+        } catch (err) {
+          error('Error', 'Failed to reset preferences. Please try again.');
+        }
       }
     });
-  };
+  }, [showAlert, updatePreferences, success, error]);
 
   const preferenceSections = [
     {
@@ -304,6 +343,26 @@ const Preferences = () => {
     );
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <SafeAreaView style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+            <Ionicons name="chevron-back" size={24} color={Colors.black} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Preferences</Text>
+          <View style={styles.headerRight} />
+        </SafeAreaView>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading preferences...</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
@@ -355,6 +414,90 @@ const Preferences = () => {
                 {/* Bottom padding for better scrolling */}
                 <View style={styles.bottomPadding} />
       </ScrollView>
+      
+      {/* Language Selection Modal */}
+      {showLanguageModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Language</Text>
+            {languages.map((lang) => (
+              <TouchableOpacity
+                key={lang.code}
+                style={styles.modalOption}
+                onPress={() => handleLanguageConfirm(lang.name)}
+              >
+                <Text style={styles.modalOptionFlag}>{lang.flag}</Text>
+                <Text style={styles.modalOptionText}>{lang.name}</Text>
+                {selectedLanguage === lang.name && (
+                  <Ionicons name="checkmark" size={20} color={Colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.modalCancel}
+              onPress={() => setShowLanguageModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Currency Selection Modal */}
+      {showCurrencyModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Currency</Text>
+            {currencies.map((currency) => (
+              <TouchableOpacity
+                key={currency.code}
+                style={styles.modalOption}
+                onPress={() => handleCurrencyConfirm(currency.code)}
+              >
+                <Text style={styles.modalOptionSymbol}>{currency.symbol}</Text>
+                <Text style={styles.modalOptionText}>{currency.name}</Text>
+                {selectedCurrency === currency.code && (
+                  <Ionicons name="checkmark" size={20} color={Colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.modalCancel}
+              onPress={() => setShowCurrencyModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Region Selection Modal */}
+      {showRegionModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Region</Text>
+            {regions.map((region) => (
+              <TouchableOpacity
+                key={region.code}
+                style={styles.modalOption}
+                onPress={() => handleRegionConfirm(region.name)}
+              >
+                <Text style={styles.modalOptionFlag}>{region.flag}</Text>
+                <Text style={styles.modalOptionText}>{region.name}</Text>
+                {selectedRegion === region.name && (
+                  <Ionicons name="checkmark" size={20} color={Colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.modalCancel}
+              onPress={() => setShowRegionModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
       
       {/* Custom Alert Component */}
       <AlertComponent />
@@ -463,6 +606,91 @@ const styles = StyleSheet.create({
           },
           bottomPadding: {
             height: 24,
+          },
+          loadingContainer: {
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingVertical: 64,
+          },
+          loadingText: {
+            fontSize: 14,
+            color: Colors.grey,
+            marginTop: 12,
+          },
+          headerRight: {
+            width: 60,
+          },
+          modalOverlay: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          },
+          modalContent: {
+            backgroundColor: Colors.white,
+            borderRadius: 12,
+            padding: 20,
+            margin: 20,
+            maxHeight: '80%',
+            width: '90%',
+            elevation: 5,
+            shadowColor: '#000',
+            shadowOffset: {
+              width: 0,
+              height: 2,
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+          },
+          modalTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: Colors.black,
+            marginBottom: 16,
+            textAlign: 'center',
+          },
+          modalOption: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            borderRadius: 8,
+            marginBottom: 8,
+            backgroundColor: Colors.background,
+          },
+          modalOptionFlag: {
+            fontSize: 20,
+            marginRight: 12,
+          },
+          modalOptionSymbol: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: Colors.primary,
+            marginRight: 12,
+            minWidth: 30,
+          },
+          modalOptionText: {
+            flex: 1,
+            fontSize: 16,
+            color: Colors.black,
+          },
+          modalCancel: {
+            marginTop: 16,
+            paddingVertical: 12,
+            alignItems: 'center',
+            borderTopWidth: 1,
+            borderTopColor: Colors.lightgrey,
+          },
+          modalCancelText: {
+            fontSize: 16,
+            color: Colors.grey,
+            fontWeight: '500',
           },
         });
 

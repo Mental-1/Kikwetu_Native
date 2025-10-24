@@ -160,3 +160,71 @@ export function useVerifyPaystackPayment() {
   });
 }
 
+/**
+ * Hook to get payment status
+ */
+export function usePaymentStatus(transactionId: string) {
+  return useQuery({
+    queryKey: ['paymentStatus', transactionId],
+    queryFn: async () => {
+      const response = await paymentsService.getPaymentStatus(transactionId);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to fetch payment status');
+      }
+      return response.data;
+    },
+    enabled: !!transactionId,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    staleTime: 0,
+  });
+}
+
+/**
+ * Hook to get payment history
+ */
+export function usePaymentHistory(params: {
+  page?: number;
+  pageSize?: number;
+  status?: string;
+  paymentType?: string;
+} = {}) {
+  return useQuery({
+    queryKey: ['paymentHistory', params],
+    queryFn: async () => {
+      const response = await paymentsService.getPaymentHistory(params);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to fetch payment history');
+      }
+      return response.data;
+    },
+    staleTime: 2 * 60 * 1000,
+    retry: 2,
+  });
+}
+
+/**
+ * Hook to retry failed payment
+ */
+export function useRetryPayment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (transactionId: string) => {
+      const response = await paymentsService.retryPayment(transactionId);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to retry payment');
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['paymentHistory'] });
+      queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+      showSuccessToast('Payment retry initiated', 'Success');
+    },
+    onError: (error: Error) => {
+      showErrorToast(error.message, 'Retry Failed');
+    },
+  });
+}
+

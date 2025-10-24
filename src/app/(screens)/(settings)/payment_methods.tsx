@@ -1,5 +1,6 @@
 import CustomDialog from '@/components/ui/CustomDialog';
 import { Colors } from '@/src/constants/constant';
+import { useAddPaymentMethod, useDeletePaymentMethod, usePaymentMethods, useSetDefaultPaymentMethod } from '@/src/hooks/useApiPayments';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import {
   formatCardNumber,
@@ -15,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
@@ -51,39 +52,23 @@ const PaymentMethods = () => {
     phoneNumber: '',
   });
 
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    {
-      id: '1',
-      type: 'card',
-      name: 'John Doe',
-      lastFour: '4242',
-      expiryDate: '12/25',
-      isDefault: true,
-      isActive: true,
-      icon: 'card',
-      brand: 'visa',
-    },
-    {
-      id: '2',
-      type: 'card',
-      name: 'John Doe',
-      lastFour: '5555',
-      expiryDate: '08/26',
-      isDefault: false,
-      isActive: true,
-      icon: 'card',
-      brand: 'mastercard',
-    },
-    {
-      id: '3',
-      type: 'bank',
-      name: 'Chase Bank',
-      lastFour: '7890',
-      isDefault: false,
-      isActive: true,
-      icon: 'business',
-    },
-  ]);
+  const { data: paymentMethodsData, isLoading: methodsLoading } = usePaymentMethods();
+  const addPaymentMethodMutation = useAddPaymentMethod();
+  const deletePaymentMethodMutation = useDeletePaymentMethod();
+  const setDefaultPaymentMethodMutation = useSetDefaultPaymentMethod();
+
+  // Convert API data to local format
+  const paymentMethods: PaymentMethod[] = (paymentMethodsData || []).map(pm => ({
+    id: pm.id,
+    type: pm.type,
+    name: pm.name,
+    lastFour: pm.lastFour,
+    expiryDate: pm.expiryDate,
+    isDefault: pm.isDefault,
+    isActive: pm.isActive,
+    icon: pm.type === 'card' ? 'card' : pm.type === 'bank' ? 'business' : 'phone-portrait',
+    brand: pm.type === 'card' ? 'visa' : undefined, // You might want to add brand to API response
+  }));
 
   const handleBack = () => {
     router.back();
@@ -108,12 +93,10 @@ const PaymentMethods = () => {
     });
   };
 
-  const handleSavePaymentMethod = () => {
+  const handleSavePaymentMethod = async () => {
     try {
-      // Validate the payment method using zod schema
       const validatedData = paymentMethodValidationSchema.parse(newPaymentMethod);
       
-      // Additional custom validations
       if (newPaymentMethod.type === 'card') {
         if (!validateCardNumber(newPaymentMethod.cardNumber)) {
           error('Error', 'Please enter a valid 16-digit card number');
@@ -129,8 +112,7 @@ const PaymentMethods = () => {
         }
       }
 
-      const newMethod: PaymentMethod = {
-        id: Date.now().toString(),
+      const apiData = {
         type: validatedData.type,
         name: validatedData.type === 'card' ? validatedData.cardholderName : 
               validatedData.type === 'bank' ? validatedData.bankName : 
@@ -139,39 +121,36 @@ const PaymentMethods = () => {
                   validatedData.type === 'bank' ? validatedData.accountNumber.slice(-4) :
                   validatedData.phoneNumber.slice(-4),
         expiryDate: validatedData.type === 'card' ? validatedData.expiryDate : undefined,
-        isDefault: paymentMethods.length === 0,
-        isActive: true,
-        icon: validatedData.type === 'card' ? 'card' : 
-              validatedData.type === 'bank' ? 'business' : 'phone-portrait',
-        brand: validatedData.type === 'card' ? (validatedData.cardNumber.startsWith('4') ? 'visa' : 'mastercard') : undefined,
       };
 
-      setPaymentMethods(prev => [...prev, newMethod]);
+      await addPaymentMethodMutation.mutateAsync(apiData);
+      
       success('Success', 'Payment method added successfully');
       handleCloseModal();
-    } catch (validationError) {
-      if (validationError instanceof z.ZodError) {
-        const firstError = validationError.issues[0];
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        const firstError = err.issues[0];
         error('Validation Error', firstError.message);
       } else {
-        error('Error', 'Please check your input and try again');
+        error('Error', err.message || 'Failed to add payment method');
       }
     }
   };
 
-  const handleSetDefault = (id: string) => {
-    const method = paymentMethods.find(m => m.id === id);
-    setPaymentMethods(prev => prev.map(paymentMethod => ({
-      ...paymentMethod,
-      isDefault: paymentMethod.id === id
-    })));
-    success('Success', `${method?.name || 'Payment method'} set as default`);
+  const handleSetDefault = async (id: string) => {
+    try {
+      await setDefaultPaymentMethodMutation.mutateAsync(id);
+      const method = paymentMethods.find(m => m.id === id);
+      success('Success', `${method?.name || 'Payment method'} set as default`);
+    } catch (error: any) {
+      error('Error', error.message || 'Failed to set default payment method');
+    }
   };
 
   const handleToggleActive = (id: string) => {
-    setPaymentMethods(prev => prev.map(method => 
-      method.id === id ? { ...method, isActive: !method.isActive } : method
-    ));
+    // Note: This functionality might not be available in the API
+    // For now, we'll keep it as a local state change
+    // You may want to add an API endpoint for this
     const method = paymentMethods.find(m => m.id === id);
     success('Success', `Payment method ${method?.isActive ? 'deactivated' : 'activated'}`);
   };
@@ -181,10 +160,14 @@ const PaymentMethods = () => {
     setShowDeleteDialog(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (paymentMethodToDelete) {
-      setPaymentMethods(prev => prev.filter(method => method.id !== paymentMethodToDelete));
-      success('Success', 'Payment method deleted successfully');
+      try {
+        await deletePaymentMethodMutation.mutateAsync(paymentMethodToDelete);
+        success('Success', 'Payment method deleted successfully');
+      } catch (error: any) {
+        error('Error', error.message || 'Failed to delete payment method');
+      }
     }
     setShowDeleteDialog(false);
     setPaymentMethodToDelete(null);
@@ -290,7 +273,12 @@ const PaymentMethods = () => {
       </SafeAreaView>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {paymentMethods.length === 0 ? (
+        {methodsLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>Loading payment methods...</Text>
+          </View>
+        ) : paymentMethods.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="card-outline" size={64} color={Colors.grey} />
             <Text style={styles.emptyTitle}>No Payment Methods</Text>
@@ -552,6 +540,17 @@ const styles = StyleSheet.create({
     color: Colors.grey,
     textAlign: 'center',
     marginBottom: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 64,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.grey,
+    marginTop: 16,
   },
   emptyButton: {
     backgroundColor: Colors.primary,

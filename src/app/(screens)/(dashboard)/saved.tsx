@@ -1,11 +1,13 @@
+import { useCategories } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { useClearAllSavedListings, useSavedListings, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
-import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
+import { useUser } from '@/src/hooks/useUser';
+import { useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SavedListing {
@@ -16,6 +18,7 @@ interface SavedListing {
   price: number;
   location: string;
   category: string;
+  categoryName: string;
   images: string[];
   sellerName: string;
   sellerRating: number;
@@ -23,73 +26,132 @@ interface SavedListing {
   isAvailable: boolean;
   views: number;
   condition: string;
+  sellerId: string;
+  sellerAvatar?: string;
 }
 
 const Saved = () => {
   const router = useRouter();
   const { showAlert, AlertComponent } = useCustomAlert();
-  const { success } = createAlertHelpers(showAlert);
 
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showContextMenu, setShowContextMenu] = useState<string | null>(null);
 
-  // Fetch saved listings from API
   const { data: savedData, isLoading, error: fetchError, refetch } = useSavedListings();
+  const { data: categoriesData } = useCategories();
+  const { getUserById } = useUser();
   const unsave = useUnsaveListing();
   const clearAll = useClearAllSavedListings();
 
+  // State for user data cache
+  const [userCache, setUserCache] = useState<Record<string, { name: string; rating: number; avatar?: string }>>({});
+
+  // Fetch user data for all unique seller IDs
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!savedData) return;
+
+      const uniqueUserIds = Array.from(
+        new Set(
+          savedData
+            .map(item => item.listing?.user_id)
+            .filter(Boolean) as string[]
+        )
+      );
+
+      const newUserCache: Record<string, { name: string; rating: number; avatar?: string }> = {};
+
+      // Fetch user data for each unique user ID
+      await Promise.all(
+        uniqueUserIds.map(async (userId) => {
+          if (!userCache[userId]) {
+            try {
+              const userData = await getUserById(userId);
+              if (userData) {
+                newUserCache[userId] = {
+                  name: userData.fullName || userData.username || 'Seller',
+                  rating: userData.rating || 0,
+                  avatar: userData.avatarUrl,
+                };
+              }
+            } catch {
+              // Fallback for failed user fetch
+              newUserCache[userId] = {
+                name: 'Seller',
+                rating: 0,
+              };
+            }
+          }
+        })
+      );
+
+      // Update cache with new data
+      setUserCache(prev => ({ ...prev, ...newUserCache }));
+    };
+
+    fetchUserData();
+  }, [savedData, getUserById, userCache]);
+
   // Transform API data to match UI interface
   const savedListings: SavedListing[] = useMemo(() => {
-    return (savedData || []).map(item => ({
-      id: item.id,
-      listing_id: item.listing_id,
-      title: item.listing?.title || '',
-      description: item.listing?.description || '',
-      price: item.listing?.price || 0,
-      location: item.listing?.location || '',
-      category: item.listing?.category_id?.toString() || '',
-      images: item.listing?.images || [],
-      sellerName: 'Seller',
-      sellerRating: 4.5,
-      savedDate: new Date(item.created_at).toLocaleDateString(),
-      isAvailable: item.listing?.status === 'active',
-      views: item.listing?.views || 0,
-      condition: item.listing?.condition || 'good',
-    }));
-  }, [savedData]);
+    return (savedData || []).map(item => {
+      const category = categoriesData?.find(cat => cat.id === item.listing?.category_id);
+      const userId = item.listing?.user_id || '';
+      const userInfo = userCache[userId];
+      
+      return {
+        id: item.id,
+        listing_id: item.listing_id,
+        title: item.listing?.title || '',
+        description: item.listing?.description || '',
+        price: item.listing?.price || 0,
+        location: item.listing?.location || '',
+        category: item.listing?.category_id?.toString() || '',
+        categoryName: category?.name || 'Unknown',
+        images: item.listing?.images || [],
+        sellerName: userInfo?.name || 'Seller',
+        sellerRating: userInfo?.rating || 0,
+        savedDate: new Date(item.created_at).toLocaleDateString(),
+        isAvailable: item.listing?.status === 'active',
+        views: item.listing?.views || 0,
+        condition: item.listing?.condition || 'good',
+        sellerId: userId,
+        sellerAvatar: userInfo?.avatar,
+      };
+    });
+  }, [savedData, categoriesData, userCache]);
 
   
 
-  const filterOptions = [
-    { id: 'all', label: 'All', count: savedListings.length },
-    { id: 'available', label: 'Available', count: savedListings.filter(l => l.isAvailable).length },
-    { id: 'sold', label: 'Sold', count: savedListings.filter(l => !l.isAvailable).length },
-    { id: 'electronics', label: 'Electronics', count: savedListings.filter(l => l.category === 'Electronics').length },
-    { id: 'vehicles', label: 'Vehicles', count: savedListings.filter(l => l.category === 'Vehicles').length },
-    { id: 'fashion', label: 'Fashion', count: savedListings.filter(l => l.category === 'Fashion').length },
-    { id: 'furniture', label: 'Furniture', count: savedListings.filter(l => l.category === 'Furniture').length },
-  ];
+  const filterOptions = useMemo(() => {
+    const baseFilters = [
+      { id: 'all', label: 'All', count: savedListings.length },
+      { id: 'available', label: 'Available', count: savedListings.filter(l => l.isAvailable).length },
+      { id: 'sold', label: 'Sold', count: savedListings.filter(l => !l.isAvailable).length },
+    ];
+
+
+    const categoryFilters = (categoriesData || [])
+      .filter(category => savedListings.some(listing => listing.category === category.id.toString()))
+      .map(category => ({
+        id: category.id.toString(),
+        label: category.name,
+        count: savedListings.filter(l => l.category === category.id.toString()).length,
+      }));
+
+    return [...baseFilters, ...categoryFilters];
+  }, [savedListings, categoriesData]);
 
   const handleBack = () => {
     router.back();
   };
 
-  const handleViewListing = (listingId: string) => {
-    showAlert({
-      title: 'View Listing',
-      message: 'Redirecting to listing details...',
-      buttonText: 'OK',
-      icon: 'eye-outline',
-      iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'View functionality will be implemented');
-      }
-    });
-  };
+  const handleViewListing = useCallback((listingId: string) => {
+    router.push(`/listings/${listingId}`);
+  }, [router]);
 
-  const handleRemoveFromSaved = (listingId: string) => {
+  const handleRemoveFromSaved = useCallback((listingId: string) => {
     showAlert({
       title: 'Remove from Saved',
       message: 'Are you sure you want to remove this listing from your saved items?',
@@ -100,14 +162,14 @@ const Saved = () => {
       onPress: async () => {
         try {
           await unsave.mutateAsync(listingId);
-        } catch (err) {
+        } catch {
           // Error toast shown by mutation
         }
       }
     });
-  };
+  }, [showAlert, unsave]);
 
-  const handleClearAll = () => {
+  const handleClearAll = useCallback(() => {
     showAlert({
       title: 'Clear All Saved Items',
       message: 'Are you sure you want to remove all saved listings? This action cannot be undone.',
@@ -118,56 +180,70 @@ const Saved = () => {
       onPress: async () => {
         try {
           await clearAll.mutateAsync();
-        } catch (err) {
+        } catch {
           // Error toast shown by mutation
         }
       }
     });
-  };
+  }, [showAlert, clearAll]);
 
-  const handleShareListing = (listingId: string) => {
-    showAlert({
-      title: 'Share Listing',
-      message: 'Share this listing with friends and family',
-      buttonText: 'Share',
-      icon: 'share-social-outline',
-      iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Listing shared successfully');
+  const handleShareListing = useCallback(async (listingId: string) => {
+    try {
+      const listing = savedListings.find(l => l.id === listingId);
+      if (!listing) return;
+
+      const shareUrl = `https://kikwetu.app/listings/${listing.listing_id}`;
+      const shareMessage = `Check out this ${listing.title} for KES ${listing.price.toLocaleString()} on Kikwetu! ${shareUrl}`;
+
+      await Share.share({
+        message: shareMessage,
+        url: shareUrl,
+        title: listing.title,
+      });
+    } catch {
+      showAlert({
+        title: 'Share Failed',
+        message: 'Unable to share this listing. Please try again.',
+        buttonText: 'OK',
+        icon: 'alert-circle-outline',
+        iconColor: '#F44336',
+        buttonColor: '#F44336',
+      });
+    }
+  }, [savedListings, showAlert]);
+
+  const handleContactSeller = useCallback((listingId: string) => {
+    const listing = savedListings.find(l => l.id === listingId);
+    if (!listing) return;
+
+    router.push({
+      pathname: '/messages',
+      params: {
+        recipientId: listing.sellerId,
+        listingId: listing.listing_id,
+        recipientName: listing.sellerName,
       }
     });
-  };
+  }, [savedListings, router]);
 
-  const handleContactSeller = (listingId: string) => {
-    showAlert({
-      title: 'Contact Seller',
-      message: 'You can contact the seller through our messaging system',
-      buttonText: 'Message',
-      icon: 'chatbubble-outline',
-      iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Opening chat with seller');
-      }
+  // Memoized filtered listings for performance
+  const filteredListings = useMemo(() => {
+    return savedListings.filter(listing => {
+      const matchesFilter = selectedFilter === 'all' || 
+                           (selectedFilter === 'available' && listing.isAvailable) ||
+                           (selectedFilter === 'sold' && !listing.isAvailable) ||
+                           listing.category === selectedFilter;
+      
+      const matchesSearch = listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           listing.categoryName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           listing.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           listing.sellerName.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return matchesFilter && matchesSearch;
     });
-  };
+  }, [savedListings, selectedFilter, searchQuery]);
 
-  const filteredListings = savedListings.filter(listing => {
-    const matchesFilter = selectedFilter === 'all' || 
-                         (selectedFilter === 'available' && listing.isAvailable) ||
-                         (selectedFilter === 'sold' && !listing.isAvailable) ||
-                         listing.category.toLowerCase() === selectedFilter;
-    
-    const matchesSearch = listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         listing.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         listing.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         listing.sellerName.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesFilter && matchesSearch;
-  });
-
-  const renderFilterButton = (filter: any) => (
+  const renderFilterButton = useCallback((filter: any) => (
     <TouchableOpacity
       key={filter.id}
       style={[
@@ -183,9 +259,9 @@ const Saved = () => {
         {filter.label} ({filter.count})
       </Text>
     </TouchableOpacity>
-  );
+  ), [selectedFilter]);
 
-  const renderContextMenu = (listingId: string) => {
+  const renderContextMenu = useCallback((listingId: string) => {
     return (
       <View style={styles.contextMenu}>
         <TouchableOpacity
@@ -236,12 +312,12 @@ const Saved = () => {
         </TouchableOpacity>
       </View>
     );
-  };
+  }, [handleViewListing, handleContactSeller, handleShareListing, handleRemoveFromSaved, savedListings]);
 
   const screenWidth = Dimensions.get('window').width;
   const cardWidth = (screenWidth - 48) / 2;
 
-  const renderListing = ({ item: listing }: { item: SavedListing }) => (
+  const renderListing = useCallback(({ item: listing }: { item: SavedListing }) => (
     <TouchableOpacity 
       style={[styles.listingCard, { width: cardWidth }]}
       onPress={() => handleViewListing(listing.id)}
@@ -249,7 +325,7 @@ const Saved = () => {
     >
       <View style={styles.listingImageContainer}>
         <Image 
-          source={{ uri: listing.images[0] }} 
+          source={{ uri: listing.images[0] || 'https://via.placeholder.com/150' }} 
           style={styles.listingImage}
           resizeMode="cover"
         />
@@ -296,7 +372,7 @@ const Saved = () => {
         <View style={styles.sellerInfo}>
           <View style={styles.sellerRating}>
             <Ionicons name="star" size={12} color="#FFD700" />
-            <Text style={styles.ratingText}>{listing.sellerRating}</Text>
+            <Text style={styles.ratingText}>{listing.sellerRating.toFixed(1)}</Text>
           </View>
           <Text style={styles.sellerName} numberOfLines={1}>
             {listing.sellerName}
@@ -313,7 +389,7 @@ const Saved = () => {
 
       {showContextMenu === listing.id && renderContextMenu(listing.id)}
     </TouchableOpacity>
-  );
+  ), [cardWidth, handleViewListing, showContextMenu, renderContextMenu]);
 
   return (
     <View style={styles.container}>
@@ -397,6 +473,15 @@ const Saved = () => {
               columnWrapperStyle={styles.row}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.listingsContainer}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={10}
+              windowSize={10}
+              initialNumToRender={6}
+              getItemLayout={(data, index) => ({
+                length: 200, // Approximate item height
+                offset: 200 * Math.floor(index / 2),
+                index,
+              })}
             />
           )}
         </TouchableOpacity>

@@ -1,17 +1,15 @@
-import type { ListingItem } from '@/types/types';
+import { listingsService } from '@/src/services/listingsService';
+import { ApiListing } from '@/src/types/api.types';
 import { useQuery } from '@tanstack/react-query';
 
 // Fetch function for individual listing details
-const fetchListingDetails = async (id: string): Promise<ListingItem> => {
+const fetchListingDetails = async (id: string): Promise<ApiListing> => {
   try {
-    const response = await fetch(`http://localhost:8081/api/listings/${id}`);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    const response = await listingsService.getListingById(id);
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch listing');
     }
-    
-    const result = await response.json();
-    return result.data || result; // Handle different response formats
+    return response.data;
   } catch (error) {
     console.error('Error fetching listing details:', error);
     throw error;

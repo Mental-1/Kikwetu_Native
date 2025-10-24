@@ -118,6 +118,10 @@ class UserService {
   async changePassword(currentPassword: string, newPassword: string): Promise<ApiResponse<void>> {
     return apiClient.post<void>(`${this.baseEndpoint}/change-password`, { currentPassword, newPassword });
   }
+
+  async getUserById(userId: string): Promise<ApiResponse<UserProfile>> {
+    return apiClient.get<UserProfile>(`${this.baseEndpoint}/${userId}`);
+  }
 }
 
 export const userService = new UserService();

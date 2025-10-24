@@ -20,7 +20,7 @@ export function useSubscriptionPlans() {
       }
       return response.data;
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes (plans don't change often)
+    staleTime: 10 * 60 * 1000,
     retry: 2,
   });
 }
@@ -38,7 +38,7 @@ export function useCurrentSubscription() {
       }
       return response.data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     retry: 2,
   });
 }

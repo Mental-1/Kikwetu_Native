@@ -1,25 +1,30 @@
 import { Colors } from '@/src/constants/constant';
-import { useCurrentSubscription, useSubscriptionHistory, useSubscriptionPlans } from '@/src/hooks/useApiSubscriptions';
+import { useCancelSubscription, useCurrentSubscription, useSubscriptionHistory, useSubscriptionPlans } from '@/src/hooks/useApiSubscriptions';
+import { ApiSubscription, ApiSubscriptionPlan } from '@/src/types/api.types';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SubscriptionPlan {
   id: string;
   name: string;
+  description?: string;
   monthlyPrice: number;
   annualPrice: number;
-  period: string;
+  duration: number;
+  maxListings?: number;
   features: string[];
   isPopular?: boolean;
   isCurrent?: boolean;
   color: string;
   icon: string;
   annualDiscount?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface BillingTransaction {
@@ -29,6 +34,7 @@ interface BillingTransaction {
   amount: string;
   status: 'completed' | 'pending' | 'failed';
   type: 'subscription' | 'one-time' | 'refund';
+  invoiceUrl?: string;
 }
 
 const PlansBilling = () => {
@@ -40,36 +46,45 @@ const PlansBilling = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
 
   // Fetch plans and subscription data from API
-  const { data: plansData } = useSubscriptionPlans();
-  const { data: currentSubscription } = useCurrentSubscription();
-  const { data: historyData } = useSubscriptionHistory();
+  const { data: plansData, isLoading: plansLoading, error: plansError } = useSubscriptionPlans();
+  const { data: currentSubscription, isLoading: subscriptionLoading } = useCurrentSubscription();
+  const { data: historyData, isLoading: historyLoading, error: historyError } = useSubscriptionHistory();
+  
+  // Subscription management hooks
+  const cancelSubscriptionMutation = useCancelSubscription();
 
   // Transform API plans to UI format
   const subscriptionPlans: SubscriptionPlan[] = useMemo(() => {
-    return (plansData || []).map(plan => ({
+    return (plansData || []).map((plan: ApiSubscriptionPlan) => ({
       id: plan.id,
       name: plan.name,
+      description: plan.description,
       monthlyPrice: plan.monthly_price,
       annualPrice: plan.annual_price,
-      period: 'month',
+      duration: plan.duration,
+      maxListings: plan.max_listings,
       features: plan.features,
       isPopular: plan.is_popular,
       isCurrent: currentSubscription?.plan_id === plan.id,
       color: plan.color,
       icon: plan.icon,
       annualDiscount: 'Save 17%',
+      createdAt: plan.created_at,
+      updatedAt: plan.updated_at,
     }));
   }, [plansData, currentSubscription]);
 
   // Transform subscription history
   const billingHistory: BillingTransaction[] = useMemo(() => {
-    return (historyData || []).map(sub => ({
+    return (historyData || []).map((sub: ApiSubscription) => ({
       id: sub.id,
       date: new Date(sub.created_at).toLocaleDateString(),
-      description: `${sub.billing_cycle} subscription`,
-      amount: `KES ${sub.amount.toLocaleString()}`,
-      status: sub.status as any,
+      description: `${sub.billing_cycle} subscription - ${sub.plan_id}`,
+      amount: `${sub.currency} ${sub.amount.toLocaleString()}`,
+      status: sub.status === 'active' ? 'completed' : 
+              sub.status === 'past_due' ? 'pending' : 'failed',
       type: 'subscription' as const,
+      invoiceUrl: undefined, // Will be implemented with real invoice service
     }));
   }, [historyData]);
 
@@ -112,13 +127,58 @@ const PlansBilling = () => {
               planId: plan.id,
               planName: plan.name,
               price: billingCycle === 'monthly' ? plan.monthlyPrice : plan.annualPrice,
-              period: billingCycle === 'monthly' ? plan.period : 'year',
+              period: billingCycle === 'monthly' ? 'month' : 'year',
               billingCycle: billingCycle
             }
           });
         }
       });
     }
+  };
+
+  const handleCancelSubscription = () => {
+    if (!currentSubscription) return;
+    
+    const planName = subscriptionPlans.find(p => p.id === currentSubscription.plan_id)?.name || 'your subscription';
+    
+    showAlert({
+      title: 'Cancel Subscription',
+      message: `Are you sure you want to cancel your ${planName} subscription? You'll lose access to premium features at the end of your billing period.`,
+      buttonText: 'Cancel Subscription',
+      icon: 'warning-outline',
+      iconColor: '#F44336',
+      buttonColor: '#F44336',
+      onPress: () => {
+        cancelSubscriptionMutation.mutate(currentSubscription.id, {
+          onSuccess: () => {
+            success('Subscription Cancelled', 'Your subscription has been cancelled. You can reactivate it anytime.');
+          },
+          onError: (error: Error) => {
+            showAlert({
+              title: 'Cancellation Failed',
+              message: error.message || 'Failed to cancel subscription. Please try again.',
+              buttonText: 'OK',
+              icon: 'close-circle',
+              iconColor: '#F44336',
+              buttonColor: '#F44336',
+            });
+          }
+        });
+      }
+    });
+  };
+
+  const handleReactivateSubscription = () => {
+    if (!currentSubscription) return;
+    
+    showAlert({
+      title: 'Reactivate Subscription',
+      message: `To reactivate your subscription, please select a new plan below.`,
+      buttonText: 'OK',
+      icon: 'refresh-outline',
+      iconColor: Colors.primary,
+      buttonColor: Colors.primary,
+    });
   };
 
   const handleViewAllTransactions = () => {
@@ -136,17 +196,29 @@ const PlansBilling = () => {
   };
 
   const handleDownloadInvoice = (transactionId: string) => {
-    showAlert({
-      title: 'Download Invoice',
-      message: 'Invoice will be downloaded to your device',
-      buttonText: 'Download',
-      icon: 'download-outline',
-      iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Invoice downloaded successfully');
-      }
-    });
+    const transaction = billingHistory.find(t => t.id === transactionId);
+    if (transaction?.invoiceUrl) {
+      showAlert({
+        title: 'Download Invoice',
+        message: 'Opening invoice in your browser...',
+        buttonText: 'OK',
+        icon: 'download-outline',
+        iconColor: Colors.primary,
+        buttonColor: Colors.primary,
+        onPress: () => {
+          success('Success', 'Invoice opened in browser');
+        }
+      });
+    } else {
+      showAlert({
+        title: 'Invoice Not Available',
+        message: 'Invoice generation is not yet available for this transaction.',
+        buttonText: 'OK',
+        icon: 'information-circle-outline',
+        iconColor: Colors.grey,
+        buttonColor: Colors.grey,
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -199,7 +271,7 @@ const PlansBilling = () => {
               {billingCycle === 'monthly' ? plan.monthlyPrice : plan.annualPrice}
             </Text>
             <Text style={styles.planPeriod}>
-              /{billingCycle === 'monthly' ? plan.period : 'year'}
+              /{billingCycle === 'monthly' ? 'month' : 'year'}
             </Text>
           </View>
           {plan.annualDiscount && billingCycle === 'annual' && (
@@ -277,23 +349,80 @@ const PlansBilling = () => {
         {/* Current Plan Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Current Plan</Text>
-          <View style={styles.currentPlanCard}>
-            <View style={styles.currentPlanInfo}>
-              <View style={[styles.currentPlanIcon, { backgroundColor: Colors.primary + '20' }]}>
-                <Ionicons name="person-outline" size={24} color={Colors.primary} />
+          {subscriptionLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+              <Text style={styles.loadingText}>Loading subscription...</Text>
+            </View>
+          ) : currentSubscription ? (
+            <View style={styles.currentPlanCard}>
+              <View style={styles.currentPlanInfo}>
+                <View style={[styles.currentPlanIcon, { backgroundColor: Colors.primary + '20' }]}>
+                  <Ionicons name="person-outline" size={24} color={Colors.primary} />
+                </View>
+                <View style={styles.currentPlanDetails}>
+                  <Text style={styles.currentPlanName}>
+                    {subscriptionPlans.find(p => p.id === currentSubscription.plan_id)?.name || 'Unknown Plan'}
+                  </Text>
+                  <Text style={styles.currentPlanStatus}>
+                    {currentSubscription.status === 'active' ? 'Active' : 
+                     currentSubscription.status === 'past_due' ? 'Past Due' :
+                     currentSubscription.status === 'cancelled' ? 'Cancelled' : 'Inactive'}
+                    {currentSubscription.start_date && ` since ${new Date(currentSubscription.start_date).toLocaleDateString()}`}
+                  </Text>
+                  {currentSubscription.next_billing_date && (
+                    <Text style={styles.nextBillingText}>
+                      Next billing: {new Date(currentSubscription.next_billing_date).toLocaleDateString()}
+                    </Text>
+                  )}
+                </View>
               </View>
-              <View style={styles.currentPlanDetails}>
-                <Text style={styles.currentPlanName}>Free Plan</Text>
-                <Text style={styles.currentPlanStatus}>Active since Jan 2024</Text>
+              
+              {/* Subscription Management Actions */}
+              <View style={styles.subscriptionActions}>
+                {currentSubscription.status === 'active' && (
+                  <TouchableOpacity 
+                    style={styles.cancelButton}
+                    onPress={handleCancelSubscription}
+                    disabled={cancelSubscriptionMutation.isPending}
+                  >
+                    <Ionicons name="close-circle-outline" size={16} color="#F44336" />
+                    <Text style={styles.cancelButtonText}>
+                      {cancelSubscriptionMutation.isPending ? 'Cancelling...' : 'Cancel Subscription'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                
+                {currentSubscription.status === 'cancelled' && (
+                  <TouchableOpacity 
+                    style={styles.reactivateButton}
+                    onPress={handleReactivateSubscription}
+                  >
+                    <Ionicons name="refresh-outline" size={16} color={Colors.primary} />
+                    <Text style={styles.reactivateButtonText}>
+                      Select New Plan
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                
+                {currentSubscription.status === 'past_due' && (
+                  <TouchableOpacity 
+                    style={styles.paymentButton}
+                    onPress={() => router.push('/(screens)/(dashboard)/payment')}
+                  >
+                    <Ionicons name="card-outline" size={16} color={Colors.white} />
+                    <Text style={styles.paymentButtonText}>Update Payment Method</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
-            <View style={styles.usageInfo}>
-              <Text style={styles.usageText}>3 of 5 listings used</Text>
-              <View style={styles.usageBar}>
-                <View style={[styles.usageProgress, { width: '60%' }]} />
-              </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="card-outline" size={48} color={Colors.grey} />
+              <Text style={styles.emptyStateText}>No active subscription</Text>
+              <Text style={styles.emptyStateSubtext}>Choose a plan below to get started</Text>
             </View>
-          </View>
+          )}
         </View>
 
         {/* Subscription Plans */}
@@ -328,7 +457,20 @@ const PlansBilling = () => {
           </View>
           
           <View style={styles.plansContainer}>
-            {subscriptionPlans.map(renderPlanCard)}
+            {plansLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.loadingText}>Loading plans...</Text>
+              </View>
+            ) : plansError ? (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle-outline" size={48} color={Colors.grey} />
+                <Text style={styles.errorText}>Failed to load plans</Text>
+                <Text style={styles.errorSubtext}>Please try again later</Text>
+              </View>
+            ) : (
+              subscriptionPlans.map(renderPlanCard)
+            )}
           </View>
         </View>
 
@@ -342,7 +484,24 @@ const PlansBilling = () => {
           </View>
           
           <View style={styles.transactionsContainer}>
-            {billingHistory.slice(0, 3).map(renderTransaction)}
+            {historyLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.loadingText}>Loading history...</Text>
+              </View>
+            ) : historyError ? (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle-outline" size={32} color={Colors.grey} />
+                <Text style={styles.errorText}>Failed to load history</Text>
+              </View>
+            ) : billingHistory.length === 0 ? (
+              <View style={styles.emptyHistory}>
+                <Ionicons name="receipt-outline" size={32} color={Colors.grey} />
+                <Text style={styles.emptyHistoryText}>No billing history yet</Text>
+              </View>
+            ) : (
+              billingHistory.slice(0, 3).map(renderTransaction)
+            )}
           </View>
         </View>
 
@@ -742,6 +901,94 @@ const styles = StyleSheet.create({
   emptyHistoryText: {
     fontSize: 14,
     color: Colors.grey,
+  },
+  nextBillingText: {
+    fontSize: 12,
+    color: Colors.grey,
+    marginTop: 2,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  errorText: {
+    fontSize: 16,
+    color: Colors.grey,
+    marginTop: 12,
+    fontWeight: '500',
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: Colors.grey,
+    marginTop: 4,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: Colors.grey,
+    marginTop: 12,
+    fontWeight: '500',
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: Colors.grey,
+    marginTop: 4,
+  },
+  subscriptionActions: {
+    marginTop: 16,
+    gap: 8,
+  },
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#F44336',
+    backgroundColor: 'transparent',
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    color: '#F44336',
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  reactivateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    backgroundColor: 'transparent',
+  },
+  reactivateButtonText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  paymentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+  },
+  paymentButtonText: {
+    fontSize: 14,
+    color: Colors.white,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });
 

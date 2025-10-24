@@ -82,6 +82,52 @@ class PaymentsService {
   async verifyPaystackPayment(reference: string): Promise<ApiResponse<any>> {
     return await apiClient.get<any>(`/payments/paystack/verify/${reference}`);
   }
+
+  /**
+   * Get payment status by transaction ID
+   */
+  async getPaymentStatus(transactionId: string): Promise<ApiResponse<{
+    status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+    amount: number;
+    currency: string;
+    provider: string;
+    providerTransactionId?: string;
+    failureReason?: string;
+    processedAt?: string;
+  }>> {
+    return await apiClient.get<any>(`/payments/status/${transactionId}`);
+  }
+
+  /**
+   * Get payment history
+   */
+  async getPaymentHistory(params: {
+    page?: number;
+    pageSize?: number;
+    status?: string;
+    paymentType?: string;
+  } = {}): Promise<ApiResponse<{
+    transactions: any[];
+    totalCount: number;
+    currentPage: number;
+    totalPages: number;
+  }>> {
+    const queryParams: Record<string, string> = {};
+    
+    if (params.page !== undefined) queryParams.page = params.page.toString();
+    if (params.pageSize !== undefined) queryParams.pageSize = params.pageSize.toString();
+    if (params.status) queryParams.status = params.status;
+    if (params.paymentType) queryParams.paymentType = params.paymentType;
+    
+    return await apiClient.get<any>('/payments/history', queryParams);
+  }
+
+  /**
+   * Retry failed payment
+   */
+  async retryPayment(transactionId: string): Promise<ApiResponse<any>> {
+    return await apiClient.post<any>(`/payments/${transactionId}/retry`);
+  }
 }
 
 export const paymentsService = new PaymentsService();

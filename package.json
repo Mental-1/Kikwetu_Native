@@ -57,6 +57,7 @@
     "expo-video": "~3.0.11",
     "expo-web-browser": "~15.0.8",
     "jose": "^6.1.0",
+    "lottie-react-native": "~7.3.1",
     "lucide-react-native": "^0.510.0",
     "nativewind": "^4.2.0",
     "pod-install": "^1.0.7",

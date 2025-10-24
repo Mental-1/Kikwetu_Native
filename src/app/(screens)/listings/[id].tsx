@@ -1,16 +1,19 @@
 import { Colors } from '@/src/constants/constant';
+import { useCheckIfSaved, useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
 import { useListingDetails } from '@/src/hooks/useListingDetails';
+import { useUser } from '@/src/hooks/useUser';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { lazy, Suspense, useRef, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
   Dimensions,
   Image,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -20,7 +23,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
-// Lazy load the modals for better performance
 const LazyContactSellerModal = lazy(() => import('@/components/ContactSellerModal'));
 const LazyWriteReviewModal = lazy(() => import('@/components/WriteReviewModal'));
 const LazyReportListingModal = lazy(() => import('@/components/ReportListingModal'));
@@ -29,21 +31,141 @@ export default function ListingDetails() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   
-  // Fetch listing details using the ID
   const { data: listing, isLoading, error } = useListingDetails(id || '');
+  const { getUserById } = useUser();
+  
+  // Saved listings functionality
+  const { data: savedStatus } = useCheckIfSaved(id || '');
+  const saveListing = useSaveListing();
+  const unsaveListing = useUnsaveListing();
   
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [sellerInfo, setSellerInfo] = useState<{ name: string; rating: number; avatar?: string } | null>(null);
   const wiggleAnim = useRef(new Animated.Value(0)).current;
   
   const { showAlert, AlertComponent } = useCustomAlert();
   const { success: showSuccessAlert } = createAlertHelpers(showAlert);
 
-  // Loading state
+  const images = useMemo(() => 
+    listing?.images?.length ? listing.images : ['https://via.placeholder.com/400x300'], 
+    [listing?.images]
+  );
+  
+  const price = useMemo(() => 
+    listing?.price ? `KES ${listing.price.toLocaleString()}` : 'Price not set',
+    [listing?.price]
+  );
+
+  const isSaved = useMemo(() => 
+    savedStatus?.isSaved || false,
+    [savedStatus?.isSaved]
+  );
+
+  useEffect(() => {
+    const fetchSellerInfo = async () => {
+      if (listing?.user_id) {
+        try {
+          const userData = await getUserById(listing.user_id);
+          if (userData) {
+            setSellerInfo({
+              name: userData.fullName || userData.username || 'Seller',
+              rating: userData.rating || 0,
+              avatar: userData.avatarUrl,
+            });
+          }
+        } catch {
+          setSellerInfo({
+            name: 'Seller',
+            rating: 0,
+          });
+        }
+      }
+    };
+
+    fetchSellerInfo();
+  }, [listing?.user_id, getUserById]);
+
+  const handleBack = useCallback(() => {
+    router.back();
+  }, [router]);
+
+  const handleFavorite = useCallback(async () => {
+    if (!id) return;
+    
+    try {
+      if (savedStatus?.isSaved) {
+        await unsaveListing.mutateAsync(id);
+        showSuccessAlert('Removed from Saved', 'Listing removed from your saved items');
+      } else {
+        await saveListing.mutateAsync({ listingId: id });
+        showSuccessAlert('Saved!', 'Listing added to your saved items');
+      }
+    } catch {
+      // Error handling is done by the mutation hooks
+    }
+  }, [id, savedStatus?.isSaved, unsaveListing, saveListing, showSuccessAlert]);
+
+  const handleShare = useCallback(async () => {
+    if (!listing) return;
+    
+    try {
+      const shareUrl = `https://kikwetu.com/listings/${listing.id}`;
+      const shareMessage = `Check out this ${listing.title} for KES ${listing.price?.toLocaleString()} on Kikwetu! ${shareUrl}`;
+
+      await Share.share({
+        message: shareMessage,
+        url: shareUrl,
+        title: listing.title,
+      });
+    } catch {
+      showAlert({
+        title: 'Share Failed',
+        message: 'Unable to share this listing. Please try again.',
+        buttonText: 'OK',
+        icon: 'alert-circle-outline',
+        iconColor: '#F44336',
+        buttonColor: '#F44336',
+      });
+    }
+  }, [listing, showAlert]);
+
+  const handleContactSeller = useCallback(() => {
+    setShowContactModal(true);
+  }, []);
+
+  const handleFollow = useCallback(() => {
+    setIsFollowing(!isFollowing);
+    
+    // Wiggle animation
+    Animated.sequence([
+      Animated.timing(wiggleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(wiggleAnim, {
+        toValue: -1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(wiggleAnim, {
+        toValue: 0,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [isFollowing, wiggleAnim]);
+
+  const handleViewProfile = useCallback(() => {
+    if (listing?.user_id) {
+      router.push(`/(screens)/(profile)/profile?id=${listing.user_id}`);
+    }
+  }, [listing?.user_id, router]);
+
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -62,7 +184,6 @@ export default function ListingDetails() {
     );
   }
 
-  // Error state
   if (error || !listing) {
     return (
       <View style={styles.container}>
@@ -85,53 +206,6 @@ export default function ListingDetails() {
     );
   }
 
-  // Get images array (handle different data formats)
-  const images = listing.images || ['https://via.placeholder.com/400x300'];
-  const price = listing.price ? `Kes ${listing.price.toLocaleString()}` : 'Price not set';
-
-  const handleBack = () => {
-    router.back();
-  };
-
-  const handleFavorite = () => {
-    setIsFavorite(!isFavorite);
-  };
-
-  const handleShare = () => {
-    // TODO: Implement share functionality
-    console.log('Share listing');
-  };
-
-  const handleContactSeller = () => {
-    setShowContactModal(true);
-  };
-
-  const handleFollow = () => {
-    setIsFollowing(!isFollowing);
-    
-    // Wiggle animation
-    Animated.sequence([
-      Animated.timing(wiggleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(wiggleAnim, {
-        toValue: -1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(wiggleAnim, {
-        toValue: 0,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const handleViewProfile = () => {
-    router.push('/(screens)/(profile)/profile');
-  };
 
   const handleReportListing = () => {
     setShowReportModal(true);
@@ -265,10 +339,10 @@ export default function ListingDetails() {
           <View style={styles.ratingContainer}>
             <View style={styles.ratingLeft}>
               <View style={styles.starsContainer}>
-                {renderStars(4.5)} {/* Default rating since it's not in the API yet */}
+                {renderStars(sellerInfo?.rating || 0)}
               </View>
               <Text style={styles.ratingText}>
-                4.5 (12) {/* Default review count */}
+                {sellerInfo?.rating?.toFixed(1) || '0.0'} (0)
               </Text>
             </View>
             <View style={styles.ratingRight}>
@@ -294,9 +368,9 @@ export default function ListingDetails() {
               onPress={handleFavorite}
             >
               <Ionicons 
-                name={isFavorite ? "heart" : "heart-outline"} 
+                name={isSaved ? "heart" : "heart-outline"} 
                 size={24} 
-                color={isFavorite ? "#FF0000" : Colors.grey} 
+                color={isSaved ? "#FF0000" : Colors.grey} 
               />
             </TouchableOpacity>
           </View>
@@ -322,24 +396,24 @@ export default function ListingDetails() {
             <View style={styles.sellerDetails}>
               <View style={styles.sellerMain}>
                 <Image 
-                  source={{ uri: 'https://via.placeholder.com/50x50' }} 
+                  source={{ uri: sellerInfo?.avatar || 'https://via.placeholder.com/50x50' }} 
                   style={styles.sellerAvatar}
                 />
                 <View style={styles.sellerStats}>
                   <View style={styles.sellerTopRow}>
                     <View style={styles.sellerLeft}>
-                      <Text style={styles.sellerName}>Seller {listing.id.slice(-4)}</Text>
+                      <Text style={styles.sellerName}>{sellerInfo?.name || 'Seller'}</Text>
                       <View style={styles.sellerRating}>
                         <Ionicons name="star" size={16} color="#FFD700" />
-                        <Text style={styles.sellerRatingText}>4.5</Text>
+                        <Text style={styles.sellerRatingText}>{sellerInfo?.rating?.toFixed(1) || '0.0'}</Text>
                       </View>
                     </View>
                     <View style={styles.sellerRight}>
                       <Text style={styles.sellerStatsText}>
-                        5 listings
+                        Active seller
                       </Text>
                       <Text style={styles.sellerStatsText}>
-                        Joined 2024
+                        Verified
                       </Text>
                     </View>
                   </View>
@@ -448,10 +522,10 @@ export default function ListingDetails() {
             visible={showContactModal}
             onClose={() => setShowContactModal(false)}
             seller={{
-              name: `Seller ${listing.id.slice(-4)}`,
-              phone: '+254712345678',
-              email: 'seller@example.com',
-              whatsapp: '+254712345678'
+              name: sellerInfo?.name || 'Seller',
+              phone: '+254712345678', // TODO: Get from user profile
+              email: 'seller@example.com', // TODO: Get from user profile
+              whatsapp: '+254712345678' // TODO: Get from user profile
             }}
             listingTitle={listing.title}
           />

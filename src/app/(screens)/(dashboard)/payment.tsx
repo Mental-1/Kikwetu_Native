@@ -1,11 +1,11 @@
 import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
-import { useInitializePaystackPayment, useInitiateMpesaPayment, usePaymentMethods } from '@/src/hooks/useApiPayments';
+import { useInitializePaystackPayment, useInitiateMpesaPayment, usePaymentMethods, usePaymentStatus } from '@/src/hooks/useApiPayments';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -38,7 +38,8 @@ const Payment = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('mpesa');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [phoneNumber, setPhoneNumber] = useState<string>('');
-  const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [currentTransactionId, setCurrentTransactionId] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | null>(null);
 
   // Get plan data from navigation parameters
   const selectedPlan: SubscriptionPlan = {
@@ -53,6 +54,9 @@ const Payment = () => {
   const { data: paymentMethodsData, isLoading: methodsLoading } = usePaymentMethods();
   const initiateMpesa = useInitiateMpesaPayment();
   const initializePaystack = useInitializePaystackPayment();
+  
+  // Payment status tracking
+  const { data: paymentStatusData, isLoading: statusLoading } = usePaymentStatus(currentTransactionId || '');
 
   const paymentMethods: PaymentMethod[] = (paymentMethodsData || []).map(pm => ({
     id: pm.id,
@@ -86,7 +90,7 @@ const Payment = () => {
     ...paymentMethods,
   ];
 
-  const defaultPaymentMethod = allPaymentOptions.find(pm => pm.isDefault) || allPaymentOptions[0];
+  // Remove unused variable
 
   const handleBack = () => {
     router.back();
@@ -123,6 +127,12 @@ const Payment = () => {
           phoneNumber: phoneNumber.replace(/\s/g, ''),
         });
 
+        // Store transaction ID for status tracking
+        if (result.transactionId) {
+          setCurrentTransactionId(result.transactionId);
+          setPaymentStatus('pending');
+        }
+
         showAlert({
           title: 'Payment Initiated',
           message: result.message || 'Please check your phone and enter your M-Pesa PIN to complete the payment.',
@@ -131,7 +141,10 @@ const Payment = () => {
           iconColor: '#4CAF50',
           buttonColor: '#4CAF50',
           onPress: () => {
-            router.back();
+            // Don't navigate back immediately - let status tracking handle it
+            if (!result.transactionId) {
+              router.back();
+            }
           }
         });
       } else if (selectedPaymentMethod === 'paystack') {
@@ -140,6 +153,12 @@ const Payment = () => {
           amount,
           email: user?.email || '',
         });
+
+        // Store transaction ID for status tracking
+        if (result.transactionId) {
+          setCurrentTransactionId(result.transactionId);
+          setPaymentStatus('pending');
+        }
 
         // Open Paystack authorization URL
         if (result.authorization_url) {
@@ -153,7 +172,10 @@ const Payment = () => {
             iconColor: Colors.primary,
             buttonColor: Colors.primary,
             onPress: () => {
-              router.back();
+              // Don't navigate back immediately - let status tracking handle it
+              if (!result.transactionId) {
+                router.back();
+              }
             }
           });
         }
@@ -174,19 +196,46 @@ const Payment = () => {
       }
     } catch (error: any) {
       console.error('Payment error:', error);
-      // Error toast already shown by mutation
     } finally {
       setIsProcessing(false);
     }
   };
 
-  useEffect(() => {
-    return () => {
-      if (processingTimeoutRef.current) {
-        clearTimeout(processingTimeoutRef.current);
+  // Navigation callback for payment confirmation
+  const navigateToConfirmation = useCallback((status: 'completed' | 'failed') => {
+    router.push({
+      pathname: '/(screens)/(dashboard)/payment-confirmation',
+      params: {
+        transactionId: currentTransactionId,
+        amount: selectedPlan.price,
+        currency: 'KES',
+        planName: selectedPlan.name,
+        billingCycle: selectedPlan.billingCycle,
+        paymentMethod: selectedPaymentMethod === 'mpesa' ? 'M-Pesa' : 
+                     selectedPaymentMethod === 'paystack' ? 'Paystack' : 'Card',
+        status,
+        processedAt: paymentStatusData?.processedAt,
+        failureReason: paymentStatusData?.failureReason,
       }
-    };
-  }, []);
+    });
+    setIsProcessing(false);
+    setCurrentTransactionId(null);
+    setPaymentStatus(null);
+  }, [router, currentTransactionId, selectedPlan.price, selectedPlan.name, selectedPlan.billingCycle, selectedPaymentMethod, paymentStatusData?.processedAt, paymentStatusData?.failureReason]);
+
+  // Monitor payment status changes
+  useEffect(() => {
+    if (paymentStatusData && currentTransactionId) {
+      setPaymentStatus(paymentStatusData.status);
+      
+      if (paymentStatusData.status === 'completed') {
+        navigateToConfirmation('completed');
+      } else if (paymentStatusData.status === 'failed') {
+        navigateToConfirmation('failed');
+      }
+    }
+  }, [paymentStatusData, currentTransactionId, navigateToConfirmation]);
+
 
   const getPaymentMethodIcon = (method: PaymentMethod) => {
     if (method.type === 'card') {
@@ -365,6 +414,43 @@ const Payment = () => {
         {/* Bottom padding for better scrolling */}
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      {/* Payment Status Indicator */}
+      {currentTransactionId && paymentStatus && (
+        <View style={styles.paymentStatusContainer}>
+          <View style={styles.paymentStatusCard}>
+            <View style={styles.paymentStatusHeader}>
+              <Ionicons 
+                name={paymentStatus === 'completed' ? 'checkmark-circle' : 
+                      paymentStatus === 'failed' ? 'close-circle' : 
+                      'time-outline'} 
+                size={24} 
+                color={paymentStatus === 'completed' ? '#4CAF50' : 
+                       paymentStatus === 'failed' ? '#F44336' : 
+                       Colors.primary} 
+              />
+              <Text style={styles.paymentStatusTitle}>
+                {paymentStatus === 'completed' ? 'Payment Completed' :
+                 paymentStatus === 'failed' ? 'Payment Failed' :
+                 paymentStatus === 'processing' ? 'Processing Payment' :
+                 'Waiting for Payment'}
+              </Text>
+            </View>
+            <Text style={styles.paymentStatusMessage}>
+              {paymentStatus === 'completed' ? 'Your payment has been processed successfully.' :
+               paymentStatus === 'failed' ? 'Your payment could not be processed. Please try again.' :
+               paymentStatus === 'processing' ? 'Your payment is being processed. Please wait...' :
+               'Please complete your payment to continue.'}
+            </Text>
+            {statusLoading && (
+              <View style={styles.statusLoadingContainer}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.statusLoadingText}>Checking status...</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
 
       {/* Payment Button */}
       <View style={styles.paymentFooter}>
@@ -673,6 +759,50 @@ const styles = StyleSheet.create({
     color: Colors.grey,
     textAlign: 'center',
     lineHeight: 16,
+  },
+  paymentStatusContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.background,
+  },
+  paymentStatusCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: 16,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  paymentStatusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  paymentStatusTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.black,
+    marginLeft: 12,
+  },
+  paymentStatusMessage: {
+    fontSize: 14,
+    color: Colors.grey,
+    lineHeight: 20,
+  },
+  statusLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  statusLoadingText: {
+    fontSize: 12,
+    color: Colors.grey,
+    marginLeft: 8,
   },
   bottomPadding: {
     height: 24,
