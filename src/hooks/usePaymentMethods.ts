@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { paymentMethodsService, PaymentMethod, CreatePaymentMethodData, UpdatePaymentMethodData } from '@/services/paymentMethodsService';
+import { paymentMethodsService, PaymentMethod, CreatePaymentMethodData, UpdatePaymentMethodData } from '@/src/services/paymentMethodsService';
 
 interface UsePaymentMethodsReturn {
   paymentMethods: PaymentMethod[];

@@ -1,13 +1,14 @@
 import CustomDialog from '@/components/ui/CustomDialog';
 import { useCategories, useSubcategoriesByCategory } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
+import { useStores } from '@/src/hooks/useStores';
 import { useAppStore } from '@/stores/useAppStore';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { getLocationWithAddress } from '@/utils/locationUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -24,6 +25,7 @@ export default function Step1() {
     condition, 
     categoryId,
     subcategoryId,
+    storeId,
     tags,
     setTitle,
     setDescription,
@@ -33,22 +35,33 @@ export default function Step1() {
     setCondition,
     setCategoryId,
     setSubcategoryId,
+    setStoreId,
     setTags
   } = useAppStore((state) => state.postAd);
 
   const [tagInput, setTagInput] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showSubcategoryDropdown, setShowSubcategoryDropdown] = useState(false);
+  const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   const [priceInput, setPriceInput] = useState('');
+
+  useEffect(() => {
+    if (price === null || price === undefined) {
+      setPriceInput('');
+    } else {
+      setPriceInput(price.toLocaleString());
+    }
+  }, [price]);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
   
   const { showAlert, AlertComponent } = useCustomAlert();
   const { locationSuccess: showLocationSuccessAlert, error: showErrorAlert } = createAlertHelpers(showAlert);
 
-  // Fetch categories and subcategories
+  // Fetch categories, subcategories, and stores
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { data: subcategories } = useSubcategoriesByCategory(categoryId);
+  const { data: stores, isLoading: storesLoading } = useStores();
 
   const handleBack = () => {
     router.push('/(tabs)/listings');
@@ -79,6 +92,7 @@ export default function Step1() {
       Alert.alert('Required Field', 'Please select a category');
       return;
     }
+    // Store selection is now optional - no validation needed
     router.push('/(screens)/post-ad/step2');
   };
 
@@ -295,6 +309,73 @@ export default function Step1() {
           </View>
         </View>
 
+        {/* Store Selection */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Store (Optional)</Text>
+          <TouchableOpacity 
+            style={styles.dropdown} 
+            onPress={() => setShowStoreDropdown(!showStoreDropdown)}
+          >
+            <Text style={[
+              styles.dropdownText, 
+              !storeId && styles.placeholderText
+            ]}>
+              {storeId ? stores?.find(s => s.id === storeId)?.name : 'Select Store (Optional)'}
+            </Text>
+            <Ionicons 
+              name={showStoreDropdown ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              color={Colors.grey} 
+            />
+          </TouchableOpacity>
+          
+          {showStoreDropdown && (
+            <View style={styles.dropdownList}>
+              <ScrollView 
+                style={styles.dropdownScroll}
+                showsVerticalScrollIndicator={true}
+                nestedScrollEnabled={true}
+              >
+                {storesLoading ? (
+                  <Text style={styles.loadingText}>Loading stores...</Text>
+                ) : (
+                  <>
+                    {/* Create Store Option */}
+                    <TouchableOpacity
+                      style={[styles.dropdownItem, styles.createStoreItem]}
+                      onPress={() => {
+                        setShowStoreDropdown(false);
+                        router.push('/(screens)/(dashboard)/stores/store-create');
+                      }}
+                    >
+                      <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
+                      <Text style={[styles.dropdownItemText, styles.createStoreText]}>Create New Store</Text>
+                    </TouchableOpacity>
+                    
+                    {/* Existing Stores */}
+                    {stores?.length === 0 ? (
+                      <Text style={styles.loadingText}>No stores available</Text>
+                    ) : (
+                      stores?.map((store) => (
+                        <TouchableOpacity
+                          key={store.id}
+                          style={styles.dropdownItem}
+                          onPress={() => {
+                            setStoreId(store.id);
+                            setShowStoreDropdown(false);
+                          }}
+                        >
+                          <Text style={styles.dropdownItemText}>{store.name}</Text>
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </>
+                )}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
         {/* Price */}
         <View style={styles.section}>
           <Text style={styles.label}>Price (Kes) *</Text>
@@ -447,7 +528,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.white,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.4,
     borderBottomColor: Colors.lightgrey,
   },
   backButton: {
@@ -649,9 +730,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.lightgrey,
   },
+  createStoreItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(3, 65, 252, 0.05)',
+  },
   dropdownItemText: {
     fontSize: 14,
     color: Colors.black,
+  },
+  createStoreText: {
+    marginLeft: 8,
+    color: Colors.primary,
+    fontWeight: '500',
   },
   loadingText: {
     fontSize: 14,

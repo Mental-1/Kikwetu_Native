@@ -1,4 +1,5 @@
 import { Colors } from '@/src/constants/constant';
+import { FeedVideo } from '@/src/services/videos.service';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -6,25 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 // const { width, height } = Dimensions.get('window');
 
-interface VideoItem {
-    id: string;
-    videoUrl: string;
-    username: string;
-    title: string;
-    location: string;
-    price: string;
-    hashtags: string[];
-    likes: number;
-    reviews: number;
-    shares: number;
-    isFollowing: boolean;
-    isLiked: boolean;
-    isSaved: boolean;
-    userAvatar: string;
-}
-
 interface DiscoverOverlayProps {
-    video: VideoItem;
+    video: FeedVideo;
     activeTab: 'Following' | 'Near You' | 'For You';
     showSearch: boolean;
     onTabChange: (tab: 'Following' | 'Near You' | 'For You') => void;
@@ -72,7 +56,7 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
         return num.toString();
     };
 
-    const displayHashtags = expandedHashtags ? video.hashtags : video.hashtags.slice(0, 3);
+    const displayHashtags = expandedHashtags ? (video.tags || []) : (video.tags || []).slice(0, 3);
 
     return (
         <View style={styles.overlay}>
@@ -135,14 +119,18 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                 <View style={styles.leftSafeArea}>
                     {/* User Info */}
                     <View style={styles.userInfo}>
-                        <Text style={styles.username}>{video.username}</Text>
+                        <Text style={styles.username}>{video.user.username}</Text>
                         <Text style={styles.title} numberOfLines={2}>{video.title}</Text>
                     </View>
 
                     {/* Location and Price */}
                     <View style={styles.locationPriceRow}>
-                        <Text style={styles.location}>{video.location}</Text>
-                        <Text style={styles.price}>{video.price}</Text>
+                        <Text style={styles.location}>
+                            {video.listing?.location || 'Unknown Location'}
+                        </Text>
+                        <Text style={styles.price}>
+                            {video.listing ? `Kes ${video.listing.price?.toLocaleString() || '0'}` : 'Price N/A'}
+                        </Text>
                     </View>
 
                     {/* Hashtags */}
@@ -154,7 +142,7 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                                 </Text>
                             ))}
                         </Text>
-                        {video.hashtags.length > 3 && (
+                        {video.tags && video.tags.length > 3 && (
                             <TouchableOpacity onPress={toggleHashtags} style={styles.seeMoreButton}>
                                 <Text style={styles.seeMoreText}>
                                     {expandedHashtags ? 'See Less' : 'See More'}
@@ -174,8 +162,8 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                             style={styles.avatarContainer}
                             onPress={() => onFollow(video.id)}
                         >
-                            <Image source={{ uri: video.userAvatar }} style={styles.avatar} />
-                            {video.isFollowing ? (
+                            <Image source={{ uri: video.user.avatar_url || 'https://via.placeholder.com/50' }} style={styles.avatar} />
+                            {video.engagement.isFollowing ? (
                                 <View style={styles.followingBadge}>
                                     <Ionicons name="checkmark" size={12} color={Colors.white} />
                                 </View>
@@ -194,9 +182,9 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                     >
                         <View style={styles.actionIcon}>
                             <Ionicons
-                                name={video.isLiked ? "heart" : "heart-outline"}
+                                name={video.engagement.isLiked ? "heart" : "heart-outline"}
                                 size={24}
-                                color={video.isLiked ? "#ff4444" : Colors.white}
+                                color={video.engagement.isLiked ? "#ff4444" : Colors.white}
                             />
                         </View>
                         <Text style={styles.actionCount}>{formatNumber(video.likes)}</Text>
@@ -210,7 +198,7 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                         <View style={styles.actionIcon}>
                             <Ionicons name="star-outline" size={24} color={Colors.white} />
                         </View>
-                        <Text style={styles.actionCount}>{formatNumber(video.reviews)}</Text>
+                        <Text style={styles.actionCount}>{formatNumber(0)}</Text>
                     </TouchableOpacity>
 
                     {/* Message */}
@@ -241,9 +229,9 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                     >
                         <View style={styles.actionIcon}>
                             <Ionicons
-                                name={video.isSaved ? "bookmark" : "bookmark-outline"}
-                                size={24} // Reduced size
-                                color={video.isSaved ? Colors.primary : Colors.white}
+                                name={video.engagement.isSaved ? "bookmark" : "bookmark-outline"}
+                                size={24}
+                                color={video.engagement.isSaved ? Colors.primary : Colors.white}
                             />
                         </View>
                     </TouchableOpacity>

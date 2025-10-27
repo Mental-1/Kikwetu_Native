@@ -1,10 +1,9 @@
 import { Colors } from '@/src/constants/constant';
 import * as Location from 'expo-location';
-import React, { useEffect, useState } from 'react';
-import { Alert, Dimensions, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, Region } from 'react-native-maps';
 
-const { width, height } = Dimensions.get('window');
 
 interface MapViewComponentProps {
   markers?: {
@@ -44,11 +43,10 @@ const MapViewComponent: React.FC<MapViewComponentProps> = ({
     longitude: number;
   } | null>(null);
 
-  useEffect(() => {
-    getCurrentLocation();
-  }, []);
-
-  const getCurrentLocation = async () => {
+  const getCurrentLocation = useCallback(async () => {
+    if (!showUserLocation) {
+      return;
+    }
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -75,7 +73,14 @@ const MapViewComponent: React.FC<MapViewComponentProps> = ({
     } catch (error) {
       console.error('Error getting location:', error);
     }
-  };
+  }, [showUserLocation, initialRegion]);
+
+  useEffect(() => {
+    if (!showUserLocation) {
+      return;
+    }
+    getCurrentLocation();
+  }, [showUserLocation, getCurrentLocation]);
 
   const handleRegionChange = (newRegion: Region) => {
     setRegion(newRegion);

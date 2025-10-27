@@ -1,145 +1,45 @@
+import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
-import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
+import { useDeleteListing, useUpdateListingStatus, useUserListings } from '@/src/hooks/useApiListings';
+import { ApiListing } from '@/src/types/api.types';
+import { useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
-import { Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-interface Listing {
-  id: string;
-  title: string;
-  description: string;
-  price: string;
-  location: string;
-  category: string;
-  status: 'active' | 'pending' | 'rejected' | 'under-review' | 'sold' | 'draft' | 'expired';
-  images: string[];
-  createdAt: string;
-  views: number;
-  rejectionReason?: string;
-}
 
 const MyListings = () => {
   const router = useRouter();
+  const { user } = useAuth();
   const { showAlert, AlertComponent } = useCustomAlert();
-  const { success, error } = createAlertHelpers(showAlert);
 
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showContextMenu, setShowContextMenu] = useState<string | null>(null);
 
-  const listings: Listing[] = [
-    {
-      id: '1',
-      title: 'iPhone 14 Pro Max 256GB',
-      description: 'Brand new iPhone 14 Pro Max in Space Black. Still in box with all accessories.',
-      price: 'KES 120,000',
-      location: 'Nairobi, Kenya',
-      category: 'Electronics',
-      status: 'active',
-      images: ['https://via.placeholder.com/300x200'],
-      createdAt: '2024-01-15',
-      views: 45
-    },
-    {
-      id: '2',
-      title: 'MacBook Air M2 2022',
-      description: 'Apple MacBook Air with M2 chip, 8GB RAM, 256GB SSD. Excellent condition.',
-      price: 'KES 95,000',
-      location: 'Mombasa, Kenya',
-      category: 'Electronics',
-      status: 'pending',
-      images: ['https://via.placeholder.com/300x200'],
-      createdAt: '2024-01-14',
-      views: 23
-    },
-    {
-      id: '3',
-      title: 'Toyota Corolla 2020',
-      description: 'Well maintained Toyota Corolla, automatic transmission, low mileage.',
-      price: 'KES 2,200,000',
-      location: 'Kisumu, Kenya',
-      category: 'Vehicles',
-      status: 'under-review',
-      images: ['https://via.placeholder.com/300x200'],
-      createdAt: '2024-01-13',
-      views: 89
-    },
-    {
-      id: '4',
-      title: 'Samsung Galaxy S23 Ultra',
-      description: 'Samsung Galaxy S23 Ultra 512GB, Phantom Black. Includes original accessories.',
-      price: 'KES 85,000',
-      location: 'Nairobi, Kenya',
-      category: 'Electronics',
-      status: 'rejected',
-      images: ['https://via.placeholder.com/300x200'],
-      createdAt: '2024-01-12',
-      views: 12,
-      rejectionReason: 'Image quality is poor. Please upload clearer photos of the device.'
-    },
-    {
-      id: '5',
-      title: 'Nike Air Max 270',
-      description: 'Nike Air Max 270 size 42, worn only a few times. Excellent condition.',
-      price: 'KES 8,500',
-      location: 'Nakuru, Kenya',
-      category: 'Fashion',
-      status: 'sold',
-      images: ['https://via.placeholder.com/300x200'],
-      createdAt: '2024-01-10',
-      views: 67
-    },
-    {
-      id: '6',
-      title: 'Sofa Set 3+2+1',
-      description: 'Modern sofa set in excellent condition. Perfect for living room.',
-      price: 'KES 45,000',
-      location: 'Eldoret, Kenya',
-      category: 'Furniture',
-      status: 'draft',
-      images: ['https://via.placeholder.com/300x200'],
-      createdAt: '2024-01-09',
-      views: 0
-    },
-    {
-      id: '7',
-      title: 'Canon EOS R5 Camera',
-      description: 'Professional mirrorless camera with 45MP sensor, 4K video recording.',
-      price: 'KES 180,000',
-      location: 'Nairobi, Kenya',
-      category: 'Electronics',
-      status: 'expired',
-      images: ['https://via.placeholder.com/300x200'],
-      createdAt: '2024-01-05',
-      views: 156
-    },
-    {
-      id: '8',
-      title: 'BMW X5 2019',
-      description: 'Luxury SUV with premium interior, low mileage, full service history.',
-      price: 'KES 4,500,000',
-      location: 'Mombasa, Kenya',
-      category: 'Vehicles',
-      status: 'expired',
-      images: ['https://via.placeholder.com/300x200'],
-      createdAt: '2024-01-03',
-      views: 203
-    }
-  ];
+  // Fetch user's listings from API
+  const { data: listingsData, isLoading, error: fetchError, refetch } = useUserListings(
+    user?.id || '',
+    selectedFilter === 'all' ? undefined : selectedFilter
+  );
 
-  const filterOptions = [
+  const deleteListing = useDeleteListing();
+  const updateStatus = useUpdateListingStatus();
+
+  const listings = useMemo(() => listingsData || [], [listingsData]);
+
+  const filterOptions = useMemo(() => [
     { id: 'all', label: 'All', count: listings.length },
     { id: 'active', label: 'Active', count: listings.filter(l => l.status === 'active').length },
     { id: 'pending', label: 'Pending', count: listings.filter(l => l.status === 'pending').length },
-    { id: 'under-review', label: 'Under Review', count: listings.filter(l => l.status === 'under-review').length },
+    { id: 'under_review', label: 'Under Review', count: listings.filter(l => l.status === 'under_review').length },
     { id: 'rejected', label: 'Rejected', count: listings.filter(l => l.status === 'rejected').length },
     { id: 'sold', label: 'Sold', count: listings.filter(l => l.status === 'sold').length },
     { id: 'draft', label: 'Draft', count: listings.filter(l => l.status === 'draft').length },
     { id: 'expired', label: 'Expired', count: listings.filter(l => l.status === 'expired').length },
-  ];
+  ], [listings]);
 
   const handleBack = () => {
     router.back();
@@ -159,9 +59,9 @@ const MyListings = () => {
         listingId: listing.id,
         title: listing.title,
         description: listing.description,
-        price: listing.price,
+        price: listing.price.toString(),
         location: listing.location,
-        category: listing.category,
+        category: listing.category_id.toString(),
         status: listing.status
       }
     });
@@ -175,8 +75,12 @@ const MyListings = () => {
       icon: 'trash-outline',
       iconColor: '#F44336',
       buttonColor: '#F44336',
-      onPress: () => {
-        success('Success', 'Listing deleted successfully');
+      onPress: async () => {
+        try {
+          await deleteListing.mutateAsync(listingId);
+        } catch {
+          // Error toast shown by mutation
+        }
       }
     });
   };
@@ -189,8 +93,12 @@ const MyListings = () => {
       icon: 'checkmark-circle-outline',
       iconColor: '#4CAF50',
       buttonColor: '#4CAF50',
-      onPress: () => {
-        success('Success', 'Listing marked as sold');
+      onPress: async () => {
+        try {
+          await updateStatus.mutateAsync({ id: listingId, status: 'sold' });
+        } catch {
+          // Error toast shown by mutation
+        }
       }
     });
   };
@@ -203,8 +111,12 @@ const MyListings = () => {
       icon: 'refresh-outline',
       iconColor: Colors.primary,
       buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Re-review request submitted');
+      onPress: async () => {
+        try {
+          await updateStatus.mutateAsync({ id: listingId, status: 'pending' });
+        } catch {
+          // Error toast shown by mutation
+        }
       }
     });
   };
@@ -217,24 +129,18 @@ const MyListings = () => {
       icon: 'refresh-circle-outline',
       iconColor: '#4CAF50',
       buttonColor: '#4CAF50',
-      onPress: () => {
-        success('Success', 'Listing renewed successfully');
+      onPress: async () => {
+        try {
+          await updateStatus.mutateAsync({ id: listingId, status: 'active' });
+        } catch {
+          // Error toast shown by mutation
+        }
       }
     });
   };
 
   const handleViewListing = (listingId: string) => {
-    showAlert({
-      title: 'View Listing',
-      message: 'Redirecting to listing details...',
-      buttonText: 'OK',
-      icon: 'eye-outline',
-      iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'View functionality will be implemented');
-      }
-    });
+    router.push(`/(screens)/listings/${listingId}`);
   };
 
   const getStatusColor = (status: string) => {
@@ -276,13 +182,14 @@ const MyListings = () => {
     }
   };
 
-  const filteredListings = listings.filter(listing => {
-    const matchesFilter = selectedFilter === 'all' || listing.status === selectedFilter;
-    const matchesSearch = listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         listing.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         listing.location.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  const filteredListings = useMemo(() => {
+    return listings.filter(listing => {
+      const matchesFilter = selectedFilter === 'all' || listing.status === selectedFilter;
+      const matchesSearch = listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           listing.location.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesFilter && matchesSearch;
+    });
+  }, [listings, selectedFilter, searchQuery]);
 
   const renderFilterButton = (filter: any) => (
     <TouchableOpacity
@@ -379,7 +286,7 @@ const MyListings = () => {
   const screenWidth = Dimensions.get('window').width;
   const cardWidth = (screenWidth - 48) / 2; // Account for padding and gap
 
-  const renderListing = ({ item: listing }: { item: Listing }) => (
+  const renderListing = ({ item: listing }: { item: ApiListing }) => (
     <TouchableOpacity 
       style={[styles.listingCard, { width: cardWidth }]}
       onPress={() => handleViewListing(listing.id)}
@@ -387,7 +294,7 @@ const MyListings = () => {
     >
       <View style={styles.listingImageContainer}>
         <Image 
-          source={{ uri: listing.images[0] }} 
+          source={{ uri: listing.images?.[0] || 'https://via.placeholder.com/300x200' }} 
           style={styles.listingImage}
           resizeMode="cover"
         />
@@ -409,7 +316,7 @@ const MyListings = () => {
           {listing.title}
         </Text>
         <View style={styles.priceRow}>
-          <Text style={styles.listingPrice}>{listing.price}</Text>
+          <Text style={styles.listingPrice}>KES {listing.price.toLocaleString()}</Text>
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(listing.status) + '20' }]}>
             <Ionicons 
               name={getStatusIcon(listing.status)} 
@@ -428,7 +335,7 @@ const MyListings = () => {
           <Ionicons name="eye-outline" size={12} color={Colors.grey} />
           <Text style={styles.statsText}>{listing.views}</Text>
           <Text style={styles.statsSeparator}>•</Text>
-          <Text style={styles.statsText}>{listing.category}</Text>
+          <Text style={styles.statsText}>{new Date(listing.created_at).toLocaleDateString()}</Text>
         </View>
       </View>
 
@@ -493,7 +400,21 @@ const MyListings = () => {
           activeOpacity={1}
           onPress={() => setShowContextMenu(null)}
         >
-          {filteredListings.length === 0 ? (
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.loadingText}>Loading your listings...</Text>
+            </View>
+          ) : fetchError ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="alert-circle-outline" size={64} color="#F44336" />
+              <Text style={styles.emptyTitle}>Failed to Load Listings</Text>
+              <Text style={styles.emptySubtitle}>Please check your connection and try again</Text>
+              <TouchableOpacity style={styles.emptyButton} onPress={() => refetch()}>
+                <Text style={styles.emptyButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : filteredListings.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="list-outline" size={64} color={Colors.grey} />
               <Text style={styles.emptyTitle}>No Listings Found</Text>
@@ -792,6 +713,15 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 64,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.grey,
+    marginTop: 12,
   },
 });
 

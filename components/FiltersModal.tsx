@@ -23,6 +23,7 @@ interface FilterOptions {
   condition: string[];
   location: string;
   category: string;
+  distance: number;
 }
 
 const FiltersModal: React.FC<FiltersModalProps> = ({
@@ -38,6 +39,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
     condition: [],
     location: '',
     category: '',
+    distance: 50,
   });
 
   const [priceInputs, setPriceInputs] = useState({
@@ -93,6 +95,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
         min: parseInt(priceInputs.min) || 0,
         max: parseInt(priceInputs.max) || 1000000,
       },
+      distance,
     };
     onApplyFilters(updatedFilters);
     onClose();
@@ -104,6 +107,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
       condition: [],
       location: '',
       category: '',
+      distance: 50,
     });
     setPriceInputs({
       min: '0',
@@ -144,7 +148,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
         activeOpacity={1} 
         onPress={onClose}
       >
-        <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+        <TouchableOpacity activeOpacity={1} onPress={() => {}}>
           <View style={styles.modalContainer}>
             {/* Header */}
           <View style={styles.modalHeader}>
@@ -328,6 +332,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
                       const percentage = Math.max(0, Math.min(100, (locationX / sliderWidth) * 100));
                       const newDistance = Math.round(percentage / 2) * 2;
                       setDistance(newDistance);
+                      setFilters(prev => ({ ...prev, distance: newDistance }));
                     }}
                   />
                 </View>

@@ -8,7 +8,6 @@ export default function SettingsLayout() {
       <Stack.Screen name="preferences" />
       <Stack.Screen name="privacy" />
       <Stack.Screen name="payment_methods" />
-      <Stack.Screen name="billing" />
     </Stack>
   );
 }

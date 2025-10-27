@@ -1,6 +1,7 @@
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu';
 import CustomDialog from '@/components/ui/CustomDialog';
 import { Colors } from '@/src/constants/constant';
+import { useConversations, useUnreadCount } from '@/src/hooks/useApiMessages';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { copyToClipboard } from '@/utils/clipboardUtils';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,11 +14,11 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Mock conversation data
+// Will be replaced with API data
 const mockConversations = [
   {
     id: '1',
@@ -91,6 +92,13 @@ const Conversations = () => {
   
   const { showAlert, AlertComponent } = useCustomAlert();
   const { copy: showCopyAlert, error: showErrorAlert } = createAlertHelpers(showAlert);
+
+  // Fetch conversations from API
+  const { data: conversationsData, isLoading, error: fetchError, refetch } = useConversations();
+  const { data: unreadCount } = useUnreadCount();
+
+  // Transform API data or use mock data for now
+  const conversations = conversationsData || mockConversations;
 
   const handleBackPress = useCallback(() => {
     router.back();

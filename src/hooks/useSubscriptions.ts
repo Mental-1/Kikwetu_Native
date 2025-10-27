@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { subscriptionsService, Subscription, CreateSubscriptionData, UpdateSubscriptionData, CancelSubscriptionData } from '@/services/subscriptionsService';
+import { subscriptionsService, Subscription, CreateSubscriptionData, UpdateSubscriptionData, CancelSubscriptionData } from '@/src/services/subscriptionsService';
 
 interface UseSubscriptionsReturn {
   subscriptions: Subscription[];

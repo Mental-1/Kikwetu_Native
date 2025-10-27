@@ -9,6 +9,8 @@ import { Alert, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, Touch
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
+const MAX_IMAGES = 10;
+const MAX_VIDEOS = 3;
 
 export default function Step2() {
   const router = useRouter();
@@ -43,8 +45,24 @@ export default function Step2() {
     });
 
     if (!result.canceled && result.assets) {
-      const newImageUris = result.assets.map(asset => asset.uri);
+      const availableSlots = MAX_IMAGES - images.length;
+      if (availableSlots <= 0) {
+        Alert.alert('Limit Reached', `You can only add up to ${MAX_IMAGES} images.`);
+        return;
+      }
+
+      const newImageUris = result.assets
+        .slice(0, availableSlots)
+        .map((asset) => asset.uri);
+
       setImages([...images, ...newImageUris]);
+
+      if (result.assets.length > availableSlots) {
+        Alert.alert(
+          'Limit Reached',
+          `Only the first ${availableSlots} image${availableSlots > 1 ? 's were' : ' was'} added to keep you within the ${MAX_IMAGES}-image limit.`
+        );
+      }
     }
   };
 
@@ -63,6 +81,11 @@ export default function Step2() {
     });
 
     if (!result.canceled && result.assets[0]) {
+      if (videos.length >= MAX_VIDEOS) {
+        Alert.alert('Limit Reached', `You can only add up to ${MAX_VIDEOS} videos.`);
+        return;
+      }
+
       setVideos([...videos, result.assets[0].uri]);
     }
   };

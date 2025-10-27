@@ -1,10 +1,12 @@
 import { Colors } from '@/src/constants/constant';
+import { useListingDetails } from '@/src/hooks/useListingDetails';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { lazy, Suspense, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   Image,
@@ -23,41 +25,15 @@ const LazyContactSellerModal = lazy(() => import('@/components/ContactSellerModa
 const LazyWriteReviewModal = lazy(() => import('@/components/WriteReviewModal'));
 const LazyReportListingModal = lazy(() => import('@/components/ReportListingModal'));
 
-// Mock listing data - in real app, this would come from API
-const mockListing = {
-  id: '1',
-  title: 'Modern Minimalist Workstation Setup',
-  price: 'Kes 49,000',
-  originalPrice: 'Kes 51,000',
-  discount: '6% Off',
-  rating: 4.7,
-  reviewCount: 136,
-  category: 'Furniture',
-  condition: 'Like New',
-  location: 'Westlands, Nairobi',
-  views: 156,
-  isFavorite: false,
-  images: [
-    'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=800&fit=crop',
-    'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=400&fit=crop'
-  ],
-  description: 'Elevate your home office with our Modern Minimalist Workstation Setup, featuring a sleek wooden desk topped with an elegant computer, stylish adjustable wooden desk lamp, and complimentary accessories for a clean, productive workspace. This setup is perfect for professionals seeking a contemporary look that combines functionality with design.',
-  seller: {
-    name: 'John Doe',
-    rating: 4.8,
-    listings: 12,
-    joinedDate: '2023',
-    phone: '+254712345678',
-    email: 'john.doe@example.com',
-    whatsapp: '+254712345678'
-  }
-};
-
 export default function ListingDetails() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  
+  // Fetch listing details using the ID
+  const { data: listing, isLoading, error } = useListingDetails(id || '');
+  
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(mockListing.isFavorite);
+  const [isFavorite, setIsFavorite] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -66,6 +42,52 @@ export default function ListingDetails() {
   
   const { showAlert, AlertComponent } = useCustomAlert();
   const { success: showSuccessAlert } = createAlertHelpers(showAlert);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <SafeAreaView style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={24} color={Colors.black} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Listing Details</Text>
+        </SafeAreaView>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading listing details...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Error state
+  if (error || !listing) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <SafeAreaView style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={24} color={Colors.black} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Error</Text>
+        </SafeAreaView>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>
+            {error?.message || 'Listing not found'}
+          </Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Get images array (handle different data formats)
+  const images = listing.images || ['https://via.placeholder.com/400x300'];
+  const price = listing.price ? `Kes ${listing.price.toLocaleString()}` : 'Price not set';
 
   const handleBack = () => {
     router.back();
@@ -116,7 +138,7 @@ export default function ListingDetails() {
   };
 
   const handleReportSubmit = (reason: string) => {
-    console.log('Report submitted:', { listingId: mockListing.id, reason });
+    console.log('Report submitted:', { listingId: listing.id, reason });
     // Show success alert
     showSuccessAlert('Listing Reported', 'Thank you for reporting this listing. We will review it shortly.');
   };
@@ -125,11 +147,11 @@ export default function ListingDetails() {
   const handleImageSwipe = (direction: 'left' | 'right') => {
     if (direction === 'left') {
       setCurrentImageIndex((prev) => 
-        prev === mockListing.images.length - 1 ? 0 : prev + 1
+        prev === images.length - 1 ? 0 : prev + 1
       );
     } else {
       setCurrentImageIndex((prev) => 
-        prev === 0 ? mockListing.images.length - 1 : prev - 1
+        prev === 0 ? images.length - 1 : prev - 1
       );
     }
   };
@@ -187,14 +209,14 @@ export default function ListingDetails() {
             activeOpacity={0.8}
           >
             <Image 
-              source={{ uri: mockListing.images[currentImageIndex] }} 
+              source={{ uri: images[currentImageIndex] }} 
               style={styles.mainImage}
               resizeMode="cover"
             />
           </TouchableOpacity>
           
           {/* Navigation Buttons */}
-          {mockListing.images.length > 1 && (
+          {images.length > 1 && (
             <>
               <TouchableOpacity 
                 style={styles.navButtonLeft}
@@ -217,7 +239,7 @@ export default function ListingDetails() {
           {/* Image Indicators */}
           <View style={styles.imageIndicators}>
             <View style={styles.dotsContainer}>
-              {mockListing.images.map((_, index) => (
+              {images.map((_, index) => (
                 <View 
                   key={index}
                   style={[
@@ -232,7 +254,7 @@ export default function ListingDetails() {
           {/* Image Counter */}
           <View style={styles.imageCounterContainer}>
             <Text style={styles.imageCounter}>
-              {currentImageIndex + 1}/{mockListing.images.length}
+              {currentImageIndex + 1}/{images.length}
             </Text>
           </View>
         </View>
@@ -243,30 +265,30 @@ export default function ListingDetails() {
           <View style={styles.ratingContainer}>
             <View style={styles.ratingLeft}>
               <View style={styles.starsContainer}>
-                {renderStars(mockListing.rating)}
+                {renderStars(4.5)} {/* Default rating since it's not in the API yet */}
               </View>
               <Text style={styles.ratingText}>
-                {mockListing.rating} ({mockListing.reviewCount})
+                4.5 (12) {/* Default review count */}
               </Text>
             </View>
             <View style={styles.ratingRight}>
               <View style={styles.locationContainer}>
                 <Ionicons name="location-outline" size={16} color={Colors.grey} />
-                <Text style={styles.locationText}>{mockListing.location}</Text>
+                <Text style={styles.locationText}>{listing.location || 'Location not specified'}</Text>
               </View>
               <View style={styles.viewsContainer}>
                 <Ionicons name="eye-outline" size={16} color={Colors.grey} />
-                <Text style={styles.viewsText}>{mockListing.views} views</Text>
+                <Text style={styles.viewsText}>{listing.views || 0} views</Text>
               </View>
             </View>
           </View>
 
           {/* Title */}
-          <Text style={styles.productTitle}>{mockListing.title}</Text>
+          <Text style={styles.productTitle}>{listing.title}</Text>
 
           {/* Price */}
           <View style={styles.priceContainer}>
-            <Text style={styles.currentPrice}>{mockListing.price}</Text>
+            <Text style={styles.currentPrice}>{price}</Text>
             <TouchableOpacity 
               style={styles.favoriteButton} 
               onPress={handleFavorite}
@@ -282,15 +304,15 @@ export default function ListingDetails() {
           {/* Category and Condition Badges */}
           <View style={styles.badgesContainer}>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{mockListing.category}</Text>
+              <Text style={styles.badgeText}>{listing.category_id || 'Category'}</Text>
             </View>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{mockListing.condition}</Text>
+              <Text style={styles.badgeText}>{listing.condition || 'Condition'}</Text>
             </View>
           </View>
 
           {/* Description */}
-          <Text style={styles.description}>{mockListing.description}</Text>
+          <Text style={styles.description}>{listing.description || 'No description available'}</Text>
 
           {/* Seller Info */}
           <View style={styles.sellerInfo}>
@@ -306,18 +328,18 @@ export default function ListingDetails() {
                 <View style={styles.sellerStats}>
                   <View style={styles.sellerTopRow}>
                     <View style={styles.sellerLeft}>
-                      <Text style={styles.sellerName}>{mockListing.seller.name}</Text>
+                      <Text style={styles.sellerName}>Seller {listing.id.slice(-4)}</Text>
                       <View style={styles.sellerRating}>
                         <Ionicons name="star" size={16} color="#FFD700" />
-                        <Text style={styles.sellerRatingText}>{mockListing.seller.rating}</Text>
+                        <Text style={styles.sellerRatingText}>4.5</Text>
                       </View>
                     </View>
                     <View style={styles.sellerRight}>
                       <Text style={styles.sellerStatsText}>
-                        {mockListing.seller.listings} listings
+                        5 listings
                       </Text>
                       <Text style={styles.sellerStatsText}>
-                        Joined {mockListing.seller.joinedDate}
+                        Joined 2024
                       </Text>
                     </View>
                   </View>
@@ -425,8 +447,13 @@ export default function ListingDetails() {
           <LazyContactSellerModal
             visible={showContactModal}
             onClose={() => setShowContactModal(false)}
-            seller={mockListing.seller}
-            listingTitle={mockListing.title}
+            seller={{
+              name: `Seller ${listing.id.slice(-4)}`,
+              phone: '+254712345678',
+              email: 'seller@example.com',
+              whatsapp: '+254712345678'
+            }}
+            listingTitle={listing.title}
           />
         </Suspense>
       )}
@@ -437,7 +464,7 @@ export default function ListingDetails() {
           <LazyWriteReviewModal
             visible={showReviewModal}
             onClose={() => setShowReviewModal(false)}
-            listingTitle={mockListing.title}
+            listingTitle={listing.title}
           />
         </Suspense>
       )}
@@ -902,6 +929,41 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   contactButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: Colors.grey,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    color: Colors.grey,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
     color: Colors.white,
     fontSize: 16,
     fontWeight: '600',

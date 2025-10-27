@@ -1,7 +1,7 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import React from 'react';
+import React, { useState } from 'react';
 import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -29,9 +29,26 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onClose,
   position = { x: width * 0.2, y: 200 }
 }) => {
+  const [menuSize, setMenuSize] = useState({ width: 0, height: 0 });
+  
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  
+  // Calculate safe position with bounds checking
+  const menuWidth = Math.min(screenWidth * 0.6, 280);
+  const safeLeft = Math.min(
+    Math.max(16, position.x),
+    screenWidth - menuWidth - 16,
+  );
+  const safeTop = Math.max(16, Math.min(position.y, screenHeight - (menuSize.height || 200) - 16));
+
   const handleItemPress = (item: ContextMenuItem) => {
     onItemPress(item);
     onClose();
+  };
+
+  const handleMenuLayout = (event: any) => {
+    const { width: measuredWidth, height: measuredHeight } = event.nativeEvent.layout;
+    setMenuSize({ width: measuredWidth, height: measuredHeight });
   };
 
   return (
@@ -47,7 +64,13 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         activeOpacity={1} 
         onPress={onClose}
       >
-        <View style={[styles.menuContainer, { left: position.x, top: position.y }]}>
+        <View 
+          style={[
+            styles.menuContainer, 
+            { left: safeLeft, top: safeTop, width: menuWidth }
+          ]}
+          onLayout={handleMenuLayout}
+        >
           <BlurView intensity={20} style={styles.menuBlur}>
             <View style={styles.menu}>
               {items.map((item, index) => (
@@ -87,7 +110,6 @@ const styles = StyleSheet.create({
   },
   menuContainer: {
     position: 'absolute',
-    width: width * 0.6,
     maxWidth: 280,
     minWidth: 200,
   },

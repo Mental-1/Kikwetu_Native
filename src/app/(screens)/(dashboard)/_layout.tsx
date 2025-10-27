@@ -67,6 +67,21 @@ const DashboardLayout = () => {
             title: 'Saved Items',
          }}
        />
+       <Stack.Screen
+         name='analytics'
+         options={{
+            headerShown: false,
+            title: 'Analytics',
+         }}
+       />
+       <Stack.Screen
+         name='stores'
+         options={{
+            headerShown: false,
+            title: 'My Stores',
+         }}
+       />
+    
     </Stack>
   );
 };

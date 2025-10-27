@@ -1,10 +1,14 @@
+import { useCategories } from '@/hooks/useCategories';
+import { useListingImageUpload } from '@/hooks/useImageUpload';
 import { Colors } from '@/src/constants/constant';
+import { useListing, useUpdateListing } from '@/src/hooks/useApiListings';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
-import { Alert, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface ListingImage {
@@ -18,7 +22,7 @@ interface EditListingData {
   description: string;
   price: string;
   location: string;
-  category: string;
+  category_id: number | null;
   condition: string;
   features: string[];
 }
@@ -29,33 +33,58 @@ const EditListing = () => {
   const { showAlert, AlertComponent } = useCustomAlert();
   const { success, error } = createAlertHelpers(showAlert);
 
+  // API hooks
+  const { data: listing, isLoading: listingLoading, error: listingError } = useListing(params.listingId as string);
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+  const updateListingMutation = useUpdateListing();
+
+  const {
+    isProcessing,
+    isUploading,
+    progress,
+    error: uploadError,
+    processAndUploadImages,
+    initializeUser,
+    resetState,
+  } = useListingImageUpload(params.listingId as string);
+
   const [isLoading, setIsLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [images, setImages] = useState<ListingImage[]>([
     { id: '1', uri: 'https://via.placeholder.com/300x200' },
     { id: '2', uri: 'https://via.placeholder.com/300x200' },
   ]);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
+  useEffect(() => {
+    initializeUser();
+  }, [initializeUser]);
 
   const [formData, setFormData] = useState<EditListingData>({
-    title: params.title as string || 'iPhone 14 Pro Max 256GB',
-    description: params.description as string || 'Brand new iPhone 14 Pro Max in Space Black. Still in box with all accessories.',
-    price: params.price as string || 'KES 120,000',
-    location: params.location as string || 'Nairobi, Kenya',
-    category: params.category as string || 'Electronics',
-    condition: 'Excellent',
-    features: ['Original Box', 'Charger Included', 'Warranty Available'],
+    title: '',
+    description: '',
+    price: '',
+    location: '',
+    category_id: null,
+    condition: '',
+    features: [],
   });
 
-  const categories = [
-    'Electronics', 'Vehicles', 'Fashion', 'Furniture', 'Home & Garden',
-    'Sports & Recreation', 'Books & Media', 'Health & Beauty', 'Baby & Kids',
-    'Business Equipment', 'Real Estate', 'Other'
-  ];
+  // Update form data when listing data is loaded
+  useEffect(() => {
+    if (listing) {
+      setFormData({
+        title: listing.title || '',
+        description: listing.description || '',
+        price: listing.price?.toString() || '',
+        location: listing.location || '',
+        category_id: listing.category_id || null,
+        condition: listing.condition || '',
+        features: [], // TODO: Add features field to ApiListing if needed
+      });
+    }
+  }, [listing]);
 
-  const conditions = ['Brand New', 'Like New', 'Excellent', 'Good', 'Fair', 'Poor'];
-
-  const screenWidth = Dimensions.get('window').width;
-  const imageWidth = screenWidth - 32;
+  // Removed unused variables
 
   const handleBack = () => {
     showAlert({
@@ -77,26 +106,79 @@ const EditListing = () => {
       return;
     }
 
-    // Simulate image picker
     Alert.alert(
       'Add Image',
       'Choose an image source',
       [
-        { text: 'Camera', onPress: () => simulateImagePicker('camera') },
-        { text: 'Gallery', onPress: () => simulateImagePicker('gallery') },
+        { text: 'Camera', onPress: () => pickImageFromCamera() },
+        { text: 'Gallery', onPress: () => pickImageFromGallery() },
         { text: 'Cancel', style: 'cancel' }
       ]
     );
   };
 
-  const simulateImagePicker = (source: string) => {
-    const newImage: ListingImage = {
-      id: Date.now().toString(),
-      uri: `https://via.placeholder.com/300x200?text=${source}`,
-      isNew: true
-    };
-    setImages(prev => [...prev, newImage]);
-    success('Success', `Image added from ${source}`);
+  const pickImageFromCamera = async () => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      error('Permission Required', 'Permission to access camera is required!');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const newImage: ListingImage = {
+        id: Date.now().toString(),
+        uri: result.assets[0].uri,
+        isNew: true
+      };
+      setImages(prev => [...prev, newImage]);
+      
+      // Process and upload the image
+      await handleImageUpload([result.assets[0].uri]);
+    }
+  };
+
+  const pickImageFromGallery = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      error('Permission Required', 'Permission to access photo library is required!');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      allowsEditing: false,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets) {
+      const newImages: ListingImage[] = result.assets.map(asset => ({
+        id: Date.now().toString() + Math.random(),
+        uri: asset.uri,
+        isNew: true
+      }));
+      
+      // Check if adding these images would exceed the limit
+      if (images.length + newImages.length > 10) {
+        error('Error', 'You can only add up to 10 images total');
+        return;
+      }
+      
+      setImages(prev => [...prev, ...newImages]);
+      
+      // Process and upload the images
+      const imageUris = result.assets.map(asset => asset.uri);
+      await handleImageUpload(imageUris);
+    }
   };
 
   const handleRemoveImage = (imageId: string) => {
@@ -119,11 +201,47 @@ const EditListing = () => {
     });
   };
 
-  const handleReorderImages = (fromIndex: number, toIndex: number) => {
-    const newImages = [...images];
-    const [movedImage] = newImages.splice(fromIndex, 1);
-    newImages.splice(toIndex, 0, movedImage);
-    setImages(newImages);
+  // Image reordering functionality (for future drag-and-drop implementation)
+  // const handleReorderImages = (fromIndex: number, toIndex: number) => {
+  //   const newImages = [...images];
+  //   const [movedImage] = newImages.splice(fromIndex, 1);
+  //   newImages.splice(toIndex, 0, movedImage);
+  //   setImages(newImages);
+  // };
+
+  const handleSetMainImage = (imageId: string) => {
+    const imageIndex = images.findIndex(img => img.id === imageId);
+    if (imageIndex !== -1) {
+      const newImages = [...images];
+      const [mainImage] = newImages.splice(imageIndex, 1);
+      newImages.unshift(mainImage);
+      setImages(newImages);
+      setCurrentImageIndex(0);
+      success('Success', 'Main image updated');
+    }
+  };
+
+  const handleImageUpload = async (imageUris: string[]) => {
+    try {
+      const results = await processAndUploadImages(imageUris);
+      
+      if (results && results.successCount > 0) {
+        const uploadedUrls = results.results
+          .filter(result => result.success)
+          .map(result => result.url);
+        
+        setUploadedImageUrls(prev => [...prev, ...uploadedUrls]);
+        success('Success', `${results.successCount} image(s) uploaded successfully`);
+        
+        if (results.errorCount > 0) {
+          error('Warning', `${results.errorCount} image(s) failed to upload`);
+        }
+      } else {
+        error('Upload Failed', uploadError || 'Failed to upload images');
+      }
+    } catch {
+      error('Upload Error', 'Failed to process and upload images');
+    }
   };
 
   const handleInputChange = (field: keyof EditListingData, value: string) => {
@@ -178,12 +296,28 @@ const EditListing = () => {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Prepare listing data
+      const listingData = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        price: parseFloat(formData.price.replace(/[^\d.]/g, '')), // Remove currency symbols and convert to number
+        location: formData.location.trim(),
+        category_id: formData.category_id || undefined,
+        condition: formData.condition.trim(),
+        images: uploadedImageUrls.length > 0 ? uploadedImageUrls : images.map(img => img.uri),
+      };
+
+      // Update listing via API
+      await updateListingMutation.mutateAsync({
+        id: params.listingId as string,
+        data: listingData,
+      });
       
       success('Success', 'Listing updated successfully!');
+      resetState(); // Reset upload state
       router.back();
     } catch (err) {
+      console.error('Save listing error:', err);
       error('Error', 'Failed to update listing. Please try again.');
     } finally {
       setIsLoading(false);
@@ -192,18 +326,30 @@ const EditListing = () => {
 
   const renderImageItem = ({ item, index }: { item: ListingImage; index: number }) => (
     <View style={styles.imageItem}>
-      <Image source={{ uri: item.uri }} style={styles.thumbnailImage} resizeMode="cover" />
+      <TouchableOpacity 
+        onPress={() => handleSetMainImage(item.id)}
+        style={styles.thumbnailContainer}
+        activeOpacity={0.7}
+      >
+        <Image source={{ uri: item.uri }} style={styles.thumbnailImage} resizeMode="cover" />
+        {index === 0 && (
+          <View style={styles.mainImageBadge}>
+            <Text style={styles.mainImageText}>Main</Text>
+          </View>
+        )}
+        {index !== 0 && (
+          <View style={styles.setMainOverlay}>
+            <Ionicons name="star" size={16} color={Colors.white} />
+            <Text style={styles.setMainText}>Set as main</Text>
+          </View>
+        )}
+      </TouchableOpacity>
       <TouchableOpacity
         style={styles.removeImageButton}
         onPress={() => handleRemoveImage(item.id)}
       >
         <Ionicons name="close-circle" size={20} color="#F44336" />
       </TouchableOpacity>
-      {index === 0 && (
-        <View style={styles.mainImageBadge}>
-          <Text style={styles.mainImageText}>Main</Text>
-        </View>
-      )}
     </View>
   );
 
@@ -240,10 +386,46 @@ const EditListing = () => {
         </TouchableOpacity>
       </SafeAreaView>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Loading State */}
+      {listingLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading listing...</Text>
+        </View>
+      )}
+
+      {/* Error State */}
+      {listingError && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={Colors.red} />
+          <Text style={styles.errorTitle}>Failed to Load Listing</Text>
+          <Text style={styles.errorText}>
+            {listingError instanceof Error ? listingError.message : 'Something went wrong'}
+          </Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Main Content */}
+      {!listingLoading && !listingError && (
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Images Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Images ({images.length}/10)</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Images ({images.length}/10)</Text>
+            {(isProcessing || isUploading) && (
+              <View style={styles.uploadStatus}>
+                <Text style={styles.uploadStatusText}>
+                  {isProcessing ? 'Processing...' : isUploading ? 'Uploading...' : ''}
+                </Text>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: `${progress}%` }]} />
+                </View>
+              </View>
+            )}
+          </View>
           
           {/* Main Image */}
           <View style={styles.mainImageContainer}>
@@ -341,7 +523,14 @@ const EditListing = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Category</Text>
             <TouchableOpacity style={styles.pickerButton}>
-              <Text style={styles.pickerButtonText}>{formData.category}</Text>
+              <Text style={styles.pickerButtonText}>
+                {categoriesLoading 
+                  ? 'Loading categories...'
+                  : formData.category_id 
+                    ? categories?.find(c => c.id === formData.category_id)?.name || 'Select Category'
+                    : 'Select Category'
+                }
+              </Text>
               <Ionicons name="chevron-down" size={16} color={Colors.grey} />
             </TouchableOpacity>
           </View>
@@ -368,6 +557,7 @@ const EditListing = () => {
         {/* Bottom padding for better scrolling */}
         <View style={styles.bottomPadding} />
       </ScrollView>
+      )}
       
       {/* Custom Alert Component */}
       <AlertComponent />
@@ -436,6 +626,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  uploadStatus: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  uploadStatusText: {
+    fontSize: 12,
+    color: Colors.primary,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: Colors.lightgrey,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.primary,
+    borderRadius: 2,
+  },
   mainImageContainer: {
     position: 'relative',
     height: 200,
@@ -478,11 +689,32 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: 12,
   },
+  thumbnailContainer: {
+    position: 'relative',
+  },
   thumbnailImage: {
     width: 60,
     height: 60,
     borderRadius: 8,
     backgroundColor: Colors.lightgrey,
+  },
+  setMainOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    paddingVertical: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  setMainText: {
+    color: Colors.white,
+    fontSize: 8,
+    fontWeight: '600',
+    marginTop: 1,
   },
   removeImageButton: {
     position: 'absolute',
@@ -598,6 +830,49 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.grey,
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 60,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.black,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

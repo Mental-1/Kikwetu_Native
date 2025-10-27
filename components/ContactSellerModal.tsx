@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
+  Alert,
   Linking,
   Modal,
   StyleSheet,
@@ -30,24 +31,49 @@ export default function ContactSellerModal({
   listingTitle
 }: ContactSellerModalProps) {
   const router = useRouter();
-  const handleCallSeller = () => {
-    Linking.openURL(`tel:${seller.phone}`);
-    onClose();
+  const handleCallSeller = async () => {
+    const url = `tel:${seller.phone}`;
+    if (await Linking.canOpenURL(url)) {
+      try {
+        await Linking.openURL(url);
+        onClose();
+      } catch {
+        Alert.alert('Unable to place call', 'Please try again or use another contact option.');
+      }
+    } else {
+      Alert.alert('Calling unavailable', 'It looks like calling is not supported on this device.');
+    }
   };
 
-  const handleWhatsAppSeller = () => {
+  const handleWhatsAppSeller = async () => {
     const message = `Hi ${seller.name}, I'm interested in your listing: ${listingTitle}`;
     const url = `whatsapp://send?phone=${seller.whatsapp}&text=${encodeURIComponent(message)}`;
-    Linking.openURL(url);
-    onClose();
+    if (await Linking.canOpenURL(url)) {
+      try {
+        await Linking.openURL(url);
+        onClose();
+      } catch {
+        Alert.alert('Unable to open WhatsApp', 'Please try again or choose another contact method.');
+      }
+    } else {
+      Alert.alert('WhatsApp unavailable', 'Install WhatsApp to continue or use another contact option.');
+    }
   };
 
-  const handleEmailSeller = () => {
+  const handleEmailSeller = async () => {
     const subject = `Inquiry about: ${listingTitle}`;
     const body = `Hi ${seller.name},\n\nI'm interested in your listing: ${listingTitle}\n\nPlease let me know if it's still available.\n\nThanks!`;
     const url = `mailto:${seller.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    Linking.openURL(url);
-    onClose();
+    if (await Linking.canOpenURL(url)) {
+      try {
+        await Linking.openURL(url);
+        onClose();
+      } catch {
+        Alert.alert('Unable to open email client', 'Please try again or pick another contact option.');
+      }
+    } else {
+      Alert.alert('Email unavailable', 'No email client found on this device.');
+    }
   };
 
   const handleInAppMessage = () => {

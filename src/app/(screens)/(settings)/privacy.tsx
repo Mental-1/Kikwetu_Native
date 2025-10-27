@@ -1,133 +1,41 @@
 import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
+import { useProfile } from '@/src/hooks/useProfile';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ChangeEmailModal from '../(auth)/changeEmail';
+import ChangePasswordModal from '../(auth)/changePassword';
+import TwoFactorAuthModal from '../(auth)/twoFactorAuth';
 
 const Privacy = () => {
   const router = useRouter();
   const { user } = useAuth();
+  const { data: profile } = useProfile();
   const { showAlert, AlertComponent } = useCustomAlert();
-  const { success, error } = createAlertHelpers(showAlert);
-  const [isChangingEmail, setIsChangingEmail] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [isTwoFAEnabled, setIsTwoFAEnabled] = useState(false);
-  const [newEmail, setNewEmail] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { error } = createAlertHelpers(showAlert);
+  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [show2FAModal, setShow2FAModal] = useState(false);
 
   const handleBack = () => {
     router.back();
   };
 
   const handleChangeEmail = () => {
-    // Close any other open forms first
-    setIsChangingPassword(false);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setShowCurrentPassword(false);
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
-    
-    setIsChangingEmail(true);
-  };
-
-  const handleSaveEmailChange = () => {
-    // TODO: Implement email change functionality
-    success('Success', 'Email change request sent! Please check your new email for verification.');
-    setIsChangingEmail(false);
-    setNewEmail('');
-    // Also clear any password form data
-    setIsChangingPassword(false);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setShowCurrentPassword(false);
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
-  };
-
-  const handleCancelEmailChange = () => {
-    setIsChangingEmail(false);
-    setNewEmail('');
-    // Also clear any password form data
-    setIsChangingPassword(false);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setShowCurrentPassword(false);
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
+    setShowChangeEmailModal(true);
   };
 
   const handleChangePassword = () => {
-    // Close any other open forms first
-    setIsChangingEmail(false);
-    setNewEmail('');
-    
-    setIsChangingPassword(true);
-  };
-
-  const handleSavePasswordChange = () => {
-    if (newPassword !== confirmPassword) {
-      error('Error', 'New passwords do not match');
-      return;
-    }
-    // TODO: Implement password change functionality
-    success('Success', 'Password updated successfully!');
-    setIsChangingPassword(false);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setShowCurrentPassword(false);
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
-    // Also clear any email form data
-    setIsChangingEmail(false);
-    setNewEmail('');
-  };
-
-  const handleCancelPasswordChange = () => {
-    setIsChangingPassword(false);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setShowCurrentPassword(false);
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
-    // Also clear any email form data
-    setIsChangingEmail(false);
-    setNewEmail('');
+    setShowChangePasswordModal(true);
   };
 
   const handleToggle2FA = () => {
-    if (isTwoFAEnabled) {
-      showAlert({
-        title: 'Disable 2FA',
-        message: 'Are you sure you want to disable two-factor authentication? This will make your account less secure.',
-        buttonText: 'Disable',
-        icon: 'warning',
-        iconColor: '#FF9800',
-        buttonColor: '#FF9800',
-        onPress: () => {
-          setIsTwoFAEnabled(false);
-          success('Success', 'Two-factor authentication has been disabled');
-        }
-      });
-    } else {
-      // TODO: Implement 2FA setup flow
-      success('Success', 'Two-factor authentication setup will be implemented');
-      setIsTwoFAEnabled(true);
-    }
+    setShow2FAModal(true);
   };
 
   const privacySections = [
@@ -148,20 +56,10 @@ const Privacy = () => {
         },
         {
           title: 'Two-Factor Authentication',
-          subtitle: isTwoFAEnabled ? 'Enabled - Tap to disable' : 'Disabled - Tap to enable',
-          icon: isTwoFAEnabled ? 'shield-checkmark' : 'shield-outline',
+          subtitle: profile?.mfa_enabled ? 'Enabled - Tap to manage' : 'Disabled - Tap to enable',
+          icon: profile?.mfa_enabled ? 'shield-checkmark' : 'shield-outline',
           onPress: handleToggle2FA,
-          rightElement: (
-            <View style={[
-              styles.toggleSwitch,
-              { backgroundColor: isTwoFAEnabled ? Colors.primary : Colors.lightgrey }
-            ]}>
-              <View style={[
-                styles.toggleThumb,
-                { transform: [{ translateX: isTwoFAEnabled ? 16 : 2 }] }
-              ]} />
-            </View>
-          ),
+          showStatus: profile?.mfa_enabled,
         },
       ],
     },
@@ -202,7 +100,7 @@ const Privacy = () => {
         <View style={styles.infoSection}>
           <Text style={styles.infoTitle}>Current Account</Text>
           <Text style={styles.infoText}>Email: {user?.email || 'Not available'}</Text>
-          <Text style={styles.infoText}>2FA: {isTwoFAEnabled ? 'Enabled' : 'Disabled'}</Text>
+          <Text style={styles.infoText}>2FA: {profile?.mfa_enabled ? 'Enabled' : 'Disabled'}</Text>
         </View>
 
         {/* Security Settings */}
@@ -223,130 +121,23 @@ const Privacy = () => {
                     <Ionicons name={item.icon as any} size={24} color={Colors.primary} />
                   </View>
                   <View style={styles.itemContent}>
-                    <Text style={styles.itemTitle}>{item.title}</Text>
+                    <View style={styles.itemTitleRow}>
+                      <Text style={styles.itemTitle}>{item.title}</Text>
+                      {item.showStatus && (
+                        <View style={styles.statusBadge}>
+                          <Text style={styles.statusText}>ON</Text>
+                        </View>
+                      )}
+                    </View>
                     <Text style={styles.itemSubtitle}>{item.subtitle}</Text>
                   </View>
-                  {item.rightElement || <Ionicons name="chevron-forward" size={20} color={Colors.grey} />}
+                  <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
                 </TouchableOpacity>
               ))}
             </View>
           </View>
         ))}
 
-        {/* Email Change Form */}
-        {isChangingEmail && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Change Email</Text>
-            <View style={styles.formContainer}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Current Email</Text>
-                <Text style={styles.displayText}>{user?.email || 'Not available'}</Text>
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>New Email</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={newEmail}
-                  onChangeText={setNewEmail}
-                  placeholder="Enter your new email"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-              <View style={styles.formButtons}>
-                <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEmailChange}>
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.saveButton} onPress={handleSaveEmailChange}>
-                  <Text style={styles.saveButtonText}>Send Verification</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Password Change Form */}
-        {isChangingPassword && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Change Password</Text>
-            <View style={styles.formContainer}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Current Password</Text>
-                <View style={styles.passwordInputContainer}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    value={currentPassword}
-                    onChangeText={setCurrentPassword}
-                    placeholder="Enter your current password"
-                    secureTextEntry={!showCurrentPassword}
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowCurrentPassword(!showCurrentPassword)}
-                  >
-                    <Ionicons
-                      name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={Colors.grey}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>New Password</Text>
-                <View style={styles.passwordInputContainer}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    placeholder="Enter your new password"
-                    secureTextEntry={!showNewPassword}
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowNewPassword(!showNewPassword)}
-                  >
-                    <Ionicons
-                      name={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={Colors.grey}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Confirm New Password</Text>
-                <View style={styles.passwordInputContainer}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    placeholder="Confirm your new password"
-                    secureTextEntry={!showConfirmPassword}
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    <Ionicons
-                      name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={Colors.grey}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={styles.formButtons}>
-                <TouchableOpacity style={styles.cancelButton} onPress={handleCancelPasswordChange}>
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.saveButton} onPress={handleSavePasswordChange}>
-                  <Text style={styles.saveButtonText}>Update Password</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        )}
 
         {/* Bottom padding for better scrolling */}
         <View style={styles.bottomPadding} />
@@ -354,6 +145,24 @@ const Privacy = () => {
       
       {/* Custom Alert Component */}
       <AlertComponent />
+
+      {/* Change Email Modal */}
+      <ChangeEmailModal
+        visible={showChangeEmailModal}
+        onClose={() => setShowChangeEmailModal(false)}
+      />
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        visible={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+      />
+
+      {/* Two-Factor Authentication Modal */}
+      <TwoFactorAuthModal
+        visible={show2FAModal}
+        onClose={() => setShow2FAModal(false)}
+      />
     </View>
   );
 };
@@ -468,123 +277,33 @@ const styles = StyleSheet.create({
   itemContent: {
     flex: 1,
   },
+  itemTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
   itemTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.black,
-    marginBottom: 2,
+    flex: 1,
+  },
+  statusBadge: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: Colors.white,
   },
   itemSubtitle: {
     fontSize: 12,
     color: Colors.grey,
-  },
-  toggleSwitch: {
-    width: 40,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  toggleThumb: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Colors.white,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  formContainer: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: 16,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.black,
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: Colors.lightgrey,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: Colors.black,
-    backgroundColor: Colors.white,
-  },
-  passwordInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.lightgrey,
-    borderRadius: 8,
-    backgroundColor: Colors.white,
-  },
-  passwordInput: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: Colors.black,
-  },
-  eyeIcon: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
-  displayText: {
-    fontSize: 16,
-    color: Colors.black,
-    paddingVertical: 12,
-    lineHeight: 22,
-  },
-  formButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-  },
-  cancelButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: Colors.lightgrey,
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: Colors.grey,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: '600',
   },
   bottomPadding: {
     height: 24,
