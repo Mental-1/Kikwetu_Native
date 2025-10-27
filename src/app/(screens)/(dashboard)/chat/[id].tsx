@@ -110,13 +110,6 @@ interface Message {
   isRead: boolean;
 }
 
-interface SellerInfo {
-  id: string;
-  name: string;
-  avatar: string;
-  online: boolean;
-}
-
 const Chat = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
