@@ -15,6 +15,11 @@ export default function Step2Form({ description, setDescription }: Step2FormProp
         onChangeText={setDescription}
         className="border border-gray-300 p-3 rounded-lg w-full h-32"
         multiline
+        textAlignVertical="top"
+        accessibilityLabel="Ad description"
+        autoCapitalize="sentences"
+        autoCorrect
+        maxLength={1000}
       />
     </View>
   );

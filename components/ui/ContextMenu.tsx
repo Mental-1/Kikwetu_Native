@@ -30,6 +30,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   position = { x: width * 0.2, y: 200 }
 }) => {
   const [menuSize, setMenuSize] = useState({ width: 0, height: 0 });
+  const [isMeasured, setIsMeasured] = useState(false);
   
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
   
@@ -39,7 +40,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     Math.max(16, position.x),
     screenWidth - menuWidth - 16,
   );
-  const safeTop = Math.max(16, Math.min(position.y, screenHeight - (menuSize.height || 200) - 16));
+  const safeTop = isMeasured 
+    ? Math.max(16, Math.min(position.y, screenHeight - menuSize.height - 16))
+    : Math.max(16, position.y);
 
   const handleItemPress = (item: ContextMenuItem) => {
     onItemPress(item);
@@ -49,6 +52,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   const handleMenuLayout = (event: any) => {
     const { width: measuredWidth, height: measuredHeight } = event.nativeEvent.layout;
     setMenuSize({ width: measuredWidth, height: measuredHeight });
+    setIsMeasured(true);
   };
 
   return (
@@ -67,7 +71,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         <View 
           style={[
             styles.menuContainer, 
-            { left: safeLeft, top: safeTop, width: menuWidth }
+            { left: safeLeft, top: safeTop, width: menuWidth, opacity: isMeasured ? 1 : 0 }
           ]}
           onLayout={handleMenuLayout}
         >

@@ -320,7 +320,7 @@ export default function Step1() {
               styles.dropdownText, 
               !storeId && styles.placeholderText
             ]}>
-              {storeId ? stores?.find(s => s.id === storeId)?.name : 'Select Store (Optional)'}
+              {storeId ? stores?.find(s => s.id === storeId.toString())?.name : 'Select Store (Optional)'}
             </Text>
             <Ionicons 
               name={showStoreDropdown ? "chevron-up" : "chevron-down"} 
@@ -361,7 +361,7 @@ export default function Step1() {
                           key={store.id}
                           style={styles.dropdownItem}
                           onPress={() => {
-                            setStoreId(store.id);
+                            setStoreId(parseInt(store.id));
                             setShowStoreDropdown(false);
                           }}
                         >

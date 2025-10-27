@@ -43,13 +43,18 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
     const handlePlaybackStatusUpdate = useCallback(() => {
         setIsPlaying(player.playing);
-    }, [player.playing]);
+    }, [player]);
 
     // Listen to player status changes
     React.useEffect(() => {
         const subscription = player.addListener('statusChange', handlePlaybackStatusUpdate);
-        return () => subscription?.remove();
+        return () => subscription?.remove?.();
     }, [player, handlePlaybackStatusUpdate]);
+
+    // Sync initial state on mount/URL change
+    React.useEffect(() => {
+        setIsPlaying(player.playing);
+    }, [player]);
 
     return (
         <TouchableOpacity 

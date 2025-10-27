@@ -30,26 +30,22 @@ export async function uploadImage(
   try {
     const { bucket = 'listings', folder = 'images', onProgress } = options;
     
-    // Get file info using the modern File API
     const file = new File(imageUri);
     const fileInfo = await file.info();
     if (!fileInfo.exists) {
       throw new Error('File does not exist');
     }
 
-    // Generate unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
     const extension = imageUri.split('.').pop() || 'jpg';
     const filename = `${timestamp}_${randomString}.${extension}`;
     const filePath = folder ? `${folder}/${filename}` : filename;
 
-    // Read file as blob directly
     const response = await fetch(imageUri);
     const blob = await response.blob();
 
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from(bucket)
       .upload(filePath, blob, {
         cacheControl: '3600',
@@ -61,7 +57,6 @@ export async function uploadImage(
       throw error;
     }
 
-    // Get public URL
     const { data: urlData } = supabase.storage
       .from(bucket)
       .getPublicUrl(filePath);
@@ -103,7 +98,6 @@ export async function uploadImages(
           ...options,
           onProgress: (progress) => {
             if (options.onProgress) {
-              // Calculate overall progress across all images
               const overallProgress = {
                 loaded: (i * 100) + progress.percentage,
                 total: totalImages * 100,
@@ -119,7 +113,6 @@ export async function uploadImages(
         }
       } catch (error) {
         console.error(`Error uploading image ${i + 1}:`, error);
-        // Continue with other images even if one fails
       }
     }
 
@@ -138,7 +131,6 @@ export async function deleteImage(
   bucket: string = 'listings'
 ): Promise<boolean> {
   try {
-    // Extract file path from URL
     const urlParts = imageUrl.split('/');
     const filePath = urlParts[urlParts.length - 1];
 

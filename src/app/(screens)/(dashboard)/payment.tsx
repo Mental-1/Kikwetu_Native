@@ -41,7 +41,6 @@ const Payment = () => {
   const [currentTransactionId, setCurrentTransactionId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | null>(null);
 
-  // Get plan data from navigation parameters
   const selectedPlan: SubscriptionPlan = {
     id: params.planId as string || 'basic',
     name: params.planName as string || 'Basic',
@@ -50,12 +49,10 @@ const Payment = () => {
     billingCycle: (params.billingCycle as 'monthly' | 'annual') || 'monthly'
   };
 
-  // Fetch payment methods from API
   const { data: paymentMethodsData, isLoading: methodsLoading } = usePaymentMethods();
   const initiateMpesa = useInitiateMpesaPayment();
   const initializePaystack = useInitializePaystackPayment();
   
-  // Payment status tracking
   const { data: paymentStatusData, isLoading: statusLoading } = usePaymentStatus(currentTransactionId || '');
 
   const paymentMethods: PaymentMethod[] = (paymentMethodsData || []).map(pm => ({
@@ -69,7 +66,6 @@ const Payment = () => {
     brand: 'visa',
   }));
 
-  // Add M-Pesa and Paystack as payment options
   const allPaymentOptions = [
     {
       id: 'mpesa',
@@ -90,7 +86,6 @@ const Payment = () => {
     ...paymentMethods,
   ];
 
-  // Remove unused variable
 
   const handleBack = () => {
     router.back();
@@ -104,11 +99,9 @@ const Payment = () => {
     setIsProcessing(true);
 
     try {
-      // Parse amount from price string (e.g., "KES 1,200" -> 1200)
       const amount = parseFloat(selectedPlan.price.replace(/[^\d.-]/g, ''));
 
       if (selectedPaymentMethod === 'mpesa') {
-        // M-Pesa STK Push
         if (!phoneNumber) {
           showAlert({
             title: 'Phone Number Required',
@@ -127,7 +120,6 @@ const Payment = () => {
           phoneNumber: phoneNumber.replace(/\s/g, ''),
         });
 
-        // Store transaction ID for status tracking
         if (result.transactionId) {
           setCurrentTransactionId(result.transactionId);
           setPaymentStatus('pending');
@@ -141,7 +133,6 @@ const Payment = () => {
           iconColor: '#4CAF50',
           buttonColor: '#4CAF50',
           onPress: () => {
-            // Don't navigate back immediately - let status tracking handle it
             if (!result.transactionId) {
               router.back();
             }
@@ -154,13 +145,11 @@ const Payment = () => {
           email: user?.email || '',
         });
 
-        // Store transaction ID for status tracking
         if (result.transactionId) {
           setCurrentTransactionId(result.transactionId);
           setPaymentStatus('pending');
         }
 
-        // Open Paystack authorization URL
         if (result.authorization_url) {
           await Linking.openURL(result.authorization_url);
           
@@ -172,7 +161,6 @@ const Payment = () => {
             iconColor: Colors.primary,
             buttonColor: Colors.primary,
             onPress: () => {
-              // Don't navigate back immediately - let status tracking handle it
               if (!result.transactionId) {
                 router.back();
               }
@@ -180,7 +168,6 @@ const Payment = () => {
           });
         }
       } else {
-        // Other payment methods (cards, bank)
         showAlert({
           title: 'Payment Successful!',
           message: `Your ${selectedPlan.name} plan has been activated successfully. You will be charged ${selectedPlan.price}/${selectedPlan.period}.`,
@@ -201,7 +188,6 @@ const Payment = () => {
     }
   };
 
-  // Navigation callback for payment confirmation
   const navigateToConfirmation = useCallback((status: 'completed' | 'failed') => {
     router.push({
       pathname: '/(screens)/(dashboard)/payment-confirmation',
@@ -223,7 +209,6 @@ const Payment = () => {
     setPaymentStatus(null);
   }, [router, currentTransactionId, selectedPlan.price, selectedPlan.name, selectedPlan.billingCycle, selectedPaymentMethod, paymentStatusData?.processedAt, paymentStatusData?.failureReason]);
 
-  // Monitor payment status changes
   useEffect(() => {
     if (paymentStatusData && currentTransactionId) {
       setPaymentStatus(paymentStatusData.status);

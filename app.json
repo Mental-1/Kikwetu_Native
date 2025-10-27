@@ -12,21 +12,22 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kawa-ida.Kikwetu",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["whatsapp"]
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#1461BD",
+        "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.kawa_ida.Kikwetu"
     },
     "extra": {
+      "EXPO_PUBLIC_SUPABASE_URL": "https://cvnertrkcwjjdrnnjswk.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_4fLLnjGNmi013LGxxribpQ_dvcJvapo",
       "eas": {
         "projectId": "7f836722-0d8e-48d8-8c53-2ebad4137d71"
       }
@@ -41,7 +42,7 @@
     [
       "expo-splash-screen",
       {
-        "image": "./assets/images/splash-icon.png",
+        "image": "./assets/images/splash.png",
         "resizeMode": "cover",
         "backgroundColor": "#1461BD",
         "edgeToEdgeEnabled": true

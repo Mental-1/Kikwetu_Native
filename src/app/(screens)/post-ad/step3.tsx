@@ -45,7 +45,6 @@ export default function Step3() {
   };
 
   const handlePublish = async () => {
-    // Validate the complete listing data
     const listingData = {
       title,
       description,
@@ -95,6 +94,7 @@ export default function Step3() {
                   longitude: validation.data!.longitude ?? undefined,
                   negotiable: validation.data!.negotiable!,
                   images: validation.data!.images!,
+                  videos: validation.data!.videos!,
                   tags: validation.data!.tags!,
                   store_id: validation.data!.store_id ?? undefined,
                   status: 'active',
@@ -104,7 +104,7 @@ export default function Step3() {
               });
 
               showSuccessToast('Your ad has been published successfully!', 'Success');
-              resetPostAd(); // Clear the form data
+              resetPostAd();
               router.push('/(tabs)/listings');
             } catch (error: any) {
               console.error('Error publishing listing:', error);
@@ -120,7 +120,6 @@ export default function Step3() {
   };
 
   const handleSaveDraft = async () => {
-    // Validate the complete listing data for draft
     const listingData = {
       title,
       description,
@@ -174,7 +173,7 @@ export default function Step3() {
               });
 
               showSuccessToast('Your listing has been saved as a draft!', 'Draft Saved');
-              resetPostAd(); // Clear the form data
+              resetPostAd();
               router.push('/(tabs)/listings');
             } catch (error: any) {
               console.error('Error saving draft:', error);

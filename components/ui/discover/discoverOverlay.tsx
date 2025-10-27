@@ -15,10 +15,10 @@ interface DiscoverOverlayProps {
     onSearch: () => void;
     onVideoPress: (videoId: string) => void;
     onLike: (videoId: string) => void;
-    onFollow: (videoId: string) => void;
+    onFollow: (userId: string) => void;
     onShare: (videoId: string) => void;
     onSave: (videoId: string) => void;
-    onMessage: (videoId: string) => void;
+    onMessage: (userId: string) => void;
     onReview: (videoId: string) => void;
     isMuted?: boolean;
     onToggleMute?: () => void;
@@ -48,11 +48,8 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
     };
 
     const formatNumber = (num: number) => {
-        if (num >= 1000000) {
-            return (num / 1000000).toFixed(1) + 'M';
-        } else if (num >= 1000) {
-            return (num / 1000).toFixed(1) + 'K';
-        }
+        if (num >= 1_000_000) return ((num / 1_000_000).toFixed(1).replace(/\.0$/, '')) + 'M';
+        if (num >= 1_000) return ((num / 1_000).toFixed(1).replace(/\.0$/, '')) + 'K';
         return num.toString();
     };
 
@@ -160,7 +157,7 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                     <View style={styles.actionItem}>
                         <TouchableOpacity
                             style={styles.avatarContainer}
-                            onPress={() => onFollow(video.id)}
+                            onPress={() => onFollow(video.user.id)}
                         >
                             <Image source={{ uri: video.user.avatar_url || 'https://via.placeholder.com/50' }} style={styles.avatar} />
                             {video.engagement.isFollowing ? (
@@ -204,7 +201,7 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                     {/* Message */}
                     <TouchableOpacity
                         style={styles.actionItem}
-                        onPress={() => onMessage(video.id)}
+                        onPress={() => onMessage(video.user.id)}
                     >
                         <View style={styles.actionIcon}>
                             <Ionicons name="chatbubble-outline" size={24} color={Colors.white} />

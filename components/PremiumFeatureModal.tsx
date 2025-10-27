@@ -3,9 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const { width } = Dimensions.get('window');
+import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 
 interface PremiumFeatureModalProps {
   visible: boolean;
@@ -14,20 +12,21 @@ interface PremiumFeatureModalProps {
   featureDescription: string;
   benefits?: string[];
 }
-
+const defaultBenefits = [
+  'Detailed analytics and insights',
+  'Performance tracking',
+  'Revenue optimization',
+  'Advanced reporting'
+]
 const PremiumFeatureModal: React.FC<PremiumFeatureModalProps> = ({
   visible,
   onClose,
   featureName,
   featureDescription,
-  benefits = [
-    'Detailed analytics and insights',
-    'Performance tracking',
-    'Revenue optimization',
-    'Advanced reporting'
-  ]
+  benefits = defaultBenefits
 }) => {
   const router = useRouter();
+  const { width } = useWindowDimensions();
 
   const handleUpgrade = () => {
     onClose();
@@ -49,7 +48,13 @@ const PremiumFeatureModal: React.FC<PremiumFeatureModalProps> = ({
       <View style={styles.overlay}>
         <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
         
-        <View style={styles.modalContainer}>
+        <View
+          style={[
+            styles.modalContainer,
+            ({ width: Math.min(520, Math.round(width * 0.85)),
+               marginHorizontal: Math.round(width * 0.075) }),
+          ]}
+        >
           <View style={styles.modal}>
             {/* Header */}
             <View style={styles.header}>
@@ -70,7 +75,7 @@ const PremiumFeatureModal: React.FC<PremiumFeatureModalProps> = ({
               <Text style={styles.benefitsTitle}>What you&apos;ll get:</Text>
               {benefits.map((benefit, index) => (
                 <View key={index} style={styles.benefitItem}>
-                  <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                  <Ionicons name="checkmark-circle" size={20} color={Colors.green} />
                   <Text style={styles.benefitText}>{benefit}</Text>
                 </View>
               ))}
@@ -110,8 +115,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    width: width * 0.85,
-    marginHorizontal: width * 0.075,
   },
   modal: {
     backgroundColor: Colors.white,

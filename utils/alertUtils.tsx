@@ -66,7 +66,7 @@ export const useCustomAlert = (): AlertHook => {
     hideAlert();
   };
 
-  const AlertComponent = () => (
+  const AlertComponent = React.useMemo(() => () => (
     <CustomAlert
       visible={visible}
       title={options.title}
@@ -77,7 +77,7 @@ export const useCustomAlert = (): AlertHook => {
       iconColor={options.iconColor}
       buttonColor={options.buttonColor}
     />
-  );
+  ), [visible, options, handlePress]);
 
   return {
     showAlert,

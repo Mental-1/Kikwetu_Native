@@ -35,9 +35,13 @@ interface PostAdState {
 
 interface AppState {
   postAd: PostAdState;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
+  searchQuery: '',
+  setSearchQuery: (query) => set({ searchQuery: query }),
   postAd: {
     title: '',
     description: '',

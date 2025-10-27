@@ -1,3 +1,5 @@
+import { Database } from '../../utils/supabase/database.types';
+
 /**
  * API Response Types
  */
@@ -149,23 +151,23 @@ export interface ApiSubscriptionPlan {
   id: string;
   name: string;
   description?: string;
-  monthly_price: number;
-  annual_price: number;
+  price: number;
   duration: number;
   max_listings?: number;
-  features: string[];
+  features: JSON | null;
   is_popular?: boolean;
   color: string;
   icon: string;
   created_at: string;
   updated_at: string;
+  user_id?: string;
 }
 
 export interface ApiSubscription {
   id: string;
   plan_id: string;
   user_id: string;
-  status: 'active' | 'inactive' | 'cancelled' | 'past_due' | 'free';
+  status: Database["public"]["Enums"]["subscription_status"];
   billing_cycle: 'monthly' | 'annual';
   start_date: string;
   end_date?: string;
@@ -175,6 +177,7 @@ export interface ApiSubscription {
   currency: string;
   created_at: string;
   updated_at: string;
+  transaction_id: string | null;
 }
 
 // Message types

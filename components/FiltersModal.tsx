@@ -1,17 +1,22 @@
 import { useSubcategoriesByCategory } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { Dimensions, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { runOnJS } from 'react-native-worklets';
 
-const { height } = Dimensions.get('window');
+const { height, width } = Dimensions.get('window');
+const SLIDER_WIDTH = width - 80;
+
+type Category = { id: number; name: string; emoji?: string };
 
 interface FiltersModalProps {
   visible: boolean;
   onClose: () => void;
   onApplyFilters: (filters: FilterOptions) => void;
-  categories: any[];
-  subcategories: any[];
+  categories: Category[];
   isLoading: boolean;
 }
 
@@ -21,8 +26,8 @@ interface FilterOptions {
     max: number;
   };
   condition: string[];
-  location: string;
   category: string;
+  subcategoryId: number | null;
   distance: number;
 }
 
@@ -31,14 +36,13 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
   onClose,
   onApplyFilters,
   categories,
-  subcategories,
   isLoading,
 }) => {
   const [filters, setFilters] = useState<FilterOptions>({
     priceRange: { min: 0, max: 1000000 },
     condition: [],
-    location: '',
     category: '',
+    subcategoryId: null,
     distance: 50,
   });
 
@@ -47,29 +51,35 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
     max: '1000000',
   });
 
-  const [distance, setDistance] = useState(50);
+  const sliderWidth = useRef(0);
+
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [showAllCategories, setShowAllCategories] = useState(false);
 
   const conditionOptions = ['New', 'Like New', 'Used', 'Refurbished'];
-  
-  // Use live categories data
-  const categoryOptions = categories.map(cat => ({
-    id: cat.id,
-    name: cat.name,
-    emoji: cat.emoji
-  }));
 
-  // Show limited categories initially, all when "See All" is clicked
-  const displayedCategories = showAllCategories ? categoryOptions : categoryOptions.slice(0, 8);
+  const categoryOptions = useMemo(() => 
+    categories.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      emoji: cat.emoji
+    })),
+    [categories]
+  );
 
-  // Get subcategories for selected category
+  const displayedCategories = useMemo(() => 
+    showAllCategories ? categoryOptions : categoryOptions.slice(0, 8),
+    [categoryOptions, showAllCategories]
+  );
+
   const { data: categorySubcategories, isLoading: subcategoriesLoading } = useSubcategoriesByCategory(
     selectedCategoryId || 0
   );
 
-  // Use live subcategories data
-  const subcategoryOptions = categorySubcategories || [];
+  const subcategoryOptions = useMemo(() => 
+    categorySubcategories || [],
+    [categorySubcategories]
+  );
 
   const handleConditionToggle = (condition: string) => {
     setFilters(prev => ({
@@ -84,18 +94,22 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
     setSelectedCategoryId(prev => prev === categoryId ? null : categoryId);
     setFilters(prev => ({
       ...prev,
-      category: prev.category === categoryId.toString() ? '' : categoryId.toString()
+      category: prev.category === categoryId.toString() ? '' : categoryId.toString(),
+      subcategoryId: null,
     }));
   };
 
   const handleApply = () => {
+    const parsedMin = Number.parseInt(priceInputs.min ?? '', 10);
+    const parsedMax = Number.parseInt(priceInputs.max ?? '', 10);
+    const min = Math.max(0, Number.isFinite(parsedMin) ? parsedMin : 0);
+    const maxCandidate = Number.isFinite(parsedMax) ? parsedMax : 1_000_000;
+    const max = Math.max(0, maxCandidate);
+    const [lo, hi] = min <= max ? [min, max] : [max, min];
+
     const updatedFilters = {
       ...filters,
-      priceRange: {
-        min: parseInt(priceInputs.min) || 0,
-        max: parseInt(priceInputs.max) || 1000000,
-      },
-      distance,
+      priceRange: { min: lo, max: hi },
     };
     onApplyFilters(updatedFilters);
     onClose();
@@ -105,20 +119,46 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
     setFilters({
       priceRange: { min: 0, max: 1000000 },
       condition: [],
-      location: '',
       category: '',
+      subcategoryId: null,
       distance: 50,
     });
     setPriceInputs({
       min: '0',
       max: '1000000',
     });
-    setDistance(50);
     setSelectedCategoryId(null);
     setShowAllCategories(false);
   };
 
-  // Skeleton loading component for categories
+  const translateX = useSharedValue((filters.distance / 100) * SLIDER_WIDTH);
+  const context = useSharedValue({ x: 0 });
+
+  const gesture = Gesture.Pan()
+    .onStart(() => {
+      context.value = { x: translateX.value };
+    })
+    .onUpdate((event) => {
+      translateX.value = Math.max(0, Math.min(SLIDER_WIDTH, context.value.x + event.translationX));
+    })
+    .onEnd(() => {
+      const newDistance = Math.round((translateX.value / SLIDER_WIDTH) * 20) * 5;
+      runOnJS(setFilters)(prev => ({ ...prev, distance: newDistance }));
+      translateX.value = withSpring((newDistance / 100) * SLIDER_WIDTH);
+    });
+
+  const animatedThumbStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: translateX.value }],
+    };
+  });
+
+  const animatedProgressStyle = useAnimatedStyle(() => {
+    return {
+      width: translateX.value,
+    };
+  });
+
   const CategorySkeleton = () => (
     <View style={styles.pillsContainer}>
       {Array.from({ length: 6 }).map((_, index) => (
@@ -127,7 +167,6 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
     </View>
   );
 
-  // Skeleton loading component for subcategories
   const SubcategorySkeleton = () => (
     <View style={styles.pillsContainer}>
       {Array.from({ length: 4 }).map((_, index) => (
@@ -225,7 +264,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
             </View>
 
             {/* Subcategory Section */}
-            {selectedCategoryId && (
+            {selectedCategoryId !== null && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Subcategory</Text>
                 {subcategoriesLoading ? (
@@ -237,16 +276,16 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
                         key={subcategory.id}
                         style={[
                           styles.pill,
-                          filters.location === subcategory.name && styles.selectedPill
+                          filters.subcategoryId === subcategory.id && styles.selectedPill
                         ]}
                         onPress={() => setFilters(prev => ({
                           ...prev,
-                          location: prev.location === subcategory.name ? '' : subcategory.name
+                          subcategoryId: prev.subcategoryId === subcategory.id ? null : subcategory.id
                         }))}
                       >
                         <Text style={[
                           styles.pillText,
-                          filters.location === subcategory.name && styles.selectedPillText
+                          filters.subcategoryId === subcategory.id && styles.selectedPillText
                         ]}>
                           {subcategory.name}
                         </Text>
@@ -312,30 +351,14 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
 
             {/* Distance Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Distance: {distance} km</Text>
-              <View style={styles.sliderContainer}>
+              <Text style={styles.sectionTitle}>Distance: {filters.distance} km</Text>
+              <View style={styles.sliderContainer} onLayout={(e) => sliderWidth.current = e.nativeEvent.layout.width}>
                 <View style={styles.sliderTrack}>
-                  <View 
-                    style={[
-                      styles.sliderProgress, 
-                      { width: `${distance}%` }
-                    ]} 
-                  />
-                  <TouchableOpacity 
-                    style={[
-                      styles.sliderThumb,
-                      { left: `${distance}%` }
-                    ]}
-                    onPressIn={(event) => {
-                      const { locationX } = event.nativeEvent;
-                      const sliderWidth = 280;
-                      const percentage = Math.max(0, Math.min(100, (locationX / sliderWidth) * 100));
-                      const newDistance = Math.round(percentage / 2) * 2;
-                      setDistance(newDistance);
-                      setFilters(prev => ({ ...prev, distance: newDistance }));
-                    }}
-                  />
+                  <Animated.View style={[styles.sliderProgress, animatedProgressStyle]} />
                 </View>
+                <GestureDetector gesture={gesture}>
+                  <Animated.View style={[styles.sliderThumb, animatedThumbStyle]} />
+                </GestureDetector>
                 <View style={styles.sliderLabels}>
                   <Text style={styles.sliderLabel}>0 km</Text>
                   <Text style={styles.sliderLabel}>100 km</Text>
@@ -461,6 +484,7 @@ const styles = StyleSheet.create({
   },
   sliderContainer: {
     marginTop: 8,
+    height: 40, 
   },
   sliderTrack: {
     height: 4,
@@ -468,14 +492,12 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     position: 'relative',
     marginBottom: 8,
+    top: 18,
   },
   sliderProgress: {
     height: 4,
     backgroundColor: Colors.primary,
     borderRadius: 2,
-    position: 'absolute',
-    top: 0,
-    left: 0,
   },
   sliderThumb: {
     width: 20,
@@ -483,14 +505,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderRadius: 10,
     position: 'absolute',
-    top: -8,
-    marginLeft: -10,
+    top: 10,
     borderWidth: 2,
     borderColor: Colors.white,
   },
   sliderLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 15,
   },
   sliderLabel: {
     fontSize: 12,

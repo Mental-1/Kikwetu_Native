@@ -13,7 +13,7 @@ interface SubscriptionPlan {
   id: string;
   name: string;
   description?: string;
-  monthlyPrice: number;
+  price: number;
   annualPrice: number;
   duration: number;
   maxListings?: number;
@@ -25,6 +25,7 @@ interface SubscriptionPlan {
   annualDiscount?: string;
   createdAt: string;
   updatedAt: string;
+  user_id?: string;
 }
 
 interface BillingTransaction {
@@ -35,6 +36,7 @@ interface BillingTransaction {
   status: 'completed' | 'pending' | 'failed';
   type: 'subscription' | 'one-time' | 'refund';
   invoiceUrl?: string;
+  transaction_id?: string | null;
 }
 
 const PlansBilling = () => {
@@ -45,46 +47,43 @@ const PlansBilling = () => {
   const [selectedPlan, setSelectedPlan] = useState<string>('basic');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
 
-  // Fetch plans and subscription data from API
   const { data: plansData, isLoading: plansLoading, error: plansError } = useSubscriptionPlans();
   const { data: currentSubscription, isLoading: subscriptionLoading } = useCurrentSubscription();
   const { data: historyData, isLoading: historyLoading, error: historyError } = useSubscriptionHistory();
   
-  // Subscription management hooks
   const cancelSubscriptionMutation = useCancelSubscription();
 
-  // Transform API plans to UI format
-  const subscriptionPlans: SubscriptionPlan[] = useMemo(() => {
-    return (plansData || []).map((plan: ApiSubscriptionPlan) => ({
-      id: plan.id,
-      name: plan.name,
-      description: plan.description,
-      monthlyPrice: plan.monthly_price,
-      annualPrice: plan.annual_price,
-      duration: plan.duration,
-      maxListings: plan.max_listings,
-      features: plan.features,
-      isPopular: plan.is_popular,
-      isCurrent: currentSubscription?.plan_id === plan.id,
-      color: plan.color,
-      icon: plan.icon,
-      annualDiscount: 'Save 17%',
-      createdAt: plan.created_at,
-      updatedAt: plan.updated_at,
-    }));
-  }, [plansData, currentSubscription]);
-
-  // Transform subscription history
+    const subscriptionPlans: SubscriptionPlan[] = useMemo(() => {
+      return (plansData || []).map((plan: ApiSubscriptionPlan) => ({
+        id: plan.id,
+        name: plan.name,
+        description: plan.description,
+        price: plan.price,
+        annualPrice: plan.price * 10,
+        duration: plan.duration,
+        maxListings: plan.max_listings,
+        features: Array.isArray(plan.features) ? (plan.features as string[]) : [],
+        isPopular: plan.is_popular,
+        isCurrent: currentSubscription?.plan_id === plan.id,
+        color: plan.color,
+        icon: plan.icon,
+        annualDiscount: 'Save 17%', // This will need to be dynamic based on calculation
+        createdAt: plan.created_at,
+        updatedAt: plan.updated_at,
+        user_id: plan.user_id,
+      }));
+    }, [plansData, currentSubscription]);
   const billingHistory: BillingTransaction[] = useMemo(() => {
     return (historyData || []).map((sub: ApiSubscription) => ({
       id: sub.id,
       date: new Date(sub.created_at).toLocaleDateString(),
       description: `${sub.billing_cycle} subscription - ${sub.plan_id}`,
       amount: `${sub.currency} ${sub.amount.toLocaleString()}`,
-      status: sub.status === 'active' ? 'completed' : 
-              sub.status === 'past_due' ? 'pending' : 'failed',
-      type: 'subscription' as const,
+            status: sub.status === 'active' || sub.status === 'free' ? 'completed' :
+                    sub.status === 'past_due' ? 'pending' :
+                    'failed',      type: 'subscription' as const,
       invoiceUrl: undefined, // Will be implemented with real invoice service
+      transaction_id: sub.transaction_id,
     }));
   }, [historyData]);
 
@@ -126,7 +125,7 @@ const PlansBilling = () => {
             params: {
               planId: plan.id,
               planName: plan.name,
-              price: billingCycle === 'monthly' ? plan.monthlyPrice : plan.annualPrice,
+              price: billingCycle === 'monthly' ? plan.price : plan.annualPrice,
               period: billingCycle === 'monthly' ? 'month' : 'year',
               billingCycle: billingCycle
             }
@@ -221,7 +220,7 @@ const PlansBilling = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: 'completed' | 'pending' | 'failed') => {
     switch (status) {
       case 'completed': return '#4CAF50';
       case 'pending': return '#FF9800';
@@ -230,7 +229,7 @@ const PlansBilling = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: 'completed' | 'pending' | 'failed') => {
     switch (status) {
       case 'completed': return 'checkmark-circle';
       case 'pending': return 'time-outline';
@@ -268,7 +267,7 @@ const PlansBilling = () => {
           <Text style={styles.planName}>{plan.name}</Text>
           <View style={styles.priceContainer}>
             <Text style={styles.planPrice}>
-              {billingCycle === 'monthly' ? plan.monthlyPrice : plan.annualPrice}
+              {billingCycle === 'monthly' ? plan.price : plan.annualPrice}
             </Text>
             <Text style={styles.planPeriod}>
               /{billingCycle === 'monthly' ? 'month' : 'year'}
@@ -365,9 +364,11 @@ const PlansBilling = () => {
                     {subscriptionPlans.find(p => p.id === currentSubscription.plan_id)?.name || 'Unknown Plan'}
                   </Text>
                   <Text style={styles.currentPlanStatus}>
-                    {currentSubscription.status === 'active' ? 'Active' : 
+                    {currentSubscription.status === 'active' ? 'Active' :
                      currentSubscription.status === 'past_due' ? 'Past Due' :
-                     currentSubscription.status === 'cancelled' ? 'Cancelled' : 'Inactive'}
+                     currentSubscription.status === 'cancelled' ? 'Cancelled' :
+                     currentSubscription.status === 'free' ? 'Free' :
+                     'Inactive'}
                     {currentSubscription.start_date && ` since ${new Date(currentSubscription.start_date).toLocaleDateString()}`}
                   </Text>
                   {currentSubscription.next_billing_date && (
@@ -380,7 +381,7 @@ const PlansBilling = () => {
               
               {/* Subscription Management Actions */}
               <View style={styles.subscriptionActions}>
-                {currentSubscription.status === 'active' && (
+                {(currentSubscription.status === 'active' || currentSubscription.status === 'free') && (
                   <TouchableOpacity 
                     style={styles.cancelButton}
                     onPress={handleCancelSubscription}
@@ -393,7 +394,7 @@ const PlansBilling = () => {
                   </TouchableOpacity>
                 )}
                 
-                {currentSubscription.status === 'cancelled' && (
+                {(currentSubscription.status === 'cancelled' || currentSubscription.status === 'inactive') && (
                   <TouchableOpacity 
                     style={styles.reactivateButton}
                     onPress={handleReactivateSubscription}

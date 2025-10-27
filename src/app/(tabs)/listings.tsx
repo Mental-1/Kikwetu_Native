@@ -5,7 +5,7 @@ import SortModal from '@/components/SortModal';
 import { useCategories, useCategoryMutations, useSubcategories } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
-import { useFilteredListings } from '@/src/hooks/useListings';
+import { useListings } from '@/src/hooks/useListings';
 import type { ListingItem } from '@/types/types';
 import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,73 +14,83 @@ import { StatusBar } from 'expo-status-bar';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAppStore } from '@/stores/useAppStore';
+
 
 const { width } = Dimensions.get('window');
 
-// Loading component for lazy loading
 const ListingsLoading = () => (
   <View style={{ flex: 1, backgroundColor: Colors.background }}>
     <ListingsSkeleton viewMode="grid" count={6} />
   </View>
 );
 
+
 function ListingsContent() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchQuery, setSearchQuery } = useAppStore();
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery]);
   const [isGridView, setIsGridView] = useState(true);
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<any>(null);
   
-  // Favorites functionality
   const [favoriteStates, setFavoriteStates] = useState<Record<string, boolean>>({});
   const saveListingMutation = useSaveListing();
   const unsaveListingMutation = useUnsaveListing();
   
-  // Back to top functionality
   const [showBackToTop, setShowBackToTop] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   
-  // Data hooks
   const { data: categories, isLoading: categoriesLoading } = useCategories();
-  const { data: subcategories, isLoading: subcategoriesLoading } = useSubcategories();
+  const { isLoading: subcategoriesLoading } = useSubcategories();
   const { prefetchSubcategories } = useCategoryMutations();
   
-  // React Query hook for listings
   const { 
-    listings, 
+    data, 
     isLoading, 
     error, 
     fetchNextPage, 
     hasNextPage, 
     isFetchingNextPage,
     refetch
-  } = useFilteredListings(searchQuery);
+  } = useListings({ 
+    search: debouncedSearchQuery, 
+    ...appliedFilters, 
+    sortBy 
+  });
 
-  // Show error toast when there's an error
+  const listings = data?.pages.flatMap(page => page.data) || [];
+
   useEffect(() => {
     if (error) {
       showErrorToast(error.message || 'Failed to load listings', 'Network Error');
     }
   }, [error]);
 
-  // Prefetch subcategories when filters modal opens
   useEffect(() => {
     if (showFilters && categories && categories.length > 0) {
-      // Prefetch all subcategories for better performance
       prefetchSubcategories();
     }
   }, [showFilters, categories, prefetchSubcategories]);
 
-  // Handle scroll for back-to-top button
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     { useNativeDriver: false }
   );
 
-  // Show/hide back-to-top button based on scroll position
   useEffect(() => {
     const listener = scrollY.addListener(({ value }) => {
       const screenHeight = Dimensions.get('window').height;
@@ -90,7 +100,6 @@ function ListingsContent() {
     return () => scrollY.removeListener(listener);
   }, [scrollY]);
 
-  // Scroll to top function
   const scrollToTop = () => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
@@ -137,13 +146,11 @@ function ListingsContent() {
   const handleApplyFilters = useCallback((filters: any) => {
     setAppliedFilters(filters);
     console.log('Applied filters:', filters);
-    // The filtering will be handled in the filteredListings calculation below
   }, []);
 
   const handleSortChange = useCallback((newSortBy: string) => {
     setSortBy(newSortBy);
     console.log('Sort changed to:', newSortBy);
-    // The sorting will be handled in the filteredListings calculation below
   }, []);
 
   const getSearchDisplayText = () => {
@@ -155,103 +162,7 @@ function ListingsContent() {
     return searchQuery;
   };
 
-  // Apply filters and sorting to listings
-  const filteredListings = React.useMemo(() => {
-    let filtered = listings;
-
-    // Apply search filter
-    if (searchQuery) {
-      filtered = filtered.filter((item: ListingItem) =>
-        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.location?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Apply additional filters
-    if (appliedFilters) {
-      // Category filter
-      if (appliedFilters.categoryId) {
-        filtered = filtered.filter((item: ListingItem) => 
-          item.category_id === appliedFilters.categoryId
-        );
-      }
-
-      // Subcategory filter
-      if (appliedFilters.subcategoryId) {
-        filtered = filtered.filter((item: ListingItem) => 
-          item.subcategory_id === appliedFilters.subcategoryId
-        );
-      }
-
-      // Price range filter
-      if (appliedFilters.minPrice !== undefined) {
-        filtered = filtered.filter((item: ListingItem) => 
-          item.price && item.price >= appliedFilters.minPrice
-        );
-      }
-      if (appliedFilters.maxPrice !== undefined) {
-        filtered = filtered.filter((item: ListingItem) => 
-          item.price && item.price <= appliedFilters.maxPrice
-        );
-      }
-
-      // Condition filter
-      if (appliedFilters.condition) {
-        filtered = filtered.filter((item: ListingItem) => 
-          item.condition === appliedFilters.condition
-        );
-      }
-
-      // Location filter
-      if (appliedFilters.location) {
-        filtered = filtered.filter((item: ListingItem) => 
-          item.location?.toLowerCase().includes(appliedFilters.location.toLowerCase())
-        );
-      }
-    }
-
-    // Apply sorting
-    switch (sortBy) {
-      case 'newest':
-        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
-          new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
-        );
-        break;
-      case 'oldest':
-        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
-          new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime()
-        );
-        break;
-      case 'price_low':
-        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
-          (a.price || 0) - (b.price || 0)
-        );
-        break;
-      case 'price_high':
-        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
-          (b.price || 0) - (a.price || 0)
-        );
-        break;
-      case 'most_viewed':
-        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
-          (b.views || 0) - (a.views || 0)
-        );
-        break;
-      case 'least_viewed':
-        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
-          (a.views || 0) - (b.views || 0)
-        );
-        break;
-      default:
-        // Default to newest
-        filtered = filtered.sort((a: ListingItem, b: ListingItem) => 
-          new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
-        );
-    }
-
-    return filtered;
-  }, [listings, searchQuery, appliedFilters, sortBy]);
+  
 
   const renderGridItem = ({ item }: { item: ListingItem }) => (
     <View style={styles.gridItem}>
@@ -280,7 +191,7 @@ function ListingsContent() {
       condition={item.condition || 'Not specified'}
       location={item.location || 'Location not specified'}
       image={item.images && item.images.length > 0 ? item.images[0] : 'https://via.placeholder.com/200x140'}
-        description={item.description || undefined}
+      description={item.description || undefined}
       views={item.views || 0}
       isFavorite={false} // TODO: Implement favorites functionality
       viewMode="list"
@@ -341,7 +252,7 @@ function ListingsContent() {
           {/* Results and Sort Info */}
           <View style={styles.resultsInfo}>
             <Text style={styles.resultsText}>
-              Found Results: {getSearchDisplayText()} ({filteredListings.length})
+              Found Results: {getSearchDisplayText()} ({listings.length})
             </Text>
             <Text style={styles.sortText}>
               Sort By: {sortBy}
@@ -367,7 +278,7 @@ function ListingsContent() {
               <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
           </View>
-        ) : filteredListings.length === 0 ? (
+        ) : listings.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No listings found</Text>
             <Text style={styles.emptySubtext}>
@@ -378,7 +289,7 @@ function ListingsContent() {
           <FlatList
             ref={flatListRef}
             key="grid"
-            data={filteredListings}
+            data={listings}
             renderItem={renderGridItem}
             keyExtractor={(item) => item.id}
             numColumns={2}
@@ -405,7 +316,7 @@ function ListingsContent() {
           <FlatList
             ref={flatListRef}
             key="list"
-            data={filteredListings}
+            data={listings}
             renderItem={renderListItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}
@@ -436,7 +347,6 @@ function ListingsContent() {
         onClose={() => setShowFilters(false)}
         onApplyFilters={handleApplyFilters}
         categories={categories || []}
-        subcategories={subcategories || []}
         isLoading={categoriesLoading || subcategoriesLoading}
       />
 

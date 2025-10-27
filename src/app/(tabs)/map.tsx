@@ -4,23 +4,31 @@ import { getLocationWithAddress, LocationData } from '@/utils/locationUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { Suspense, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
+import { 
+  ActivityIndicator, 
+  Alert, 
+  StyleSheet, 
+  Text, 
+  TouchableOpacity, 
+  View 
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Loading component for lazy loading
 const MapLoading = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.black }}>
+  <View style={styles.loadingContainer}>
     <ActivityIndicator size="large" color={Colors.primary} />
+    <Text style={styles.loadingText}>Loading map...</Text>
   </View>
 );
 
 const MapScreenContent = () => {
   const router = useRouter();
   const [, setUserLocation] = useState<LocationData | null>(null);
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const hasLoadedInitialLocation = useRef(false);
 
-  // Mock listings with coordinates for demonstration
   const mockListings = [
     {
       id: '1',
@@ -80,17 +88,23 @@ const MapScreenContent = () => {
   ];
 
   useEffect(() => {
-    loadUserLocation();
+    if (!hasLoadedInitialLocation.current) {
+      hasLoadedInitialLocation.current = true;
+      loadUserLocation();
+    }
   }, []);
 
   const loadUserLocation = async () => {
     try {
       setLoading(true);
+      setError(null);
       const location = await getLocationWithAddress();
       setUserLocation(location);
     } catch (error) {
       console.error('Error loading location:', error);
-      Alert.alert('Error', 'Could not load your location');
+      const errorMessage = error instanceof Error ? error.message : 'Could not load your location';
+      setError(errorMessage);
+      console.log('Location load failed:', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -102,13 +116,35 @@ const MapScreenContent = () => {
       `${marker.description}\n${marker.price}`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'View Details', onPress: () => router.push(`/(screens)/listings/${marker.id}`) },
+        { 
+          text: 'View Details', 
+          onPress: () => {
+            try {
+              router.push(`/(screens)/listings/${marker.id}` as any);
+            } catch (error) {
+              console.error('Navigation error:', error);
+              Alert.alert('Error', 'Could not navigate to listing details');
+            }
+          }
+        },
       ]
     );
   };
 
   const handleBackPress = () => {
-    router.back();
+    try {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/');
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
+
+  const handleRefresh = () => {
+    loadUserLocation();
   };
 
   return (
@@ -131,33 +167,68 @@ const MapScreenContent = () => {
       </View>
 
       {/* Floating Header */}
-      <SafeAreaView style={styles.floatingHeader} pointerEvents="box-none">
+      <SafeAreaView style={styles.floatingHeader} edges={['top']} pointerEvents="box-none">
         <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={handleBackPress}
+            activeOpacity={0.7}
+          >
             <Ionicons name="chevron-back" size={24} color={Colors.white} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Map View</Text>
-          <TouchableOpacity style={styles.refreshButton} onPress={loadUserLocation}>
-            <Ionicons name="refresh" size={24} color={Colors.white} />
+          <TouchableOpacity 
+            style={[styles.refreshButton, loading && styles.refreshButtonDisabled]} 
+            onPress={handleRefresh}
+            disabled={loading}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name="refresh" 
+              size={24} 
+              color={loading ? Colors.grey : Colors.white} 
+            />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
 
+      {/* Error Banner */}
+      {error && (
+        <View style={styles.errorBanner}>
+          <Ionicons name="warning" size={16} color={Colors.white} />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
 
       {/* Listings Count Button */}
-      <TouchableOpacity style={styles.listingsButton}>
+      <TouchableOpacity 
+        style={styles.listingsButton}
+        activeOpacity={0.8}
+      >
         <Ionicons name="list" size={14} color={Colors.white} />
         <Text style={styles.listingsButtonText}>
-          {mockListings.length}
+          {mockListings.length} {mockListings.length === 1 ? 'listing' : 'listings'}
         </Text>
       </TouchableOpacity>
 
       {/* Map Controls */}
       <View style={styles.mapControls}>
-        <TouchableOpacity style={styles.controlButton} onPress={loadUserLocation}>
-          <Ionicons name="locate" size={20} color={Colors.primary} />
+        <TouchableOpacity 
+          style={styles.controlButton} 
+          onPress={handleRefresh}
+          disabled={loading}
+          activeOpacity={0.7}
+        >
+          <Ionicons 
+            name="locate" 
+            size={20} 
+            color={loading ? Colors.grey : Colors.primary} 
+          />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.controlButton}>
+        <TouchableOpacity 
+          style={styles.controlButton}
+          activeOpacity={0.7}
+        >
           <Ionicons name="layers" size={20} color={Colors.primary} />
         </TouchableOpacity>
       </View>
@@ -180,6 +251,17 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.black,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: Colors.white,
+  },
   floatingHeader: {
     position: 'absolute',
     top: 0,
@@ -194,7 +276,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    backdropFilter: 'blur(10px)',
   },
   backButton: {
     padding: 8,
@@ -211,38 +292,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
   },
-  locationInfo: {
+  refreshButtonDisabled: {
+    opacity: 0.5,
+  },
+  errorBanner: {
     position: 'absolute',
     top: 100,
     left: 16,
     right: 16,
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  locationHeader: {
+    backgroundColor: 'rgba(255, 59, 48, 0.9)',
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 8,
+    zIndex: 999,
   },
-  locationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.black,
-  },
-  locationText: {
+  errorText: {
+    flex: 1,
+    color: Colors.white,
     fontSize: 14,
-    color: Colors.grey,
-    lineHeight: 20,
   },
   listingsButton: {
     position: 'absolute',
@@ -256,7 +325,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: Colors.black,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -283,7 +352,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: Colors.black,
     shadowOffset: {
       width: 0,
       height: 2,

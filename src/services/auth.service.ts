@@ -16,6 +16,7 @@ interface RegisterData {
   password: string;
   username: string;
   full_name?: string;
+  phone_number?: string;
 }
 
 interface AuthResponse {

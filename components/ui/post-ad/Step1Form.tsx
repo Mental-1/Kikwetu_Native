@@ -14,6 +14,11 @@ export default function Step1Form({ title, setTitle }: Step1FormProps) {
         value={title}
         onChangeText={setTitle}
         className="border border-gray-300 p-3 rounded-lg w-full"
+        accessibilityLabel="Ad title"
+        autoCapitalize="sentences"
+        autoCorrect
+        returnKeyType="next"
+        maxLength={120}
       />
     </View>
   );

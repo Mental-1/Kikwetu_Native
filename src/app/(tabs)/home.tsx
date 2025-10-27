@@ -5,6 +5,7 @@ import CustomDialog from '@/components/ui/CustomDialog';
 import VideoCard from '@/components/VideoCard';
 import { useAuth } from '@/contexts/authContext';
 import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
+import { useNotifications } from '@/src/hooks/useNotifications';
 import SignIn from '@/src/app/(screens)/(auth)/signin';
 import SignUp from '@/src/app/(screens)/(auth)/signup';
 import { Colors } from '@/src/constants/constant';
@@ -12,14 +13,18 @@ import { useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListing
 import { useListings } from '@/src/hooks/useListings';
 import { useFeaturedVideos } from '@/src/hooks/useVideos';
 import { showSuccessToast } from '@/utils/toast';
+import { getIconFromEmoji } from '@/src/utils/iconHelpers';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAppStore } from '@/stores/useAppStore';
+
 
 type Props = Record<string, never>;
+
 
 const Home = (props: Props) => {
     const router = useRouter();
@@ -27,54 +32,31 @@ const Home = (props: Props) => {
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
     const [isSignIn, setIsSignIn] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
+    const { searchQuery, setSearchQuery } = useAppStore();
     const [loadingCategoryId, setLoadingCategoryId] = useState<number | null>(null);
+
     
-    // Custom alert hook
+    
     const [showSignOutDialog, setShowSignOutDialog] = useState(false);
     
-    // Fetch categories and preload subcategories
     const { data: categories, isLoading: categoriesLoading } = useCategories();
     const { prefetchSubcategories } = useCategoryMutations();
     
-    // Fetch real data
     const { data: featuredVideos, isLoading: videosLoading } = useFeaturedVideos(8);
     const { data: listingsData, isLoading: listingsLoading } = useListings();
+    const { notifications, markAllAsRead } = useNotifications();
     
-    // Favorite functionality
     const saveListingMutation = useSaveListing();
     const unsaveListingMutation = useUnsaveListing();
     const [favoriteStates, setFavoriteStates] = useState<Record<string, boolean>>({});
     
-    // Map emoji icons to Ionicons - memoized for performance
-    const getIconFromEmoji = useCallback((emoji: string) => {
-        const iconMap: { [key: string]: string } = {
-            '🎨': 'color-palette-outline',
-            '🚗': 'car-outline',
-            '🍼': 'nutrition-outline',
-            '💄': 'woman-outline',
-            '📚': 'book-outline',
-            '💻': 'laptop-outline',
-            '👗': 'shirt-outline',
-            '🍕': 'restaurant-outline',
-            '🏠': 'home-outline',
-            '📱': 'phone-portrait-outline',
-            '🎵': 'musical-notes-outline',
-            '⚽': 'football-outline',
-        };
-        return iconMap[emoji] || 'grid-outline';
-    }, []);
-    
-    // Process listings data for display
     const listings = listingsData?.pages?.flatMap(page => page.data) || [];
     const displayListings = listings.slice(0, 4);
     
     const handleAccountPress = useCallback(() => {
         if (user) {
-            // Show avatar dropdown for authenticated users
             setShowAvatarDropdown(true);
         } else {
-            // Show sign-in modal for unauthenticated users
             setIsSignIn(true);
             setShowAuthModal(true);
         }
@@ -120,14 +102,18 @@ const Home = (props: Props) => {
     const handleCancelSignOut = useCallback(() => {
         setShowSignOutDialog(false);
     }, []);
+
+    const handleSearchSubmit = () => {
+        if (searchQuery) {
+            router.push('/(tabs)/listings');
+        }
+    };
     
     const handleVideoPress = useCallback((videoId: string) => {
-        // Navigate to Discover page with video ID
         router.push(`/(tabs)/discover?videoId=${videoId}`);
     }, [router]);
 
     const handleListingPress = useCallback((listingId: string) => {
-        // Navigate to listing details page
         router.push(`/(screens)/listings/${listingId}`);
     }, [router]);
 
@@ -149,20 +135,16 @@ const Home = (props: Props) => {
         }
     }, [favoriteStates, saveListingMutation, unsaveListingMutation]);
 
-    // Preload subcategories data when categories are loaded
     React.useEffect(() => {
         if (categories && categories.length > 0) {
             prefetchSubcategories();
         }
     }, [categories, prefetchSubcategories]);
 
-    // Optimized category navigation with loading state
     const handleCategoryPress = useCallback((categoryId: number) => {
         setLoadingCategoryId(categoryId);
-        // Use requestAnimationFrame to ensure UI updates before navigation
         requestAnimationFrame(() => {
             router.push(`/(screens)/subcategories/${categoryId}`);
-            // Clear loading state after a short delay
             setTimeout(() => setLoadingCategoryId(null), 1000);
         });
     }, [router]);
@@ -185,7 +167,7 @@ const Home = (props: Props) => {
                 {/* Right side icons */}
                 <View style={styles.headerRight}>
                     {/* Notifications Badge */}
-                    <NotificationBadge hasUnreadNotifications={true} />
+                    <NotificationBadge notifications={notifications} onMarkAllAsRead={markAllAsRead} />
                     
                     {/* Account Avatar */}
                     <TouchableOpacity style={styles.avatarContainer} onPress={handleAccountPress}>
@@ -215,6 +197,8 @@ const Home = (props: Props) => {
                             placeholderTextColor={Colors.grey}
                             value={searchQuery}
                             onChangeText={setSearchQuery}
+                            onSubmitEditing={handleSearchSubmit}
+                            returnKeyType="search"
                         />
                     </View>
                 </View>

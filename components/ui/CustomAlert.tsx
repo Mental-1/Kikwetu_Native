@@ -12,7 +12,7 @@ interface CustomAlertProps {
   message?: string;
   buttonText?: string;
   onPress?: () => void;
-  icon?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
   buttonColor?: string;
 }
@@ -48,7 +48,7 @@ const CustomAlert = ({
             {icon && (
               <View style={styles.iconContainer}>
                 <Ionicons 
-                  name={icon as any} 
+                  name={icon} 
                   size={48} 
                   color={iconColor} 
                 />
@@ -64,7 +64,7 @@ const CustomAlert = ({
             )}
 
             {/* Separator Line */}
-            <View style={styles.separator} />
+            {message ? <View style={styles.separator} /> : null}
             
             {/* Button */}
             <TouchableOpacity 

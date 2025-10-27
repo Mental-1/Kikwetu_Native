@@ -60,9 +60,14 @@ const AvatarDropdown: React.FC<AvatarDropdownProps> = ({
       animationType="none"
       onRequestClose={onClose}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
-          <Animated.View 
+      <TouchableOpacity 
+        style={styles.overlayContainer}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <Animated.View style={[styles.overlay, { opacity: opacityAnim }]} />
+        <TouchableWithoutFeedback>
+          <Animated.View
             style={[
               styles.dropdown,
               { transform: [{ translateX: slideAnim }] }
@@ -106,24 +111,32 @@ const AvatarDropdown: React.FC<AvatarDropdownProps> = ({
               </TouchableOpacity>
             </View>
           </Animated.View>
-        </Animated.View>
-      </TouchableWithoutFeedback>
+        </TouchableWithoutFeedback>
+      </TouchableOpacity>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  overlayContainer: {
+    flex: 1,
+  },
   overlay: {
     flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
   },
   dropdown: {
+    position: 'absolute',
     width: 280,
     backgroundColor: Colors.white,
-    marginTop: 100, // Position below header
+    marginTop: 100,
     marginRight: 16,
+    right: 0,
     borderRadius: 12,
     elevation: 8,
     shadowColor: '#000',

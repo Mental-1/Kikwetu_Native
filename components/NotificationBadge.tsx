@@ -1,11 +1,18 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState} from 'react';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface NotificationBadgeProps {
-    hasUnreadNotifications?: boolean;
     onPress?: () => void;
+    notifications?: {
+        id: string;
+        title: string;
+        message: string;
+        timestamp: string;
+        isRead: boolean;
+    }[];
+    onMarkAllAsRead?: () => void;
 }
 
 interface NotificationDropdownProps {
@@ -29,30 +36,7 @@ const NotificationDropdown = ({
 }: NotificationDropdownProps) => {
     if (!visible) return null;
 
-    // Mock notifications data
-    const mockNotifications = notifications.length > 0 ? notifications : [
-        {
-            id: '1',
-            title: 'New Listing',
-            message: 'Someone posted a new item in your area',
-            timestamp: '2 min ago',
-            isRead: false,
-        },
-        {
-            id: '2',
-            title: 'Message Received',
-            message: 'You have a new message about your listing',
-            timestamp: '1 hour ago',
-            isRead: false,
-        },
-        {
-            id: '3',
-            title: 'Price Drop',
-            message: 'An item you saved has dropped in price',
-            timestamp: '3 hours ago',
-            isRead: true,
-        },
-    ];
+    const mockNotifications = notifications;
 
     return (
         <Modal
@@ -71,7 +55,7 @@ const NotificationDropdown = ({
                     </TouchableOpacity>
                 </View>
                 
-                <View style={styles.notificationsList}>
+                <ScrollView style={styles.notificationsList} nestedScrollEnabled={true}>
                     {mockNotifications.map((notification) => (
                         <View 
                             key={notification.id} 
@@ -88,7 +72,7 @@ const NotificationDropdown = ({
                             {!notification.isRead && <View style={styles.unreadDot} />}
                         </View>
                     ))}
-                </View>
+                </ScrollView>
                 
                 {mockNotifications.length === 0 && (
                     <View style={styles.emptyState}>
@@ -103,12 +87,13 @@ const NotificationDropdown = ({
     );
 };
 
-const NotificationBadge = ({ 
-    hasUnreadNotifications = true, 
-    onPress 
+const NotificationBadge = ({
+    notifications = [], 
+    onPress, 
+    onMarkAllAsRead 
 }: NotificationBadgeProps) => {
     const [showDropdown, setShowDropdown] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(hasUnreadNotifications ? 2 : 0);
+    const unreadCount = notifications.filter(n => !n.isRead).length;
 
     const handlePress = () => {
         setShowDropdown(!showDropdown);
@@ -116,7 +101,7 @@ const NotificationBadge = ({
     };
 
     const handleMarkAllAsRead = () => {
-        setUnreadCount(0);
+        onMarkAllAsRead?.();
         setShowDropdown(false);
     };
 
@@ -129,7 +114,7 @@ const NotificationBadge = ({
             <TouchableOpacity 
                 style={styles.iconButton} 
                 onPress={handlePress}
-                activeOpacity={1} // Prevent opacity change on press
+                activeOpacity={1}
             >
                 <Ionicons name="notifications-outline" size={24} color={Colors.white} />
                 {unreadCount > 0 && <View style={styles.badge} />}
@@ -139,11 +124,11 @@ const NotificationBadge = ({
                 visible={showDropdown}
                 onClose={handleCloseDropdown}
                 onMarkAllAsRead={handleMarkAllAsRead}
+                notifications={notifications}
             />
         </View>
     );
 };
-
 const styles = StyleSheet.create({
     container: {
         position: 'relative',
@@ -164,7 +149,7 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: '#ff4444',
+        backgroundColor: Colors.badgeRed,
         borderWidth: 1,
         borderColor: Colors.white,
     },

@@ -1,6 +1,6 @@
 import { Colors } from '@/src/constants/constant';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, StyleSheet, View } from 'react-native';
+import { Animated, Dimensions, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 interface ListingCardSkeletonProps {
   viewMode?: 'grid' | 'list';
@@ -18,12 +18,12 @@ const ListingCardSkeleton: React.FC<ListingCardSkeletonProps> = ({ viewMode = 'g
         Animated.timing(shimmerAnimation, {
           toValue: 1,
           duration: 1000,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(shimmerAnimation, {
           toValue: 0,
           duration: 1000,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
       ])
     );
@@ -39,7 +39,7 @@ const ListingCardSkeleton: React.FC<ListingCardSkeletonProps> = ({ viewMode = 'g
     }),
   };
 
-  const SkeletonBox = ({ style }: { style: any }) => (
+  const SkeletonBox = ({ style }: { style: StyleProp<ViewStyle> }) => (
     <Animated.View style={[styles.skeletonBox, style, shimmerStyle]} />
   );
 

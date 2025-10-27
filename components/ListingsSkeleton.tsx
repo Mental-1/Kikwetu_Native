@@ -16,7 +16,7 @@ const ListingsSkeleton: React.FC<ListingsSkeletonProps> = ({
     id: `skeleton-${index}`,
   }));
 
-  const renderSkeletonItem = () => (
+  const renderSkeletonItem = ({ item }: { item: { id: string } }) => (
     <View style={viewMode === 'grid' ? styles.gridItem : styles.listItem}>
       <ListingCardSkeleton viewMode={viewMode} />
     </View>
@@ -29,6 +29,7 @@ const ListingsSkeleton: React.FC<ListingsSkeletonProps> = ({
         renderItem={renderSkeletonItem}
         keyExtractor={(item) => item.id}
         numColumns={viewMode === 'grid' ? 2 : 1}
+        key={viewMode}
         contentContainerStyle={
           viewMode === 'grid' 
             ? styles.gridContainer 

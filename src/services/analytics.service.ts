@@ -27,15 +27,15 @@ class AnalyticsService {
   /**
    * Get dashboard analytics
    */
-  async getDashboardAnalytics(): Promise<ApiResponse<DashboardAnalytics>> {
-    return await apiClient.get<DashboardAnalytics>('/analytics/dashboard');
+  async getDashboardAnalytics(period: '7d' | '30d' | '90d' | '1y'): Promise<ApiResponse<DashboardAnalytics>> {
+    return await apiClient.get<DashboardAnalytics>('/analytics/dashboard', { period });
   }
 
   /**
    * Get listing analytics
    */
-  async getListingAnalytics(): Promise<ApiResponse<ListingAnalytics>> {
-    return await apiClient.get<ListingAnalytics>('/analytics/listings');
+  async getListingAnalytics(period: '7d' | '30d' | '90d' | '1y'): Promise<ApiResponse<ListingAnalytics>> {
+    return await apiClient.get<ListingAnalytics>('/analytics/listings', { period });
   }
 
   /**

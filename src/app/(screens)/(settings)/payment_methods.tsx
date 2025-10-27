@@ -267,9 +267,6 @@ const PaymentMethods = () => {
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment Methods</Text>
-        <TouchableOpacity style={styles.addButton} onPress={handleAddPaymentMethod}>
-          <Ionicons name="add" size={24} color={Colors.primary} />
-        </TouchableOpacity>
       </SafeAreaView>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

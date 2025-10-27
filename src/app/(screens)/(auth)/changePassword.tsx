@@ -24,7 +24,7 @@ interface ChangePasswordModalProps {
 
 const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onClose }) => {
   const changePasswordMutation = useChangePassword();
-  const { AlertComponent } = useCustomAlert();
+  const { showAlert, AlertComponent } = useCustomAlert();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -49,28 +49,28 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
   const handleChangePassword = async () => {
     // Validation
     if (!currentPassword.trim()) {
-      Alert.alert('Error', 'Please enter your current password.');
+      showAlert({ title: 'Error', message: 'Please enter your current password.' });
       return;
     }
 
     if (!newPassword.trim()) {
-      Alert.alert('Error', 'Please enter a new password.');
+      showAlert({ title: 'Error', message: 'Please enter a new password.' });
       return;
     }
 
     const passwordValidation = validatePassword(newPassword);
     if (!passwordValidation.isValid) {
-      Alert.alert('Weak Password', passwordValidation.message);
+      showAlert({ title: 'Weak Password', message: passwordValidation.message });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'New password and confirmation do not match.');
+      showAlert({ title: 'Error', message: 'New password and confirmation do not match.' });
       return;
     }
 
     if (currentPassword === newPassword) {
-      Alert.alert('Error', 'New password must be different from your current password.');
+      showAlert({ title: 'Error', message: 'New password must be different from your current password.' });
       return;
     }
 
@@ -81,24 +81,19 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
         newPassword,
       });
 
-      Alert.alert(
-        'Password Changed',
-        'Your password has been successfully changed.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setCurrentPassword('');
-              setNewPassword('');
-              setConfirmPassword('');
-              onClose();
-            },
-          },
-        ]
-      );
+      showAlert({
+        title: 'Password Changed',
+        message: 'Your password has been successfully changed.',
+        onPress: () => {
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+          onClose();
+        },
+      });
     } catch (error: any) {
       console.error('Error changing password:', error);
-      Alert.alert('Error', error.message || 'Failed to change password. Please check your current password and try again.');
+      showAlert({ title: 'Error', message: error.message || 'Failed to change password. Please check your current password and try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -156,6 +151,9 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
                   onChangeText={setCurrentPassword}
                   secureTextEntry
                   autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="password"
+                  autoComplete="password"
                 />
               </View>
 
@@ -168,6 +166,9 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
                   onChangeText={setNewPassword}
                   secureTextEntry
                   autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="newPassword"
+                  autoComplete="new-password"
                 />
                 <Text style={styles.helpText}>
                   Must be at least 8 characters with letters and numbers
@@ -183,6 +184,9 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
                   onChangeText={setConfirmPassword}
                   secureTextEntry
                   autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="newPassword"
+                  autoComplete="new-password"
                 />
               </View>
 

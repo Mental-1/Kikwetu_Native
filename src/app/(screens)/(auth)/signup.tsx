@@ -16,7 +16,9 @@ const signUpSchema = z.object({
     email: z.string().email('Please enter a valid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
-    phoneNumber: z.string().min(10, 'Please enter a valid phone number'),
+    phoneNumber: z
+      .string()
+      .regex(/^\+?[1-9]\d{7,14}$/, 'Enter a valid phone number in international format, e.g. +254712345678'),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
@@ -51,7 +53,7 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
     const onSubmitSignUp = async (data: SignUpFormData) => {
         try {
             setIsLoading(true);
-            const { error } = await signUp(data.email, data.password, data.username, data.fullName);
+            const { error } = await signUp(data.email, data.password, data.username, data.fullName, data.phoneNumber);
             
             if (error) {
                 showErrorToast(error.message || 'Failed to create account', 'Sign Up Error');
@@ -195,7 +197,7 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                                     name="phoneNumber"
                                     render={({ field: { onChange, onBlur, value } }) => (
                                         <TextInput
-                                            label="Phone Number eg. +254123456789"
+                                            label="Phone Number (e.g., +254712345678)"
                                             value={value}
                                             onBlur={onBlur}
                                             onChangeText={onChange}
@@ -420,7 +422,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'green',
+        backgroundColor: Colors.green,
         paddingVertical: 16,
         paddingHorizontal: 24,
         borderRadius: 12,

@@ -42,7 +42,8 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
             const { error } = await signIn(data.email, data.password);
             
             if (error) {
-                showErrorToast(error.message || 'Failed to sign in', 'Sign In Error');
+                console.error('signIn failed:', error);
+                showErrorToast('Failed to sign in. Please try again.', 'Sign In Error');
             } else {
                 showSuccessToast('Successfully signed in!', 'Welcome Back');
                 onClose();
@@ -82,6 +83,8 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                             style={styles.authForm} 
                             contentContainerStyle={styles.authFormContent}
                             showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
+                            keyboardDismissMode="on-drag"
                         >
                             <Text style={styles.subtitle}>Sign in to continue</Text>
                             

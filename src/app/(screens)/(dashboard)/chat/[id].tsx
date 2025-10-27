@@ -11,6 +11,8 @@ import {
   FlatList,
   Image,
   KeyboardAvoidingView,
+  GestureResponderEvent,
+  Dimensions,
   Platform,
   StyleSheet,
   Text,
@@ -133,7 +135,6 @@ const Chat = () => {
   const sellerInfo = mockSellerInfo[id as keyof typeof mockSellerInfo] || mockSellerInfo['1'];
 
   useEffect(() => {
-    // Scroll to bottom when component mounts
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: false });
     }, 100);
@@ -149,7 +150,6 @@ const Chat = () => {
       console.log('Sending message:', messageText);
       setMessageText('');
       
-      // Scroll to bottom after sending
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -176,9 +176,16 @@ const Chat = () => {
     setShowDeleteDialog(false);
   }, []);
 
-  const handleMessageLongPress = useCallback((message: Message, event: any) => {
+  const handleMessageLongPress = useCallback((message: Message, event: GestureResponderEvent) => {
     setSelectedMessage(message);
-    setContextMenuPosition({ x: event.nativeEvent.pageX - 100, y: event.nativeEvent.pageY - 50 });
+    const { width, height } = Dimensions.get('window');
+    const menuWidth = 200;
+    const menuHeight = 150;
+
+    const x = Math.max(0, Math.min(event.nativeEvent.pageX - (menuWidth / 2), width - menuWidth));
+    const y = Math.max(0, Math.min(event.nativeEvent.pageY - (menuHeight / 2), height - menuHeight));
+    
+    setContextMenuPosition({ x, y });
     setShowMessageContextMenu(true);
   }, []);
 
@@ -299,7 +306,7 @@ const Chat = () => {
             <View style={styles.onlineStatus}>
               <View style={[
                 styles.onlineDot,
-                { backgroundColor: sellerInfo.online ? '#4CAF50' : Colors.grey }
+                { backgroundColor: sellerInfo.online ? Colors.green : Colors.grey }
               ]} />
               <Text style={styles.onlineText}>
                 {sellerInfo.online ? 'Online' : 'Offline'}

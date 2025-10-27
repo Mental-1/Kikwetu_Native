@@ -9,11 +9,11 @@ import { analyticsService } from '../services/analytics.service';
 /**
  * Hook to fetch dashboard analytics
  */
-export function useDashboardAnalytics() {
+export function useDashboardAnalytics(period: '7d' | '30d' | '90d' | '1y') {
   return useQuery({
-    queryKey: ['dashboardAnalytics'],
+    queryKey: ['dashboardAnalytics', period],
     queryFn: async () => {
-      const response = await analyticsService.getDashboardAnalytics();
+      const response = await analyticsService.getDashboardAnalytics(period);
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to fetch analytics');
       }
@@ -27,11 +27,11 @@ export function useDashboardAnalytics() {
 /**
  * Hook to fetch listing analytics
  */
-export function useListingAnalytics() {
+export function useListingAnalytics(period: '7d' | '30d' | '90d' | '1y') {
   return useQuery({
-    queryKey: ['listingAnalytics'],
+    queryKey: ['listingAnalytics', period],
     queryFn: async () => {
-      const response = await analyticsService.getListingAnalytics();
+      const response = await analyticsService.getListingAnalytics(period);
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to fetch listing analytics');
       }

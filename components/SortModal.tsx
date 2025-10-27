@@ -3,14 +3,24 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const { height } = Dimensions.get('window');
-
 interface SortModalProps {
   visible: boolean;
   onClose: () => void;
   currentSortBy: string;
   onSortChange: (sortBy: string) => void;
 }
+const { height } = Dimensions.get('window');
+
+const DEFAULT_SORT = 'newest';
+
+const sortOptions = [
+  { value: DEFAULT_SORT, label: 'Newest First' },
+  { value: 'oldest', label: 'Oldest First' },
+  { value: 'price-low', label: 'Price: Low to High' },
+  { value: 'price-high', label: 'Price: High to Low' },
+  { value: 'popular', label: 'Most Popular' },
+  { value: 'rating', label: 'Highest Rated' },
+];
 
 const SortModal: React.FC<SortModalProps> = ({
   visible,
@@ -19,21 +29,11 @@ const SortModal: React.FC<SortModalProps> = ({
   onSortChange,
 }) => {
   const [tempSortBy, setTempSortBy] = useState(currentSortBy);
-
   useEffect(() => {
     if (visible) {
       setTempSortBy(currentSortBy);
     }
   }, [visible, currentSortBy]);
-
-  const sortOptions = [
-    { value: 'newest', label: 'Newest First' },
-    { value: 'oldest', label: 'Oldest First' },
-    { value: 'price-low', label: 'Price: Low to High' },
-    { value: 'price-high', label: 'Price: High to Low' },
-    { value: 'popular', label: 'Most Popular' },
-    { value: 'rating', label: 'Highest Rated' },
-  ];
 
   const handleApply = () => {
     onSortChange(tempSortBy);
@@ -41,7 +41,7 @@ const SortModal: React.FC<SortModalProps> = ({
   };
 
   const handleReset = () => {
-    setTempSortBy('newest');
+    setTempSortBy(DEFAULT_SORT);
   };
 
   return (
@@ -56,7 +56,7 @@ const SortModal: React.FC<SortModalProps> = ({
         activeOpacity={1} 
         onPress={onClose}
       >
-        <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+        <TouchableOpacity activeOpacity={1}>
           <View style={styles.modalContainer}>
             {/* Header */}
             <View style={styles.modalHeader}>

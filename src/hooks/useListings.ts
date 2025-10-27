@@ -1,6 +1,7 @@
-import { createListing, CreateListingData, deleteListing, getListingById, getUserListings, updateListing, updateListingStatus } from '@/src/services/listingsService';
+import { createListing, CreateListingData, deleteListing, getListingById, getListings, getUserListings, updateListing, updateListingStatus, ListingFilters } from '@/src/services/listingsService';
 import { uploadImages } from '@/src/utils/imageUpload';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 
 /**
  * Hook to fetch user's listings
@@ -39,37 +40,34 @@ export function useCreateListing() {
     }) => {
       const { listingData, imageUris, onUploadProgress } = data;
       
-      // Upload images first if provided
       let uploadedImages: string[] = [];
       if (imageUris && imageUris.length > 0) {
-        onUploadProgress?.(10); // Start upload
+        onUploadProgress?.(10);
         
         const uploadResults = await uploadImages(imageUris, {
           onProgress: (progress) => {
-            // Map upload progress to 10-90% range
             const mappedProgress = 10 + (progress.percentage * 0.8);
             onUploadProgress?.(mappedProgress);
           },
         });
         
         uploadedImages = uploadResults.map(result => result.url);
-        onUploadProgress?.(90); // Upload complete
+        onUploadProgress?.(90);
       }
 
-      // Create listing with uploaded image URLs
       const listingWithImages = {
         ...listingData,
         images: uploadedImages,
+        videos: listingData.videos,
       };
 
-      onUploadProgress?.(95); // Almost done
+      onUploadProgress?.(95);
       const result = await createListing(listingWithImages);
-      onUploadProgress?.(100); // Complete
+      onUploadProgress?.(100);
       
       return result;
     },
     onSuccess: () => {
-      // Invalidate and refetch user listings
       queryClient.invalidateQueries({ queryKey: ['userListings'] });
       queryClient.invalidateQueries({ queryKey: ['listings'] });
     },
@@ -91,37 +89,34 @@ export function useUpdateListing() {
     }) => {
       const { listingId, listingData, imageUris, onUploadProgress } = data;
       
-      // Upload new images if provided
       let uploadedImages: string[] = [];
       if (imageUris && imageUris.length > 0) {
-        onUploadProgress?.(10); // Start upload
+        onUploadProgress?.(10);
         
         const uploadResults = await uploadImages(imageUris, {
           onProgress: (progress) => {
-            // Map upload progress to 10-90% range
             const mappedProgress = 10 + (progress.percentage * 0.8);
             onUploadProgress?.(mappedProgress);
           },
         });
         
         uploadedImages = uploadResults.map(result => result.url);
-        onUploadProgress?.(90); // Upload complete
+        onUploadProgress?.(90);
       }
 
-      // Update listing
       const updateData = {
         ...listingData,
         ...(uploadedImages.length > 0 && { images: uploadedImages }),
+        ...(listingData.videos && { videos: listingData.videos }),
       };
 
-      onUploadProgress?.(95); // Almost done
+      onUploadProgress?.(95);
       const result = await updateListing(listingId, updateData);
-      onUploadProgress?.(100); // Complete
+      onUploadProgress?.(100);
       
       return result;
     },
     onSuccess: (_, variables) => {
-      // Invalidate and refetch relevant queries
       queryClient.invalidateQueries({ queryKey: ['userListings'] });
       queryClient.invalidateQueries({ queryKey: ['listings'] });
       queryClient.invalidateQueries({ queryKey: ['listingDetails', variables.listingId] });
@@ -138,7 +133,6 @@ export function useDeleteListing() {
   return useMutation({
     mutationFn: deleteListing,
     onSuccess: () => {
-      // Invalidate and refetch user listings
       queryClient.invalidateQueries({ queryKey: ['userListings'] });
       queryClient.invalidateQueries({ queryKey: ['listings'] });
     },
@@ -155,7 +149,6 @@ export function useUpdateListingStatus() {
     mutationFn: ({ listingId, status }: { listingId: string; status: string }) =>
       updateListingStatus(listingId, status),
     onSuccess: (_, variables) => {
-      // Invalidate and refetch relevant queries
       queryClient.invalidateQueries({ queryKey: ['userListings'] });
       queryClient.invalidateQueries({ queryKey: ['listings'] });
       queryClient.invalidateQueries({ queryKey: ['listingDetails', variables.listingId] });
@@ -183,7 +176,6 @@ export function useSaveDraft() {
       negotiable: boolean;
       store_id?: number;
     }) => {
-      // Save to local storage instead of database
       const draftKey = `listing_draft_${Date.now()}`;
       await localStorage.setItem(draftKey, JSON.stringify({
         ...draftData,
@@ -194,7 +186,6 @@ export function useSaveDraft() {
       return { draftKey, ...draftData };
     },
     onSuccess: () => {
-      // Optionally invalidate drafts query if we implement one
       queryClient.invalidateQueries({ queryKey: ['drafts'] });
     },
   });
@@ -207,7 +198,6 @@ export function useLoadDrafts() {
   return useQuery({
     queryKey: ['drafts'],
     queryFn: async () => {
-      // Load from local storage
       const drafts: any[] = [];
       
       for (let i = 0; i < localStorage.length; i++) {
@@ -224,38 +214,18 @@ export function useLoadDrafts() {
       
       return drafts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     },
-    staleTime: 1 * 60 * 1000, // 1 minute
+    staleTime: 1 * 60 * 1000,
   });
 }
 
-/**
- * Fetch listings with infinite scrolling
- */
-async function fetchListings(page: number = 1): Promise<{ data: any[]; hasMore: boolean; totalCount: number }> {
-  try {
-    const response = await fetch(`http://localhost:8081/api/listings?page=${page}&limit=20`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const result = await response.json();
-    return {
-      data: result.listings || [],
-      hasMore: result.hasMore || false,
-      totalCount: result.totalCount || 0,
-    };
-  } catch (error) {
-    console.error('Error fetching listings:', error);
-    throw error;
-  }
-}
 
 /**
  * Hook for fetching listings with infinite scrolling
  */
-export function useListings() {
+export function useListings(filters: ListingFilters = {}) {
   return useInfiniteQuery({
-    queryKey: ['listings'],
-    queryFn: ({ pageParam = 1 }) => fetchListings(pageParam),
+    queryKey: ['listings', filters],
+    queryFn: ({ pageParam = 1 }) => getListings(filters, pageParam),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       return lastPage.hasMore ? allPages.length + 1 : undefined;
@@ -267,42 +237,4 @@ export function useListings() {
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
-}
-
-/**
- * Hook for filtered listings with search
- */
-export function useFilteredListings(searchQuery: string = '') {
-  const {
-    data,
-    isLoading,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    refetch,
-  } = useListings();
-
-  const listings = data?.pages.flatMap(page => page.data) || [];
-  const totalCount = data?.pages[0]?.totalCount || 0;
-
-  // Filter listings based on search query
-  const filteredListings = searchQuery
-    ? listings.filter((item: any) =>
-        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.location?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : listings;
-
-  return {
-    listings: filteredListings,
-    isLoading,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    refetch,
-    totalCount,
-  };
 }

@@ -14,7 +14,10 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  ActivityIndicator,
+  RefreshControl,
+  GestureResponderEvent
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -108,7 +111,7 @@ const Conversations = () => {
     router.push(`/(screens)/(dashboard)/chat/${conversationId}`);
   }, [router]);
 
-  const handleConversationLongPress = useCallback((conversation: Conversation, event: any) => {
+  const handleConversationLongPress = useCallback((conversation: Conversation, event: GestureResponderEvent) => {
     setSelectedConversation(conversation);
     setContextMenuPosition({ x: event.nativeEvent.pageX - 100, y: event.nativeEvent.pageY - 50 });
     setShowContextMenu(true);
@@ -224,13 +227,13 @@ const Conversations = () => {
   ), [handleConversationPress]);
 
   const sortedConversations = useMemo(() => {
-    return [...mockConversations].sort((a, b) => {
+    return [...conversations].sort((a, b) => {
       // Simple sorting by unread count first, then by time
       if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
       if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
       return 0; // Keep original order for demo
     });
-  }, []);
+  }, [conversations]);
 
   return (
     <View style={styles.container}>
@@ -248,6 +251,11 @@ const Conversations = () => {
       </SafeAreaView>
 
       {/* Conversations List */}
+      {isLoading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : (
       <FlatList
         data={sortedConversations}
         keyExtractor={(item) => item.id}
@@ -258,12 +266,19 @@ const Conversations = () => {
         maxToRenderPerBatch={10}
         windowSize={10}
         initialNumToRender={10}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={refetch}
+            colors={[Colors.primary]}
+          />
+        }
         getItemLayout={(data, index) => ({
           length: 80,
           offset: 80 * index,
           index,
         })}
-      />
+      />)}
 
       {/* Context Menu */}
       <ContextMenu
@@ -290,6 +305,21 @@ const Conversations = () => {
         confirmWeight="600"
         denyWeight="400"
       />
+
+      {/* Custom Alert for Fetch Errors */}
+      {fetchError && (
+        <CustomDialog
+          visible={!!fetchError}
+          title="Error Loading Conversations"
+          message={fetchError.message || "Failed to load conversations. Please try again."}
+          confirmText="Retry"
+          onConfirm={refetch}
+          denyText="Close"
+          onDeny={() => { /* Optionally handle closing without retry */ }}
+          icon="warning-outline"
+          iconColor={Colors.red}
+        />
+      )}
 
       {/* Custom Alert */}
       <AlertComponent />

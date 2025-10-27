@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { IMAGE_PRESETS, ProcessedImage, cleanupTempFiles, processImages } from '@/utils/imageUtils';
 import { BatchUploadResult, BucketType, generateFolderPath, uploadImages } from '@/utils/uploadService';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 
 export interface ImageUploadState {
   isProcessing: boolean;
@@ -30,69 +30,76 @@ export function useImageUpload(options: UseImageUploadOptions) {
     error: null,
   });
 
+  const processedUrisRef = useRef<string[]>([]);
+
   const processAndUploadImages = useCallback(async (imageUris: string[]) => {
-    if (!options.userId) {
+    if (state.isProcessing || state.isUploading) return null;
+    const resolvedUserId =
+      options.userId ??
+      (await supabase.auth.getUser().then(r => r.data.user?.id).catch(() => null));
+    if (!resolvedUserId) {
       setState(prev => ({ ...prev, error: 'User ID is required for upload' }));
       return null;
     }
 
     try {
-      // Reset state
-      setState({
+      setState(prev => ({
+        ...prev,
         isProcessing: true,
         isUploading: false,
         progress: 0,
         processedImages: [],
         uploadResults: null,
         error: null,
-      });
+      }));
 
-      // Validate image count
       if (imageUris.length > (options.maxImages || 10)) {
         throw new Error(`Maximum ${options.maxImages || 10} images allowed`);
       }
 
-      // Process images
       const preset = options.preset ? IMAGE_PRESETS[options.preset] : IMAGE_PRESETS.LISTING;
-      const processedImages = await processImages(imageUris, preset);
+      let processedImagesLocal = await processImages(imageUris, preset);
+      processedUrisRef.current = processedImagesLocal.map(img => img.uri);
       
-      setState(prev => ({ 
-        ...prev, 
-        isProcessing: false, 
+      setState(prev => ({
+        ...prev,
+        isProcessing: false,
         isUploading: true,
-        processedImages,
+        processedImages: processedImagesLocal,
         progress: 50 
       }));
 
-      // Generate folder path
-      const folder = generateFolderPath(options.bucket, options.userId, options.listingId);
+      const folder = generateFolderPath(options.bucket, resolvedUserId, options.listingId);
 
-      // Upload images
-      const uploadResults = await uploadImages(processedImages, options.bucket, folder);
+      const uploadResults = await uploadImages(processedImagesLocal, options.bucket, folder);
 
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         isUploading: false,
         uploadResults,
         progress: 100 
       }));
 
-      // Cleanup temporary files
-      await cleanupTempFiles(processedImages.map(img => img.uri));
-
       return uploadResults;
     } catch (error) {
       console.error('Image upload error:', error);
-      setState(prev => ({ 
-        ...prev, 
-        isProcessing: false, 
+      setState(prev => ({
+        ...prev,
+        isProcessing: false,
         isUploading: false,
         error: error instanceof Error ? error.message : 'Upload failed' 
       }));
       return null;
+    } finally {
+      try {
+        if (processedUrisRef.current.length) {
+          await cleanupTempFiles(processedUrisRef.current);
+        }
+      } catch (cleanupError) {
+        console.error('Error during image cleanup:', cleanupError);
+      }
     }
-  }, [options]);
-
+  }, [options, state.isProcessing, state.isUploading]);
   const resetState = useCallback(() => {
     setState({
       isProcessing: false,
@@ -145,8 +152,14 @@ export function useListingImageUpload(listingId?: string) {
     }
   }, [userId, uploadHook]);
 
+  const processAndUploadImagesWithUserCheck = useCallback(async (imageUris: string[]) => {
+    await initializeUser();
+    return uploadHook.processAndUploadImages(imageUris);
+  }, [initializeUser, uploadHook]);
+
   return {
     ...uploadHook,
+    processAndUploadImages: processAndUploadImagesWithUserCheck,
     initializeUser,
     userId,
   };
@@ -174,8 +187,14 @@ export function useProfileImageUpload() {
     }
   }, [userId, uploadHook]);
 
+  const processAndUploadImagesWithUserCheck = useCallback(async (imageUris: string[]) => {
+    await initializeUser();
+    return uploadHook.processAndUploadImages(imageUris);
+  }, [initializeUser, uploadHook]);
+
   return {
     ...uploadHook,
+    processAndUploadImages: processAndUploadImagesWithUserCheck,
     initializeUser,
     userId,
   };

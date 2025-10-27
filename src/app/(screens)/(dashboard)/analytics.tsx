@@ -371,7 +371,7 @@ export default function Analytics() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar style="dark" />
       
       {/* Header */}
@@ -406,7 +406,7 @@ export default function Analytics() {
         )}
 
         {/* Error State */}
-        {!isLoading && !listingLoading && !analyticsData && (
+        {!isLoading && !listingLoading && (!analyticsData || !listingData) && (
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={48} color={Colors.red} />
             <Text style={styles.errorTitle}>Failed to Load Analytics</Text>
@@ -420,7 +420,7 @@ export default function Analytics() {
         )}
 
         {/* Content - Only show if not loading and data exists */}
-        {!isLoading && !listingLoading && analyticsData && (
+        {!isLoading && !listingLoading && analyticsData && listingData && (
           <>
             {/* Period Selector */}
             <View style={styles.periodSelector}>
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 50,
+    paddingTop: 16,
     paddingBottom: 12,
     backgroundColor: Colors.white,
     borderBottomWidth: 0.2,

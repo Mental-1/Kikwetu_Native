@@ -70,8 +70,6 @@ const ChangeEmailModal: React.FC<ChangeEmailModalProps> = ({ visible, onClose })
     onClose();
   };
 
-  if (!visible) return null;
-
   return (
     <>
       <Modal

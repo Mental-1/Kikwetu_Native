@@ -12,6 +12,7 @@ export interface CreateListingData {
   longitude?: number;
   negotiable: boolean;
   images: string[];
+  videos: string[];
   store_id?: number;
   tags?: string[];
   status: 'draft' | 'active' | 'pending' | 'rejected' | 'under_review';
@@ -93,7 +94,7 @@ export async function updateListing(listingId: string, listingData: Partial<Crea
         updated_at: new Date().toISOString(),
       })
       .eq('id', listingId)
-      .eq('user_id', user.id) // Ensure user can only update their own listings
+      .eq('user_id', user.id)
       .select()
       .single();
 
@@ -214,6 +215,48 @@ export async function getListingById(listingId: string): Promise<any | null> {
   } catch (error) {
     console.error('Get listing service error:', error);
     return null;
+  }
+}
+
+/**
+ * Get all listings with optional filters and pagination
+ */
+export async function getListings(filters: ListingFilters = {}, page: number = 1, limit: number = 20): Promise<{ data: any[], hasMore: boolean, totalCount: number }> {
+  try {
+    let query = supabase
+      .from('listings')
+      .select('*', { count: 'exact' })
+      .neq('status', 'deleted')
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1);
+
+    // Apply filters
+    if (filters) {
+      if (filters.category_id) query = query.eq('category_id', filters.category_id);
+      if (filters.subcategory_id) query = query.eq('subcategory_id', filters.subcategory_id);
+      if (filters.condition) query = query.eq('condition', filters.condition);
+      if (filters.status) query = query.eq('status', filters.status);
+      if (filters.price_min) query = query.gte('price', filters.price_min);
+      if (filters.price_max) query = query.lte('price', filters.price_max);
+      if (filters.search) {
+        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      }
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error('Error fetching listings:', error);
+      throw error;
+    }
+
+    const totalCount = count || 0;
+    const hasMore = (page * limit) < totalCount;
+
+    return { data: data || [], hasMore, totalCount };
+  } catch (error) {
+    console.error('Get listings service error:', error);
+    throw error;
   }
 }
 

@@ -8,13 +8,13 @@ import {
   ActivityIndicator,
   Modal,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
+import { copyToClipboard } from '@/utils/clipboardUtils';
 import { Button } from 'react-native-paper';
 import QRCode from 'react-native-qrcode-svg';
 
@@ -156,6 +156,13 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
       onPress: async () => {
         try {
           setIsLoading(true);
+          const { data: factors } = await supabase.auth.mfa.listFactors();
+          const totpFactors = factors?.totp ?? [];
+          for (const factor of totpFactors) {
+            if (factor.status === 'verified') {
+              await supabase.auth.mfa.unenroll({ factorId: factor.id });
+            }
+          }
           await toggleMFAMutation.mutateAsync(false);
           success('2FA Disabled', 'Two-factor authentication has been disabled.');
           onClose();
@@ -167,16 +174,6 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
         }
       }
     });
-  };
-
-  const handleShareSecret = async () => {
-    try {
-      await Share.share({
-        message: `2FA Secret Key: ${secretKey}\n\nUse this key to set up your authenticator app.`,
-      });
-    } catch (error) {
-      console.error('Error sharing secret:', error);
-    }
   };
 
   const handleClose = () => {
@@ -277,8 +274,15 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
                          <Text style={styles.secretLabel}>Or enter manually:</Text>
                          <View style={styles.secretBox}>
                            <Text style={styles.secretText}>{secretKey}</Text>
-                           <TouchableOpacity onPress={handleShareSecret} style={styles.shareButton}>
-                             <Ionicons name="share-outline" size={20} color={Colors.primary} />
+                           <TouchableOpacity onPress={async () => {
+                             const isCopied = await copyToClipboard(secretKey);
+                             if (isCopied) {
+                               success('Secret Key Copied', 'Your 2FA secret key has been copied to the clipboard.');
+                             } else {
+                               error('Copy Failed', 'Unable to copy secret key to clipboard.');
+                             }
+                           }} style={styles.shareButton}>
+                             <Ionicons name="copy-outline" size={20} color={Colors.primary} />
                            </TouchableOpacity>
                          </View>
                          <Text style={styles.helpText}>
@@ -314,7 +318,7 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
                       ]}
                       placeholder="000000"
                       value={verificationCode}
-                      onChangeText={setVerificationCode}
+                      onChangeText={(t) => setVerificationCode(t.replace(/\D/g, ''))}
                       keyboardType="number-pad"
                       maxLength={6}
                       autoFocus

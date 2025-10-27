@@ -44,8 +44,5 @@ app-example
 /android
 
 #VSCode
-/.vscode
-
-.env.local
-
-.env.local
+.vscode/
+.idea/

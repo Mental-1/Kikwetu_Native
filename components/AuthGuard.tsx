@@ -59,7 +59,6 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // If user is not authenticated, show sign-in modal
   return (
     <>
-      {children}
       {showSignIn && (
         <SignIn
           visible={showSignIn}

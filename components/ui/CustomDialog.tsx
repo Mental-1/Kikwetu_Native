@@ -2,7 +2,7 @@ import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import React from 'react';
-import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View, type TextStyle } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -14,12 +14,12 @@ interface CustomDialogProps {
   denyText: string;
   onConfirm: () => void;
   onDeny: () => void;
-  icon?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
   confirmColor?: string;
   denyColor?: string;
-  confirmWeight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
-  denyWeight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
+  confirmWeight?: TextStyle['fontWeight'];
+  denyWeight?: TextStyle['fontWeight'];
 }
 
 const CustomDialog: React.FC<CustomDialogProps> = ({
@@ -53,10 +53,11 @@ const CustomDialog: React.FC<CustomDialogProps> = ({
             {/* Icon */}
             {icon && (
               <View style={styles.iconContainer}>
-                <Ionicons 
-                  name={icon as any} 
-                  size={48} 
-                  color={iconColor} 
+                <Ionicons
+                  accessibilityLabel="Dialog icon"
+                  name={icon}
+                  size={48}
+                  color={iconColor}
                 />
               </View>
             )}
@@ -73,7 +74,9 @@ const CustomDialog: React.FC<CustomDialogProps> = ({
             {/* Action Buttons */}
             <View style={styles.buttonContainer}>
               {/* Deny Button */}
-              <TouchableOpacity 
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={denyText}
                 style={[styles.button, styles.denyButton]} 
                 onPress={onDeny}
                 activeOpacity={0.7}
@@ -85,7 +88,9 @@ const CustomDialog: React.FC<CustomDialogProps> = ({
               <View style={styles.buttonSeparator} />
 
               {/* Confirm Button */}
-              <TouchableOpacity 
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={confirmText}
                 style={[styles.button, styles.confirmButton]} 
                 onPress={onConfirm}
                 activeOpacity={0.7}

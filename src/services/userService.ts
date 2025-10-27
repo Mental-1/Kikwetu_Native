@@ -86,7 +86,7 @@ class UserService {
   }
 
   async deleteAccount(reason?: string): Promise<ApiResponse<void>> {
-    return apiClient.delete<void>(`${this.baseEndpoint}/account`, { reason });
+    return apiClient.delete<void>(`${this.baseEndpoint}/account?reason=${reason}`);
   }
 
   async getUserStats(): Promise<ApiResponse<{

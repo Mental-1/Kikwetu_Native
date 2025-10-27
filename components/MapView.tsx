@@ -1,9 +1,8 @@
 import { Colors } from '@/src/constants/constant';
 import * as Location from 'expo-location';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, Region } from 'react-native-maps';
-
 
 interface MapViewComponentProps {
   markers?: {
@@ -38,104 +37,119 @@ const MapViewComponent: React.FC<MapViewComponentProps> = ({
       longitudeDelta: 0.0421,
     }
   );
+  
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
-
-  const getCurrentLocation = useCallback(async () => {
-    if (!showUserLocation) {
-      return;
-    }
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission denied', 'Location permission is required to show your location on the map.');
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({});
-      const userCoords = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      };
-      
-      setUserLocation(userCoords);
-      
-      // Center map on user location if no initial region provided
-      if (!initialRegion) {
-        setRegion({
-          ...userCoords,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        });
-      }
-    } catch (error) {
-      console.error('Error getting location:', error);
-    }
-  }, [showUserLocation, initialRegion]);
+  
+  const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
+  const hasRequestedLocation = useRef(false);
+  const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
-    if (!showUserLocation) {
+    // Prevent multiple simultaneous location requests
+    if (!showUserLocation || hasRequestedLocation.current) {
       return;
     }
+
+    hasRequestedLocation.current = true;
+
+    const getCurrentLocation = async () => {
+      try {
+        // Request permissions
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        
+        if (status !== 'granted') {
+          console.log('Location permission denied');
+          setLocationPermissionGranted(false);
+          return;
+        }
+
+        setLocationPermissionGranted(true);
+
+        // Get current position with a reasonable timeout
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        
+        const userCoords = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        };
+        
+        setUserLocation(userCoords);
+        
+        // Center map on user location only if no initial region was provided
+        if (!initialRegion) {
+          setRegion({
+            ...userCoords,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          });
+        }
+      } catch (error) {
+        console.error('Error getting location:', error);
+        setLocationPermissionGranted(false);
+      }
+    };
+
     getCurrentLocation();
-  }, [showUserLocation, getCurrentLocation]);
+  }, [showUserLocation, initialRegion]);
 
   const handleRegionChange = (newRegion: Region) => {
     setRegion(newRegion);
     onRegionChange?.(newRegion);
   };
 
+  const handleMarkerPress = (marker: any) => {
+    if (onMarkerPress) {
+      onMarkerPress(marker);
+    }
+  };
+
   return (
     <View style={[styles.container, style]}>
       <MapView
+        ref={mapRef}
         provider={PROVIDER_DEFAULT}
         style={styles.map}
         region={region}
         onRegionChangeComplete={handleRegionChange}
-        showsUserLocation={showUserLocation}
+        showsUserLocation={locationPermissionGranted && showUserLocation}
         showsMyLocationButton={false}
-        showsCompass={false}
-        showsScale={false}
+        showsCompass={true}
         mapType="standard"
-        loadingEnabled={false}
         moveOnMarkerPress={false}
-        showsBuildings={false}
-        showsIndoors={false}
-        showsPointsOfInterest={false}
-        showsTraffic={false}
-        maxZoomLevel={18}
-        minZoomLevel={3}
         scrollEnabled={true}
         zoomEnabled={true}
         pitchEnabled={true}
         rotateEnabled={true}
-        cacheEnabled={true}
-        followsUserLocation={false}
-        userLocationAnnotationTitle=""
-        userLocationCalloutEnabled={false}
+        loadingEnabled={true}
+        loadingIndicatorColor={Colors.primary}
+        loadingBackgroundColor={Colors.background}
       >
-        {/* User Location Marker */}
-        {userLocation && showUserLocation && (
-          <Marker
-            coordinate={userLocation}
-            title="Your Location"
-            description="You are here"
-            pinColor={Colors.primary}
-          />
-        )}
+        {/* Custom Markers for listings */}
+        {markers && markers.length > 0 && markers.map((marker) => {
+          if (!marker.coordinate || 
+              typeof marker.coordinate.latitude !== 'number' || 
+              typeof marker.coordinate.longitude !== 'number' ||
+              isNaN(marker.coordinate.latitude) ||
+              isNaN(marker.coordinate.longitude)) {
+            console.warn(`Invalid marker coordinate for marker ${marker.id}`);
+            return null;
+          }
 
-        {/* Custom Markers */}
-        {markers.map((marker) => (
-          <Marker
-            key={marker.id}
-            coordinate={marker.coordinate}
-            title={marker.title}
-            description={marker.description}
-            onPress={() => onMarkerPress?.(marker)}
-          />
-        ))}
+          return (
+            <Marker
+              key={marker.id}
+              coordinate={marker.coordinate}
+              title={marker.title}
+              description={marker.description}
+              onPress={() => handleMarkerPress(marker)}
+            />
+          );
+        })}
       </MapView>
     </View>
   );

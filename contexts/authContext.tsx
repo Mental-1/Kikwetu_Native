@@ -7,10 +7,10 @@ interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, username: string, fullName?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, username: string, fullName?: string, phoneNumber?: string) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,49 +32,57 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check authentication status on mount
+    let isMounted = true;
+
     const initializeAuth = async () => {
       try {
         const authenticated = await isAuthenticated();
         
         if (authenticated) {
-          // Get user data from secure storage
           const userData = await getUserData();
-          if (userData) {
+          if (userData && isMounted) {
             setUser(userData);
           } else {
-            // Fetch fresh user data from API
             await refreshUserSession();
           }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     initializeAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   /**
    * Refresh user session from API
    */
-  const refreshUserSession = async () => {
+  const refreshUserSession = async (): Promise<boolean> => {
     try {
       const response = await authService.getSession();
       if (response.success && response.data) {
         setUser(response.data.user);
         await setUserData(response.data.user);
+        return true;
       } else {
         // Token invalid, clear everything
         await clearTokens();
         setUser(null);
+        return false;
       }
     } catch (error) {
       console.error('Error refreshing session:', error);
       await clearTokens();
       setUser(null);
+      return false;
     }
   };
 
@@ -107,7 +115,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     email: string,
     password: string,
     username: string,
-    fullName?: string
+    fullName?: string,
+    phoneNumber?: string
   ) => {
     try {
       setLoading(true);
@@ -116,6 +125,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         password,
         username,
         full_name: fullName,
+        phone_number: phoneNumber,
       });
 
       if (response.success && response.data) {
@@ -139,17 +149,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       await authService.logout();
-      setUser(null);
-      return { error: null };
     } catch (error: any) {
       console.error('Sign out error:', error);
-      // Clear local state even if API call fails
-      setUser(null);
-      await clearTokens();
       return { error: { message: error.message || 'Logout failed' } };
     } finally {
+      await clearTokens();
+      setUser(null);
       setLoading(false);
     }
+    return { error: null };
   };
 
   /**
@@ -157,6 +165,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const resetPassword = async (email: string) => {
     try {
+      setLoading(true);
       const response = await authService.forgotPassword(email);
 
       if (response.success) {
@@ -167,14 +176,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error: any) {
       console.error('Reset password error:', error);
       return { error: { message: error.message || 'Password reset failed' } };
+    } finally {
+      setLoading(false);
     }
   };
 
   /**
    * Refresh user data
    */
-  const refreshUser = async () => {
-    await refreshUserSession();
+  const refreshUser = async (): Promise<boolean> => {
+    return await refreshUserSession();
   };
 
   const value: AuthContextType = {
