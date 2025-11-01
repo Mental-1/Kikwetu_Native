@@ -226,7 +226,6 @@ const Saved = () => {
     });
   }, [savedListings, router]);
 
-  // Memoized filtered listings for performance
   const filteredListings = useMemo(() => {
     return savedListings.filter(listing => {
       const matchesFilter = selectedFilter === 'all' || 
@@ -478,7 +477,7 @@ const Saved = () => {
               windowSize={10}
               initialNumToRender={6}
               getItemLayout={(data, index) => ({
-                length: 200, // Approximate item height
+                length: 200,
                 offset: 200 * Math.floor(index / 2),
                 index,
               })}

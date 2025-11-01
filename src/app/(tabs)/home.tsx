@@ -5,22 +5,21 @@ import CustomDialog from '@/components/ui/CustomDialog';
 import VideoCard from '@/components/VideoCard';
 import { useAuth } from '@/contexts/authContext';
 import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
-import { useNotifications } from '@/src/hooks/useNotifications';
 import SignIn from '@/src/app/(screens)/(auth)/signin';
 import SignUp from '@/src/app/(screens)/(auth)/signup';
-import { Colors } from '@/src/constants/constant';
+import { Colors, getCategoryImage } from '@/src/constants/constant';
 import { useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
 import { useListings } from '@/src/hooks/useListings';
+import { useNotifications } from '@/src/hooks/useNotifications';
 import { useFeaturedVideos } from '@/src/hooks/useVideos';
+import { useAppStore } from '@/stores/useAppStore';
 import { showSuccessToast } from '@/utils/toast';
-import { getIconFromEmoji } from '@/src/utils/iconHelpers';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useState} from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppStore } from '@/stores/useAppStore';
 
 
 type Props = Record<string, never>;
@@ -149,6 +148,19 @@ const Home = (props: Props) => {
         });
     }, [router]);
 
+    const categoryPages = useMemo(() => {
+        if (!categories || categories.length === 0) return [];
+        
+        const pages: typeof categories[] = [];
+        const categoriesPerPage = 12;
+        
+        for (let i = 0; i < categories.length; i += categoriesPerPage) {
+            pages.push(categories.slice(i, i + categoriesPerPage));
+        }
+        
+        return pages;
+    }, [categories]);
+
     return (
         <View style={styles.container}>
             <StatusBar style="light" />
@@ -214,35 +226,116 @@ const Home = (props: Props) => {
                     
                     {categoriesLoading ? (
                         <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="large" color={Colors.primary} />
                             <Text style={styles.loadingText}>Loading categories...</Text>
                         </View>
                     ) : (
-                        <View style={styles.categoriesGrid}>
-                            {categories?.slice(0, 8).map((category) => (
-                                <TouchableOpacity 
-                                    key={category.id} 
-                                    style={[
-                                        styles.categoryItem,
-                                        loadingCategoryId === category.id && styles.categoryItemLoading
-                                    ]}
-                                    onPress={() => handleCategoryPress(category.id)}
-                                    activeOpacity={0.7}
-                                >
-                                    <View style={styles.categoryIconContainer}>
-                                        {loadingCategoryId === category.id ? (
-                                            <ActivityIndicator size="small" color={Colors.primary} />
-                                        ) : (
-                                            <Ionicons 
-                                                name={getIconFromEmoji(category.icon || "") as any} 
-                                                size={24} 
-                                                color={Colors.primary} 
-                                            />
-                                        )}
+                        <FlatList
+                            horizontal
+                            data={categoryPages}
+                            keyExtractor={(item, index) => `page-${index}`}
+                            showsHorizontalScrollIndicator={false}
+                            pagingEnabled
+                            decelerationRate="fast"
+                            contentContainerStyle={styles.categoriesScrollContent}
+                            renderItem={({ item: page }) => (
+                                <View style={styles.categoryPage}>
+                                    {/* Row 1 */}
+                                    <View style={styles.categoryRow}>
+                                        {page.slice(0, 4).map((category) => (
+                                            <TouchableOpacity 
+                                                key={category.id} 
+                                                style={[
+                                                    styles.categoryItem,
+                                                    loadingCategoryId === category.id && styles.categoryItemLoading
+                                                ]}
+                                                onPress={() => handleCategoryPress(category.id)}
+                                                activeOpacity={0.7}
+                                            >
+                                                <View style={styles.categoryImageContainer}>
+                                                    {loadingCategoryId === category.id ? (
+                                                        <ActivityIndicator size="small" color={Colors.primary} />
+                                                    ) : (
+                                                        <Image 
+                                                            source={getCategoryImage(category.name)}
+                                                            style={styles.categoryImage}
+                                                            resizeMode="cover"
+                                                        />
+                                                    )}
+                                                </View>
+                                                <Text style={styles.categoryName} numberOfLines={2}>
+                                                    {category.name}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
                                     </View>
-                                    <Text style={styles.categoryName}>{category.name}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
+                                    
+                                    {/* Row 2 */}
+                                    {page.length > 4 && (
+                                        <View style={styles.categoryRow}>
+                                            {page.slice(4, 8).map((category) => (
+                                                <TouchableOpacity 
+                                                    key={category.id} 
+                                                    style={[
+                                                        styles.categoryItem,
+                                                        loadingCategoryId === category.id && styles.categoryItemLoading
+                                                    ]}
+                                                    onPress={() => handleCategoryPress(category.id)}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <View style={styles.categoryImageContainer}>
+                                                        {loadingCategoryId === category.id ? (
+                                                            <ActivityIndicator size="small" color={Colors.primary} />
+                                                        ) : (
+                                                            <Image 
+                                                                source={getCategoryImage(category.name)}
+                                                                style={styles.categoryImage}
+                                                                resizeMode="cover"
+                                                            />
+                                                        )}
+                                                    </View>
+                                                    <Text style={styles.categoryName} numberOfLines={2}>
+                                                        {category.name}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    )}
+                                    
+                                    {/* Row 3 */}
+                                    {page.length > 8 && (
+                                        <View style={styles.categoryRow}>
+                                            {page.slice(8, 12).map((category) => (
+                                                <TouchableOpacity 
+                                                    key={category.id} 
+                                                    style={[
+                                                        styles.categoryItem,
+                                                        loadingCategoryId === category.id && styles.categoryItemLoading
+                                                    ]}
+                                                    onPress={() => handleCategoryPress(category.id)}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <View style={styles.categoryImageContainer}>
+                                                        {loadingCategoryId === category.id ? (
+                                                            <ActivityIndicator size="small" color={Colors.primary} />
+                                                        ) : (
+                                                            <Image 
+                                                                source={getCategoryImage(category.name)}
+                                                                style={styles.categoryImage}
+                                                                resizeMode="cover"
+                                                            />
+                                                        )}
+                                                    </View>
+                                                    <Text style={styles.categoryName} numberOfLines={2}>
+                                                        {category.name}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    )}
+                                </View>
+                            )}
+                        />
                     )}
                 </View>
 
@@ -482,26 +575,33 @@ const styles = StyleSheet.create({
     // Categories Styles
     loadingContainer: {
         alignItems: 'center',
-        paddingVertical: 20,
+        justifyContent: 'center',
+        paddingVertical: 40,
     },
     loadingText: {
         fontSize: 14,
         color: Colors.grey,
+        marginTop: 12,
     },
-    categoriesGrid: {
+    categoriesScrollContent: {
+        paddingRight: 16,
+    },
+    categoryPage: {
+        width: 360,
+    },
+    categoryRow: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         justifyContent: 'space-between',
+        marginBottom: 16,
     },
     categoryItem: {
         width: '22%',
         alignItems: 'center',
-        marginBottom: 20,
     },
-    categoryIconContainer: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+    categoryImageContainer: {
+        width: '100%',
+        aspectRatio: 1,
+        borderRadius: 999,
         backgroundColor: Colors.white,
         justifyContent: 'center',
         alignItems: 'center',
@@ -510,16 +610,22 @@ const styles = StyleSheet.create({
         shadowColor: '#000',
         shadowOffset: {
             width: 0,
-            height: 1,
+            height: 2,
         },
         shadowOpacity: 0.1,
-        shadowRadius: 2,
+        shadowRadius: 3,
+        overflow: 'hidden',
+    },
+    categoryImage: {
+        width: '100%',
+        height: '100%',
     },
     categoryName: {
-        fontSize: 12,
+        fontSize: 11,
         color: Colors.black,
         textAlign: 'center',
         fontWeight: '500',
+        lineHeight: 14,
     },
     categoryItemLoading: {
         opacity: 0.7,
