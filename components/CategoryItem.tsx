@@ -1,21 +1,22 @@
-import { getIconFromEmoji } from '@/src/utils/iconHelpers';
-import { Ionicons } from '@expo/vector-icons';
+import { categoryIcons, Colors } from '@/src/constants/constant';
 import React, { memo, useCallback } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Colors } from '@/src/constants/constant';
+import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface CategoryItemProps {
   id: number;
   name: string;
-  icon: string;
   isLoading: boolean;
   onPress: (id: number) => void;
 }
 
+const getCategoryIcon = (name: string) => {
+  const key = name.toLowerCase().replace(/\s+/g, '_');
+  return categoryIcons[key] || categoryIcons.default;
+};
+
 const CategoryItem = memo(({
   id,
   name,
-  icon,
   isLoading,
   onPress
 }: CategoryItemProps) => {
@@ -41,10 +42,10 @@ const CategoryItem = memo(({
         {isLoading ? (
           <ActivityIndicator size="small" color={Colors.primary} />
         ) : (
-          <Ionicons
-            name={getIconFromEmoji(icon || "")}
-            size={24}
-            color={Colors.primary}
+          <Image
+            source={getCategoryIcon(name)}
+            style={styles.categoryIcon}
+            resizeMode="cover"
           />
         )}
       </View>
@@ -64,28 +65,34 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: Colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  categoryName: {
-    fontSize: 12,
-    color: Colors.black,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  categoryItemLoading: {
-    opacity: 0.7,
-  },
-});
-
-export default CategoryItem;
+        backgroundColor: Colors.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 1,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        overflow: 'hidden',
+      },
+      categoryIcon: {
+        width: '100%',
+        height: '100%',
+      },
+      categoryName: {
+        fontSize: 12,
+        color: Colors.black,
+        textAlign: 'center',
+        fontWeight: '500',
+      },
+      categoryItemLoading: {
+        opacity: 0.7,
+      },
+    });
+    
+    export default CategoryItem;
+    

@@ -24,8 +24,8 @@ class SubscriptionsService {
   /**
    * Get user subscriptions
    */
-  async getSubscriptions(): Promise<ApiResponse<ApiSubscription[]>> {
-    return await apiClient.get<ApiSubscription[]>('/subscriptions');
+  async getSubscriptions(id: string): Promise<ApiResponse<ApiSubscription[]>> {
+    return await apiClient.get<ApiSubscription[]>(`/subscriptions/${id}`);
   }
 
   /**

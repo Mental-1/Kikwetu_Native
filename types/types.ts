@@ -68,10 +68,10 @@ export interface TransactionItem {
     payment_method: string;
     status: "completed" | "pending" | "failed";
     amount: number;
-    listings?: Array<{
+    listings?: {
         id: string;
         title: string;
-    }>;
+    }[];
 }
 
 export interface RecentActivityItem {
@@ -79,7 +79,7 @@ export interface RecentActivityItem {
     title: string;
     description: string;
     date: string;
-    icon: string; // e.g., 'check', 'clock', 'eye' etc.
+    icon: string;
     amount?: number;
 }
 
@@ -152,7 +152,6 @@ export interface ListingCreateData {
     expiry_date: string;
 }
 
-// Type for the validated form data
 export interface ValidatedListingData {
     title: string;
     description: string;

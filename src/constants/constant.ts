@@ -11,3 +11,30 @@ export const Colors = {
   badgeRed: '#ff4444',
 };
 export type Color = keyof typeof Colors;
+
+export const categoryIcons: { [key: string]: any } = {
+  'default': require('../../assets/images/categories/default.png'),
+  'art': require('../../assets/images/categories/art.png'),
+  'automobiles': require('../../assets/images/categories/automobiles.png'),
+  'baby_items': require('../../assets/images/categories/baby_items.png'),
+  'beauty': require('../../assets/images/categories/beauty.png'),
+  'books': require('../../assets/images/categories/books.png'),
+  'electronics': require('../../assets/images/categories/electronics.png'),
+  'fashion': require('../../assets/images/categories/fashion.png'),
+  'food': require('../../assets/images/categories/food.png'),
+  'furniture': require('../../assets/images/categories/furniture.png'),
+  'games': require('../../assets/images/categories/games.png'),
+  'garden': require('../../assets/images/categories/garden.png'),
+  'health': require('../../assets/images/categories/health.png'),
+  'house_appliances': require('../../assets/images/categories/house_appliances.png'),
+  'jewelry': require('../../assets/images/categories/jewelry.png'),
+  'jobs': require('../../assets/images/categories/jobs.png'),
+  'music': require('../../assets/images/categories/music.png'),
+  'pets': require('../../assets/images/categories/pets.png'),
+  'phones_tablets': require('../../assets/images/categories/phones_tablets.png'),
+  'property': require('../../assets/images/categories/property.png'),
+  'services': require('../../assets/images/categories/services.png'),
+  'sports': require('../../assets/images/categories/sports.png'),
+  'tools': require('../../assets/images/categories/tools.png'),
+  'toys': require('../../assets/images/categories/toys.png'),
+};

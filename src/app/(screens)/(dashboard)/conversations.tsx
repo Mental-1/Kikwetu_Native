@@ -21,60 +21,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Will be replaced with API data
-const mockConversations = [
-  {
-    id: '1',
-    sellerId: 'seller1',
-    sellerName: 'John Electronics',
-    sellerAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-    lastMessage: 'Hi! Is this item still available? I can offer Kes 15,000',
-    lastMessageTime: '2 min ago',
-    unreadCount: 2,
-    listingTitle: 'iPhone 13 Pro Max - Excellent Condition',
-  },
-  {
-    id: '2',
-    sellerId: 'seller2',
-    sellerName: 'Sarah Fashion',
-    sellerAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-    lastMessage: 'Thank you for your interest! Yes, it\'s still available.',
-    lastMessageTime: '1 hour ago',
-    unreadCount: 0,
-    listingTitle: 'Designer Handbag - Brand New',
-  },
-  {
-    id: '3',
-    sellerId: 'seller3',
-    sellerName: 'Mike Sports',
-    sellerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-    lastMessage: 'Perfect! When can you pick it up?',
-    lastMessageTime: '3 hours ago',
-    unreadCount: 1,
-    listingTitle: 'Nike Air Max 270 - Size 10',
-  },
-  {
-    id: '4',
-    sellerId: 'seller4',
-    sellerName: 'Lisa Home',
-    sellerAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-    lastMessage: 'I can meet you at Westgate Mall tomorrow at 2 PM',
-    lastMessageTime: '1 day ago',
-    unreadCount: 0,
-    listingTitle: 'Sofa Set - 3 Seater + 2 Seater',
-  },
-  {
-    id: '5',
-    sellerId: 'seller5',
-    sellerName: 'David Tech',
-    sellerAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face',
-    lastMessage: 'The laptop is in perfect condition, barely used',
-    lastMessageTime: '2 days ago',
-    unreadCount: 3,
-    listingTitle: 'MacBook Pro 13" - 2021 Model',
-  },
-];
-
 interface Conversation {
   id: string;
   sellerId: string;
@@ -82,6 +28,7 @@ interface Conversation {
   sellerAvatar: string;
   lastMessage: string;
   lastMessageTime: string;
+  // Note: unreadCount is expected to be calculated by the backend/API
   unreadCount: number;
   listingTitle: string;
 }
@@ -92,16 +39,13 @@ const Conversations = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
-  
+  const [errorDismissed, setErrorDismissed] = useState(false);
+
   const { showAlert, AlertComponent } = useCustomAlert();
   const { copy: showCopyAlert, error: showErrorAlert } = createAlertHelpers(showAlert);
 
-  // Fetch conversations from API
-  const { data: conversationsData, isLoading, error: fetchError, refetch } = useConversations();
+  const { data: conversations, isLoading, error: fetchError, refetch } = useConversations();
   const { data: unreadCount } = useUnreadCount();
-
-  // Transform API data or use mock data for now
-  const conversations = conversationsData || mockConversations;
 
   const handleBackPress = useCallback(() => {
     router.back();
@@ -123,11 +67,9 @@ const Conversations = () => {
         setShowDeleteDialog(true);
         break;
       case 'mark_read':
-        // Handle mark as read
         console.log('Mark as read:', selectedConversation?.id);
         break;
       case 'mute':
-        // Handle mute conversation
         console.log('Mute conversation:', selectedConversation?.id);
         break;
       case 'copy_details':
@@ -148,7 +90,6 @@ const Conversations = () => {
 
   const handleDeleteConfirm = useCallback(() => {
     setShowDeleteDialog(false);
-    // In a real app, this would delete the conversation from the backend
     console.log('Deleting conversation:', selectedConversation?.id);
     setSelectedConversation(null);
   }, [selectedConversation]);
@@ -224,38 +165,50 @@ const Conversations = () => {
         </Text>
       </View>
     </TouchableOpacity>
-  ), [handleConversationPress]);
+  ), [handleConversationPress, handleConversationLongPress]);
 
   const sortedConversations = useMemo(() => {
+    if (!conversations) return [];
     return [...conversations].sort((a, b) => {
-      // Simple sorting by unread count first, then by time
       if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
       if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
-      return 0; // Keep original order for demo
+      return 0;
     });
   }, [conversations]);
 
-  return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      
-      {/* Header */}
-      <SafeAreaView style={styles.header} edges={['top']}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-          <Ionicons name="chevron-back" size={24} color={Colors.black} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Messages</Text>
-        <TouchableOpacity style={styles.searchButton}>
-          <Ionicons name="search-outline" size={24} color={Colors.black} />
-        </TouchableOpacity>
-      </SafeAreaView>
+  const EmptyState = () => (
+    <View style={styles.fallbackContainer}>
+      <Ionicons name="chatbubbles-outline" size={60} color={Colors.grey} />
+      <Text style={styles.fallbackText}>No conversations.</Text>
+      <Text style={styles.fallbackSubText}>Text sellers to start one.</Text>
+    </View>
+  );
 
-      {/* Conversations List */}
-      {isLoading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      ) : (
+  const ErrorState = () => (
+    <View style={styles.fallbackContainer}>
+      <Ionicons name="cloud-offline-outline" size={60} color={Colors.grey} />
+      <Text style={styles.fallbackText}>Failed to fetch conversations.</Text>
+      <Text style={styles.fallbackSubText}>Please try again later.</Text>
+      <TouchableOpacity style={styles.retryButton} onPress={() => { setErrorDismissed(false); refetch(); }}>
+        <Text style={styles.retryButtonText}>Try Again</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderContent = () => {
+    if (isLoading && !conversations) {
+      return <ActivityIndicator style={{ marginTop: 50 }} size="large" color={Colors.primary} />;
+    }
+
+    if (fetchError && errorDismissed) {
+      return <ErrorState />;
+    }
+
+    if (!isLoading && sortedConversations.length === 0) {
+      return <EmptyState />;
+    }
+
+    return (
       <FlatList
         data={sortedConversations}
         keyExtractor={(item) => item.id}
@@ -278,9 +231,26 @@ const Conversations = () => {
           offset: 80 * index,
           index,
         })}
-      />)}
+      />
+    );
+  };
 
-      {/* Context Menu */}
+  return (
+    <View style={styles.container}>
+      <StatusBar style="dark" />
+      
+      <SafeAreaView style={styles.header} edges={['top']}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+          <Ionicons name="chevron-back" size={24} color={Colors.black} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Messages</Text>
+        <TouchableOpacity style={styles.searchButton}>
+          <Ionicons name="search-outline" size={24} color={Colors.black} />
+        </TouchableOpacity>
+      </SafeAreaView>
+
+      {renderContent()}
+
       <ContextMenu
         visible={showContextMenu}
         items={contextMenuItems}
@@ -289,7 +259,6 @@ const Conversations = () => {
         position={contextMenuPosition}
       />
 
-      {/* Delete Dialog */}
       <CustomDialog
         visible={showDeleteDialog}
         title="Delete Conversation"
@@ -306,22 +275,20 @@ const Conversations = () => {
         denyWeight="400"
       />
 
-      {/* Custom Alert for Fetch Errors */}
-      {fetchError && (
+      {fetchError && !errorDismissed && (
         <CustomDialog
-          visible={!!fetchError}
+          visible={true}
           title="Error Loading Conversations"
           message={fetchError.message || "Failed to load conversations. Please try again."}
           confirmText="Retry"
-          onConfirm={refetch}
+          onConfirm={() => { setErrorDismissed(false); refetch(); }}
           denyText="Close"
-          onDeny={() => { /* Optionally handle closing without retry */ }}
+          onDeny={() => setErrorDismissed(true)}
           icon="warning-outline"
           iconColor={Colors.red}
         />
       )}
 
-      {/* Custom Alert */}
       <AlertComponent />
     </View>
   );
@@ -425,6 +392,36 @@ const styles = StyleSheet.create({
   unreadMessage: {
     fontWeight: '500',
     color: Colors.black,
+  },
+  fallbackContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  fallbackText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.black,
+    marginTop: 16,
+  },
+  fallbackSubText: {
+    fontSize: 14,
+    color: Colors.grey,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 20,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

@@ -110,7 +110,17 @@ export default function ListingDetails() {
   }, [id, savedStatus?.isSaved, unsaveListing, saveListing, showSuccessAlert]);
 
   const handleShare = useCallback(async () => {
-    if (!listing) return;
+    if (!listing) {
+      showAlert({
+        title: 'Share Unavailable',
+        message: 'Listing details are not available for sharing.',
+        buttonText: 'OK',
+        icon: 'alert-circle-outline',
+        iconColor: '#F44336',
+        buttonColor: '#F44336',
+      });
+      return;
+    }
     
     try {
       const shareUrl = `https://kikwetu.com/listings/${listing.id}`;
@@ -168,40 +178,22 @@ export default function ListingDetails() {
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <StatusBar style="dark" />
-        <SafeAreaView style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={24} color={Colors.black} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Listing Details</Text>
-        </SafeAreaView>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading listing details...</Text>
-        </View>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading listing details...</Text>
       </View>
     );
   }
 
   if (error || !listing) {
     return (
-      <View style={styles.container}>
-        <StatusBar style="dark" />
-        <SafeAreaView style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={24} color={Colors.black} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Error</Text>
-        </SafeAreaView>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>
-            {error?.message || 'Listing not found'}
-          </Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
-            <Text style={styles.retryButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>
+          {error?.message || 'Listing not found'}
+        </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+          <Text style={styles.retryButtonText}>Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -266,7 +258,7 @@ export default function ListingDetails() {
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Listing Details</Text>
+          <Text style={styles.headerTitle}>Listing Details</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerIcon} onPress={handleShare}>
             <Ionicons name="share-social-outline" size={24} color={Colors.black} />

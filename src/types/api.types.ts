@@ -180,13 +180,15 @@ export interface ApiSubscription {
   transaction_id: string | null;
 }
 
-// Message types
 export interface ApiConversation {
   id: string;
-  participant_1_id: string;
-  participant_2_id: string;
-  last_message?: string;
-  last_message_at?: string;
+  sellerId: string;
+  sellerName: string;
+  sellerAvatar: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+  listingTitle: string;
   created_at: string;
   updated_at: string;
 }
