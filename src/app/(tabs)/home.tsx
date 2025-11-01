@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -148,17 +148,18 @@ const Home = (props: Props) => {
         });
     }, [router]);
 
-    const categoryPages = useMemo(() => {
+    // Organize categories into rows of 4 columns each
+    const categoryRows = useMemo(() => {
         if (!categories || categories.length === 0) return [];
         
-        const pages: typeof categories[] = [];
-        const categoriesPerPage = 12;
+        const rows: typeof categories[] = [];
+        const categoriesPerRow = 4;
         
-        for (let i = 0; i < categories.length; i += categoriesPerPage) {
-            pages.push(categories.slice(i, i + categoriesPerPage));
+        for (let i = 0; i < categories.length; i += categoriesPerRow) {
+            rows.push(categories.slice(i, i + categoriesPerRow));
         }
         
-        return pages;
+        return rows;
     }, [categories]);
 
     return (
@@ -230,112 +231,38 @@ const Home = (props: Props) => {
                             <Text style={styles.loadingText}>Loading categories...</Text>
                         </View>
                     ) : (
-                        <FlatList
-                            horizontal
-                            data={categoryPages}
-                            keyExtractor={(item, index) => `page-${index}`}
-                            showsHorizontalScrollIndicator={false}
-                            pagingEnabled
-                            decelerationRate="fast"
-                            contentContainerStyle={styles.categoriesScrollContent}
-                            renderItem={({ item: page }) => (
-                                <View style={styles.categoryPage}>
-                                    {/* Row 1 */}
-                                    <View style={styles.categoryRow}>
-                                        {page.slice(0, 4).map((category) => (
-                                            <TouchableOpacity 
-                                                key={category.id} 
-                                                style={[
-                                                    styles.categoryItem,
-                                                    loadingCategoryId === category.id && styles.categoryItemLoading
-                                                ]}
-                                                onPress={() => handleCategoryPress(category.id)}
-                                                activeOpacity={0.7}
-                                            >
-                                                <View style={styles.categoryImageContainer}>
-                                                    {loadingCategoryId === category.id ? (
-                                                        <ActivityIndicator size="small" color={Colors.primary} />
-                                                    ) : (
-                                                        <Image 
-                                                            source={getCategoryImage(category.name)}
-                                                            style={styles.categoryImage}
-                                                            resizeMode="cover"
-                                                        />
-                                                    )}
-                                                </View>
-                                                <Text style={styles.categoryName} numberOfLines={2}>
-                                                    {category.name}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                    
-                                    {/* Row 2 */}
-                                    {page.length > 4 && (
-                                        <View style={styles.categoryRow}>
-                                            {page.slice(4, 8).map((category) => (
-                                                <TouchableOpacity 
-                                                    key={category.id} 
-                                                    style={[
-                                                        styles.categoryItem,
-                                                        loadingCategoryId === category.id && styles.categoryItemLoading
-                                                    ]}
-                                                    onPress={() => handleCategoryPress(category.id)}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <View style={styles.categoryImageContainer}>
-                                                        {loadingCategoryId === category.id ? (
-                                                            <ActivityIndicator size="small" color={Colors.primary} />
-                                                        ) : (
-                                                            <Image 
-                                                                source={getCategoryImage(category.name)}
-                                                                style={styles.categoryImage}
-                                                                resizeMode="cover"
-                                                            />
-                                                        )}
-                                                    </View>
-                                                    <Text style={styles.categoryName} numberOfLines={2}>
-                                                        {category.name}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            ))}
-                                        </View>
-                                    )}
-                                    
-                                    {/* Row 3 */}
-                                    {page.length > 8 && (
-                                        <View style={styles.categoryRow}>
-                                            {page.slice(8, 12).map((category) => (
-                                                <TouchableOpacity 
-                                                    key={category.id} 
-                                                    style={[
-                                                        styles.categoryItem,
-                                                        loadingCategoryId === category.id && styles.categoryItemLoading
-                                                    ]}
-                                                    onPress={() => handleCategoryPress(category.id)}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <View style={styles.categoryImageContainer}>
-                                                        {loadingCategoryId === category.id ? (
-                                                            <ActivityIndicator size="small" color={Colors.primary} />
-                                                        ) : (
-                                                            <Image 
-                                                                source={getCategoryImage(category.name)}
-                                                                style={styles.categoryImage}
-                                                                resizeMode="cover"
-                                                            />
-                                                        )}
-                                                    </View>
-                                                    <Text style={styles.categoryName} numberOfLines={2}>
-                                                        {category.name}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            ))}
-                                        </View>
-                                    )}
+                        <View style={styles.categoriesGrid}>
+                            {categoryRows.map((row, rowIndex) => (
+                                <View key={rowIndex} style={styles.categoryRow}>
+                                    {row.map((category) => (
+                                        <TouchableOpacity 
+                                            key={category.id} 
+                                            style={[
+                                                styles.categoryItem,
+                                                loadingCategoryId === category.id && styles.categoryItemLoading
+                                            ]}
+                                            onPress={() => handleCategoryPress(category.id)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <View style={styles.categoryImageContainer}>
+                                                {loadingCategoryId === category.id ? (
+                                                    <ActivityIndicator size="small" color={Colors.primary} />
+                                                ) : (
+                                                    <Image 
+                                                        source={getCategoryImage(category.name)}
+                                                        style={styles.categoryImage}
+                                                        resizeMode="cover"
+                                                    />
+                                                )}
+                                            </View>
+                                            <Text style={styles.categoryName} numberOfLines={2}>
+                                                {category.name}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
                                 </View>
-                            )}
-                        />
+                            ))}
+                        </View>
                     )}
                 </View>
 
@@ -583,19 +510,17 @@ const styles = StyleSheet.create({
         color: Colors.grey,
         marginTop: 12,
     },
-    categoriesScrollContent: {
+    categoriesGrid: {
         paddingRight: 16,
-    },
-    categoryPage: {
-        width: 360,
     },
     categoryRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 16,
+        marginBottom: 12,
+        paddingHorizontal: 0,
     },
     categoryItem: {
-        width: '22%',
+        width: '20%',
         alignItems: 'center',
     },
     categoryImageContainer: {
@@ -605,7 +530,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.white,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 4,
         elevation: 2,
         shadowColor: '#000',
         shadowOffset: {
@@ -621,11 +546,11 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     categoryName: {
-        fontSize: 11,
+        fontSize: 10,
         color: Colors.black,
         textAlign: 'center',
         fontWeight: '500',
-        lineHeight: 14,
+        lineHeight: 12,
     },
     categoryItemLoading: {
         opacity: 0.7,

@@ -13,7 +13,9 @@
       "bundleIdentifier": "com.kawa-ida.Kikwetu",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": ["whatsapp"]
+        "LSApplicationQueriesSchemes": [
+          "whatsapp"
+        ]
       }
     },
     "android": {
@@ -34,7 +36,9 @@
     },
     "plugins": [
       "expo-web-browser",
-      "expo-router"
+      "expo-router",
+      "expo-audio",
+      "expo-video"
     ]
   },
   "plugins": [

@@ -61,10 +61,10 @@ export const useCustomAlert = (): AlertHook => {
     };
   }, []);
 
-  const handlePress = () => {
+  const handlePress = React.useCallback(() => {
     options.onPress?.();
     hideAlert();
-  };
+  }, [options.onPress]);
 
   const AlertComponent = React.useMemo(() => () => (
     <CustomAlert

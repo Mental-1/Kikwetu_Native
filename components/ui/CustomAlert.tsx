@@ -17,7 +17,7 @@ interface CustomAlertProps {
   buttonColor?: string;
 }
 
-const CustomAlert = ({
+const CustomAlert = React.memo(({
   visible,
   title,
   message,
@@ -27,9 +27,9 @@ const CustomAlert = ({
   iconColor = Colors.primary,
   buttonColor = '#007AFF',
 }: CustomAlertProps) => {
-  const handlePress = () => {
+  const handlePress = React.useCallback(() => {
     onPress?.();
-  };
+  }, [onPress]);
 
   return (
     <Modal
@@ -38,6 +38,7 @@ const CustomAlert = ({
       animationType="fade"
       statusBarTranslucent
       onRequestClose={handlePress}
+      hardwareAccelerated
     >
       <View style={styles.overlay}>
         <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
@@ -81,7 +82,9 @@ const CustomAlert = ({
       </View>
     </Modal>
   );
-};
+});
+
+CustomAlert.displayName = 'CustomAlert';
 
 const styles = StyleSheet.create({
   overlay: {
