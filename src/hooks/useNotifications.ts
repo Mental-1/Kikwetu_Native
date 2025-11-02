@@ -22,7 +22,7 @@ export const useNotifications = () => {
     const fetchNotifications = async () => {
       const { data, error } = await supabase
         .from('notifications')
-        .select('id, user_id, title, message, is_read, created_at')
+        .select('id, user_id, title, message, read, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -34,7 +34,7 @@ export const useNotifications = () => {
             user_id: dbNotif.user_id,
             title: dbNotif.title,
             message: dbNotif.message,
-            isRead: dbNotif.is_read,
+            isRead: dbNotif.read,
             timestamp: dbNotif.created_at,
         }));
         setNotifications(mappedNotifications);
@@ -57,7 +57,7 @@ export const useNotifications = () => {
               user_id: dbNewNotification.user_id,
               title: dbNewNotification.title,
               message: dbNewNotification.message,
-              isRead: dbNewNotification.is_read,
+              isRead: dbNewNotification.read,
               timestamp: dbNewNotification.created_at,
           };
           setNotifications(prev => [newNotification, ...prev]);
@@ -74,7 +74,7 @@ export const useNotifications = () => {
   const markAsRead = async (notificationId: string) => {
     const { error } = await supabase
       .from('notifications')
-      .update({ is_read: true })
+      .update({ read: true })
       .eq('id', notificationId);
 
     if (error) {
@@ -100,9 +100,9 @@ export const useNotifications = () => {
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true })
+        .update({ read: true })
         .eq('user_id', user.id)
-        .eq('is_read', false);
+        .eq('read', false);
 
       if (error) {
         console.error('Error marking all notifications as read:', error);

@@ -25,7 +25,12 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.kawa_ida.Kikwetu"
+      "package": "com.kawa_ida.Kikwetu",
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY_HERE"
+        }
+      }
     },
     "extra": {
       "EXPO_PUBLIC_SUPABASE_URL": "https://cvnertrkcwjjdrnnjswk.supabase.co",

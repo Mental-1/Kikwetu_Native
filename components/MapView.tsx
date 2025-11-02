@@ -2,7 +2,7 @@ import { Colors } from '@/src/constants/constant';
 import * as Location from 'expo-location';
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import MapView, { PROVIDER_DEFAULT, Region } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT, Region } from 'react-native-maps';
 
 interface MapViewComponentProps {
   markers?: {
@@ -21,7 +21,7 @@ interface MapViewComponentProps {
   style?: any;
 }
 
-const MapViewComponent: React.FC<MapViewComponentProps> = ({
+const MapViewComponent: React.FC<MapViewComponentProps> = React.memo(({
   markers = [],
   initialRegion,
   onMarkerPress,
@@ -38,12 +38,14 @@ const MapViewComponent: React.FC<MapViewComponentProps> = ({
     }
   );
   
-  const [userLocation, setUserLocation] = useState<{
+  // Note: userLocation and locationPermissionGranted are prepared for future use
+  // Currently not used since showsUserLocation is set to false
+  const [, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
   
-  const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
+  const [, setLocationPermissionGranted] = useState(false);
   const hasRequestedLocation = useRef(false);
   const mapRef = useRef<MapView>(null);
 
@@ -102,12 +104,6 @@ const MapViewComponent: React.FC<MapViewComponentProps> = ({
     onRegionChange?.(newRegion);
   };
 
-  const handleMarkerPress = (marker: any) => {
-    if (onMarkerPress) {
-      onMarkerPress(marker);
-    }
-  };
-
   return (
     <View style={[styles.container, style]}>
       <MapView
@@ -127,10 +123,23 @@ const MapViewComponent: React.FC<MapViewComponentProps> = ({
         loadingEnabled={true}
         loadingIndicatorColor={Colors.primary}
         loadingBackgroundColor={Colors.background}
-      />
+      >
+        {/* Markers will be rendered here when markers prop is implemented */}
+        {markers.length > 0 && markers.map((marker) => (
+          <Marker
+            key={marker.id}
+            coordinate={marker.coordinate}
+            title={marker.title}
+            description={marker.description}
+            onPress={() => onMarkerPress?.(marker)}
+          />
+        ))}
+      </MapView>
     </View>
   );
-};
+});
+
+MapViewComponent.displayName = 'MapViewComponent';
 
 const styles = StyleSheet.create({
   container: {
