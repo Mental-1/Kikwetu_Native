@@ -8,7 +8,7 @@ import { getLocationWithAddress } from '@/utils/locationUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -55,7 +55,9 @@ export default function Step1() {
   const [showLocationDialog, setShowLocationDialog] = useState(false);
   
   const { showAlert, AlertComponent } = useCustomAlert();
-  const { locationSuccess: showLocationSuccessAlert, error: showErrorAlert } = createAlertHelpers(showAlert);
+  // Memoize alert helpers to prevent recreation on every render
+  const alertHelpers = useMemo(() => createAlertHelpers(showAlert), [showAlert]);
+  const { locationSuccess: showLocationSuccessAlert, error: showErrorAlert } = alertHelpers;
 
   // Fetch categories, subcategories, and stores
   const { data: categories, isLoading: categoriesLoading } = useCategories();

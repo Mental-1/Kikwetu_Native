@@ -22,7 +22,7 @@ interface CustomDialogProps {
   denyWeight?: TextStyle['fontWeight'];
 }
 
-const CustomDialog: React.FC<CustomDialogProps> = ({
+const CustomDialog: React.FC<CustomDialogProps> = React.memo(({
   visible,
   title,
   message,
@@ -44,6 +44,7 @@ const CustomDialog: React.FC<CustomDialogProps> = ({
       animationType="fade"
       statusBarTranslucent
       onRequestClose={onDeny}
+      hardwareAccelerated
     >
       <View style={styles.overlay}>
         <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
@@ -103,7 +104,9 @@ const CustomDialog: React.FC<CustomDialogProps> = ({
       </View>
     </Modal>
   );
-};
+});
+
+CustomDialog.displayName = 'CustomDialog';
 
 const styles = StyleSheet.create({
   overlay: {

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -17,11 +17,11 @@ export default function Step2() {
   const { images, videos, setImages, setVideos } = useAppStore((state) => state.postAd);
   const [activeTab, setActiveTab] = useState<'images' | 'videos'>('images');
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     router.back();
-  };
+  }, [router]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (images.length === 0 && videos.length === 0) {
       Alert.alert('Media Required', 'Please add at least one image or video to your listing');
       return;
@@ -64,9 +64,9 @@ export default function Step2() {
         );
       }
     }
-  };
+  }, [images.length]);
 
-  const pickVideo = async () => {
+  const pickVideo = useCallback(async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (permissionResult.granted === false) {
@@ -88,19 +88,19 @@ export default function Step2() {
 
       setVideos([...videos, result.assets[0].uri]);
     }
-  };
+  }, [videos.length]);
 
-  const removeImage = (index: number) => {
+  const removeImage = useCallback((index: number) => {
     const newImages = images.filter((_, i) => i !== index);
     setImages(newImages);
-  };
+  }, [images]);
 
-  const removeVideo = (index: number) => {
+  const removeVideo = useCallback((index: number) => {
     const newVideos = videos.filter((_, i) => i !== index);
     setVideos(newVideos);
-  };
+  }, [videos]);
 
-  const renderImageItem = ({ item, index }: { item: string; index: number }) => (
+  const renderImageItem = useCallback(({ item, index }: { item: string; index: number }) => (
     <View style={styles.mediaItem}>
       <Image source={{ uri: item }} style={styles.mediaImage} />
       <TouchableOpacity 
@@ -110,9 +110,9 @@ export default function Step2() {
         <Ionicons name="close" size={20} color={Colors.white} />
       </TouchableOpacity>
     </View>
-  );
+  ), [removeImage]);
 
-  const renderVideoItem = ({ item, index }: { item: string; index: number }) => (
+  const renderVideoItem = useCallback(({ item, index }: { item: string; index: number }) => (
     <View style={styles.mediaItem}>
       <View style={styles.videoPlaceholder}>
         <Ionicons name="play-circle" size={40} color={Colors.primary} />
@@ -125,7 +125,11 @@ export default function Step2() {
         <Ionicons name="close" size={20} color={Colors.white} />
       </TouchableOpacity>
     </View>
-  );
+  ), [removeVideo]);
+
+  const handleTabChange = useCallback((tab: 'images' | 'videos') => {
+    setActiveTab(tab);
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -143,7 +147,7 @@ export default function Step2() {
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'images' && styles.activeTab]}
-          onPress={() => setActiveTab('images')}
+          onPress={() => handleTabChange('images')}
         >
           <Ionicons 
             name="images-outline" 
@@ -157,7 +161,7 @@ export default function Step2() {
         
         <TouchableOpacity
           style={[styles.tab, activeTab === 'videos' && styles.activeTab]}
-          onPress={() => setActiveTab('videos')}
+          onPress={() => handleTabChange('videos')}
         >
           <Ionicons 
             name="videocam-outline" 

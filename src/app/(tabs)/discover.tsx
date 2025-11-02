@@ -20,6 +20,115 @@ const DiscoverLoading = () => (
     </View>
 );
 
+const VideoItemComponent = React.memo(({ 
+    item, 
+    index, 
+    isActive,
+    isMuted,
+    activeTab,
+    showSearch,
+    onTabChange,
+    onSearch,
+    onVideoPress,
+    onLike,
+    onFollow,
+    onShare,
+    onSave,
+    onMessage,
+    onReview,
+    onToggleMute,
+    setCurrentVideoId,
+    markViewedMutation,
+    preloadAdjacentVideos,
+    cleanupVideo,
+    isVideoPreloaded,
+    styles,
+}: any) => {
+    const [watchTime, setWatchTime] = useState(0);
+    
+    const getBunnyUrls = useBunnyVideoUrls(item.id);
+    const bunnyUrls = getBunnyUrls();
+    
+    const {
+        player,
+        isPlaying,
+        togglePlayPause,
+    } = useOptimizedVideoPlayer(
+        bunnyUrls.videoUrl,
+        bunnyUrls.hlsUrl,
+        isActive,
+        isMuted 
+    );
+
+    useEffect(() => {
+        if (isActive) {
+            setCurrentVideoId(item.id);
+            
+            markViewedMutation.mutate({ 
+                videoId: item.id, 
+                watchTime: watchTime 
+            });
+            
+            preloadAdjacentVideos(index);
+        }
+    }, [isActive, item.id, watchTime, index, setCurrentVideoId, markViewedMutation, preloadAdjacentVideos]);
+
+    useEffect(() => {
+        if (isActive && isPlaying) {
+            const interval = setInterval(() => {
+                setWatchTime(prev => prev + 1);
+            }, 1000);
+            
+            return () => clearInterval(interval);
+        }
+    }, [isActive, isPlaying]);
+
+    useEffect(() => {
+        return () => {
+            if (!isActive && isVideoPreloaded(item.id)) {
+                cleanupVideo(item.id);
+            }
+        };
+    }, [isActive, item.id, isVideoPreloaded, cleanupVideo]);
+
+    return (
+        <View style={styles.videoContainer}>
+            <TouchableOpacity 
+                style={styles.videoTouchable}
+                activeOpacity={1}
+                onPress={togglePlayPause}
+            >
+                <VideoView
+                    style={styles.video}
+                    player={player}
+                    allowsPictureInPicture={false}
+                    contentFit="cover"
+                    nativeControls={false}
+                />
+            </TouchableOpacity>
+            
+            <DiscoverOverlay
+                video={item}
+                activeTab={activeTab}
+                showSearch={showSearch}
+                onTabChange={onTabChange}
+                onSearch={onSearch}
+                onVideoPress={onVideoPress}
+                onLike={onLike}
+                onFollow={onFollow}
+                onShare={onShare}
+                onSave={onSave}
+                onMessage={onMessage}
+                onReview={onReview}
+                isMuted={isMuted}
+                onToggleMute={onToggleMute}
+            />
+        </View>
+    );
+});
+
+VideoItemComponent.displayName = 'VideoItemComponent';
+
 const DiscoverContent = () => {
     const [activeTab, setActiveTab] = useState<'Following' | 'Near You' | 'For You'>('For You');
     const [showSearch, setShowSearch] = useState(false);
@@ -89,7 +198,7 @@ const DiscoverContent = () => {
             const video = videos.find(v => v.id === videoId);
             if (video) {
                 const shareMessage = `Check out this video: ${video.title}`;
-                const shareUrl = `https://kikwetu.app/video/${videoId}`;
+                const shareUrl = `https://ki-kwetu.com/video/${videoId}`;
                 
                 await Share.share({
                     message: `${shareMessage}\n${shareUrl}`,
@@ -139,9 +248,9 @@ const DiscoverContent = () => {
         }
     }, [videos]);
 
-    const handleSearch = () => {
-        setShowSearch(!showSearch);
-    };
+    const handleSearch = useCallback(() => {
+        setShowSearch(prev => !prev);
+    }, []);
 
     const handleToggleMute = useCallback(() => {
         Haptics.selectionAsync();
@@ -149,94 +258,58 @@ const DiscoverContent = () => {
         setIsMuted(prev => !prev);
     }, []);
 
-    const VideoItemComponent = ({ item, index }: { item: any; index: number }) => {
-        const [watchTime, setWatchTime] = useState(0);
-        const isActive = index === currentVideoIndex;
-        
-        const getBunnyUrls = useBunnyVideoUrls(item.id);
-        const bunnyUrls = getBunnyUrls();
-        
-        const {
-            player,
-            isPlaying,
-            togglePlayPause,
-        } = useOptimizedVideoPlayer(
-            bunnyUrls.videoUrl,
-            bunnyUrls.hlsUrl,
-            isActive,
-            isMuted 
-        );
-
-        useEffect(() => {
-            if (isActive) {
-                setCurrentVideoId(item.id);
-                
-                markViewedMutation.mutate({ 
-                    videoId: item.id, 
-                    watchTime: watchTime 
-                });
-                
-                preloadAdjacentVideos(index);
-            }
-        }, [isActive, item.id, watchTime, index]);
-
-        useEffect(() => {
-            if (isActive && isPlaying) {
-                const interval = setInterval(() => {
-                    setWatchTime(prev => prev + 1);
-                }, 1000);
-                
-                return () => clearInterval(interval);
-            }
-        }, [isActive, isPlaying]);
-
-        useEffect(() => {
-            return () => {
-                if (!isActive && isVideoPreloaded(item.id)) {
-                    cleanupVideo(item.id);
-                }
-            };
-        }, [isActive, item.id]);
+    const renderVideoItem = useCallback(({ item, index }: { item: any; index: number }) => {
+        if (item.id === 'placeholder') {
+            return null;
+        }
 
         return (
-            <View style={styles.videoContainer}>
-                <TouchableOpacity 
-                    style={styles.videoTouchable}
-                    activeOpacity={1}
-                    onPress={togglePlayPause}
-                >
-                    <VideoView
-                        style={styles.video}
-                        player={player}
-                        allowsPictureInPicture={false}
-                        contentFit="cover"
-                        nativeControls={false}
-                    />
-                </TouchableOpacity>
-                
-                <DiscoverOverlay
-                    video={item}
-                    activeTab={activeTab}
-                    showSearch={showSearch}
-                    onTabChange={setActiveTab}
-                    onSearch={handleSearch}
-                    onVideoPress={handleVideoPress}
-                    onLike={handleLike}
-                    onFollow={handleFollow}
-                    onShare={handleShare}
-                    onSave={handleSave}
-                    onMessage={handleMessage}
-                    onReview={handleReview}
-                    isMuted={isMuted}
-                    onToggleMute={handleToggleMute}
-                />
-            </View>
+            <VideoItemComponent 
+                item={item}
+                index={index}
+                isActive={index === currentVideoIndex}
+                isMuted={isMuted}
+                activeTab={activeTab}
+                showSearch={showSearch}
+                onTabChange={setActiveTab}
+                onSearch={handleSearch}
+                onVideoPress={handleVideoPress}
+                onLike={handleLike}
+                onFollow={handleFollow}
+                onShare={handleShare}
+                onSave={handleSave}
+                onMessage={handleMessage}
+                onReview={handleReview}
+                onToggleMute={handleToggleMute}
+                setCurrentVideoId={setCurrentVideoId}
+                markViewedMutation={markViewedMutation}
+                preloadAdjacentVideos={preloadAdjacentVideos}
+                cleanupVideo={cleanupVideo}
+                isVideoPreloaded={isVideoPreloaded}
+                styles={styles}
+            />
         );
-    };
-
-    const renderVideoItem = ({ item, index }: { item: any; index: number }) => (
-        <VideoItemComponent item={item} index={index} />
-    );
+    }, [
+        currentVideoIndex,
+        isMuted,
+        activeTab,
+        showSearch,
+        setActiveTab,
+        handleSearch,
+        handleVideoPress,
+        handleLike,
+        handleFollow,
+        handleShare,
+        handleSave,
+        handleMessage,
+        handleReview,
+        handleToggleMute,
+        setCurrentVideoId,
+        markViewedMutation,
+        preloadAdjacentVideos,
+        cleanupVideo,
+        isVideoPreloaded,
+    ]);
 
     const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
         if (viewableItems.length > 0) {
@@ -263,7 +336,7 @@ const DiscoverContent = () => {
         }
     }, [refetchFeed]);
 
-    // Create placeholder video for empty/error states to show overlay
+    // Placeholder state for empty/error states to show overlay
     const placeholderVideo = {
         id: 'placeholder',
         title: '',
@@ -273,13 +346,21 @@ const DiscoverContent = () => {
             avatar_url: undefined,
             verified: false,
         },
+        listing: {
+            id: '',
+            title: '',
+            location: '',
+            price: 0,
+        },
         engagement: {
             isLiked: false,
             isFollowing: false,
+            isSaved: false,
         },
         likes: 0,
         views: 0,
         comments: 0,
+        shares: 0,
         tags: [],
     };
 

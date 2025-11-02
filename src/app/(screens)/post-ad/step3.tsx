@@ -7,7 +7,7 @@ import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -39,11 +39,11 @@ export default function Step3() {
   const createListingMutation = useCreateListing();
   const saveDraftMutation = useSaveDraft();
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     router.back();
-  };
+  }, [router]);
 
-  const handlePublish = async () => {
+  const handlePublish = useCallback(async () => {
     const listingData = {
       title,
       description,
@@ -116,9 +116,13 @@ export default function Step3() {
         }
       ]
     );
-  };
+  }, [
+    title, description, price, categoryId, subcategoryId, condition, location,
+    latitude, longitude, isNegotiable, images, videos, tags, storeId,
+    createListingMutation, router, resetPostAd
+  ]);
 
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = useCallback(async () => {
     const listingData = {
       title,
       description,
@@ -184,22 +188,26 @@ export default function Step3() {
         }
       ]
     );
-  };
+  }, [
+    title, description, price, categoryId, subcategoryId, condition, location,
+    latitude, longitude, isNegotiable, images, videos, tags, storeId,
+    router, resetPostAd
+  ]);
 
-  const renderImageItem = ({ item }: { item: string }) => (
+  const renderImageItem = useCallback(({ item }: { item: string }) => (
     <View style={styles.mediaItem}>
       <Image source={{ uri: item }} style={styles.mediaImage} />
     </View>
-  );
+  ), []);
 
-  const renderVideoItem = ({ item, index }: { item: string; index: number }) => (
+  const renderVideoItem = useCallback(({ item, index }: { item: string; index: number }) => (
     <View style={styles.mediaItem}>
       <View style={styles.videoPlaceholder}>
         <Ionicons name="play-circle" size={40} color={Colors.primary} />
         <Text style={styles.videoText}>Video {index + 1}</Text>
       </View>
     </View>
-  );
+  ), []);
 
   return (
     <View style={styles.container}>

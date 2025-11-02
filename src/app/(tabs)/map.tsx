@@ -4,7 +4,7 @@ import { getLocationWithAddress, LocationData } from '@/utils/locationUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { 
   ActivityIndicator, 
   Alert, 
@@ -22,6 +22,65 @@ const MapLoading = () => (
   </View>
 );
 
+// Stable mockListings outside component to prevent recreation
+const mockListings = [
+  {
+    id: '1',
+    title: 'iPhone 14 Pro',
+    price: 'Kes 120,000',
+    coordinate: {
+      latitude: -1.2921,
+      longitude: 36.8219,
+    },
+    description: 'Like new iPhone 14 Pro',
+    category: 'Electronics',
+  },
+  {
+    id: '2',
+    title: 'MacBook Air M2',
+    price: 'Kes 150,000',
+    coordinate: {
+      latitude: -1.3000,
+      longitude: 36.8300,
+    },
+    description: 'Brand new MacBook Air',
+    category: 'Electronics',
+  },
+  {
+    id: '3',
+    title: 'Samsung Galaxy S23',
+    price: 'Kes 95,000',
+    coordinate: {
+      latitude: -1.2800,
+      longitude: 36.8100,
+    },
+    description: 'Latest Samsung Galaxy',
+    category: 'Mobile',
+  },
+  {
+    id: '4',
+    title: 'Gaming Chair',
+    price: 'Kes 25,000',
+    coordinate: {
+      latitude: -1.2850,
+      longitude: 36.8150,
+    },
+    description: 'Ergonomic gaming chair',
+    category: 'Furniture',
+  },
+  {
+    id: '5',
+    title: 'PlayStation 5',
+    price: 'Kes 80,000',
+    coordinate: {
+      latitude: -1.2750,
+      longitude: 36.8250,
+    },
+    description: 'PS5 Console with games',
+    category: 'Gaming',
+  },
+];
+
 const MapScreenContent = () => {
   const router = useRouter();
   const [, setUserLocation] = useState<LocationData | null>(null);
@@ -29,72 +88,7 @@ const MapScreenContent = () => {
   const [error, setError] = useState<string | null>(null);
   const hasLoadedInitialLocation = useRef(false);
 
-  const mockListings = [
-    {
-      id: '1',
-      title: 'iPhone 14 Pro',
-      price: 'Kes 120,000',
-      coordinate: {
-        latitude: -1.2921,
-        longitude: 36.8219,
-      },
-      description: 'Like new iPhone 14 Pro',
-      category: 'Electronics',
-    },
-    {
-      id: '2',
-      title: 'MacBook Air M2',
-      price: 'Kes 150,000',
-      coordinate: {
-        latitude: -1.3000,
-        longitude: 36.8300,
-      },
-      description: 'Brand new MacBook Air',
-      category: 'Electronics',
-    },
-    {
-      id: '3',
-      title: 'Samsung Galaxy S23',
-      price: 'Kes 95,000',
-      coordinate: {
-        latitude: -1.2800,
-        longitude: 36.8100,
-      },
-      description: 'Latest Samsung Galaxy',
-      category: 'Mobile',
-    },
-    {
-      id: '4',
-      title: 'Gaming Chair',
-      price: 'Kes 25,000',
-      coordinate: {
-        latitude: -1.2850,
-        longitude: 36.8150,
-      },
-      description: 'Ergonomic gaming chair',
-      category: 'Furniture',
-    },
-    {
-      id: '5',
-      title: 'PlayStation 5',
-      price: 'Kes 80,000',
-      coordinate: {
-        latitude: -1.2750,
-        longitude: 36.8250,
-      },
-      description: 'PS5 Console with games',
-      category: 'Gaming',
-    },
-  ];
-
-  useEffect(() => {
-    if (!hasLoadedInitialLocation.current) {
-      hasLoadedInitialLocation.current = true;
-      loadUserLocation();
-    }
-  }, []);
-
-  const loadUserLocation = async () => {
+  const loadUserLocation = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -108,9 +102,16 @@ const MapScreenContent = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleMarkerPress = (marker: any) => {
+  useEffect(() => {
+    if (!hasLoadedInitialLocation.current) {
+      hasLoadedInitialLocation.current = true;
+      loadUserLocation();
+    }
+  }, [loadUserLocation]);
+
+  const handleMarkerPress = useCallback((marker: any) => {
     Alert.alert(
       marker.title,
       `${marker.description}\n${marker.price}`,
@@ -129,9 +130,9 @@ const MapScreenContent = () => {
         },
       ]
     );
-  };
+  }, [router]);
 
-  const handleBackPress = () => {
+  const handleBackPress = useCallback(() => {
     try {
       if (router.canGoBack()) {
         router.back();
@@ -141,11 +142,22 @@ const MapScreenContent = () => {
     } catch (error) {
       console.error('Navigation error:', error);
     }
-  };
+  }, [router]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     loadUserLocation();
-  };
+  }, [loadUserLocation]);
+
+  // Memoize markers array to prevent recreation on every render
+  const markers = useMemo(() => 
+    mockListings.map(listing => ({
+      id: listing.id,
+      coordinate: listing.coordinate,
+      title: listing.title,
+      description: `${listing.description} • ${listing.price}`,
+    })),
+    [] // mockListings is stable, so empty deps
+  );
 
   return (
     <View style={styles.container}>
@@ -154,12 +166,7 @@ const MapScreenContent = () => {
       {/* Full Screen Map */}
       <View style={styles.mapContainer}>
         <MapViewComponent
-          markers={mockListings.map(listing => ({
-            id: listing.id,
-            coordinate: listing.coordinate,
-            title: listing.title,
-            description: `${listing.description} • ${listing.price}`,
-          }))}
+          markers={markers}
           onMarkerPress={handleMarkerPress}
           showUserLocation={true}
           style={styles.map}
