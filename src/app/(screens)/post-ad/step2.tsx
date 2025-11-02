@@ -5,10 +5,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useState } from 'react';
-import { Alert, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
 const MAX_IMAGES = 10;
 const MAX_VIDEOS = 3;
 
@@ -27,9 +26,9 @@ export default function Step2() {
       return;
     }
     router.push('/(screens)/post-ad/step3');
-  };
+  }, [images.length, videos.length, router]);
 
-  const pickImage = async () => {
+  const pickImage = useCallback(async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (permissionResult.granted === false) {
@@ -64,7 +63,7 @@ export default function Step2() {
         );
       }
     }
-  }, [images.length]);
+  }, [images, setImages]);
 
   const pickVideo = useCallback(async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -88,17 +87,17 @@ export default function Step2() {
 
       setVideos([...videos, result.assets[0].uri]);
     }
-  }, [videos.length]);
+  }, [videos, setVideos]);
 
   const removeImage = useCallback((index: number) => {
     const newImages = images.filter((_, i) => i !== index);
     setImages(newImages);
-  }, [images]);
+  }, [images, setImages]);
 
   const removeVideo = useCallback((index: number) => {
     const newVideos = videos.filter((_, i) => i !== index);
     setVideos(newVideos);
-  }, [videos]);
+  }, [videos, setVideos]);
 
   const renderImageItem = useCallback(({ item, index }: { item: string; index: number }) => (
     <View style={styles.mediaItem}>

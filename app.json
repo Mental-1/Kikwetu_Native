@@ -43,7 +43,8 @@
       "expo-web-browser",
       "expo-router",
       "expo-audio",
-      "expo-video"
+      "expo-video",
+      "expo-asset"
     ]
   },
   "plugins": [
