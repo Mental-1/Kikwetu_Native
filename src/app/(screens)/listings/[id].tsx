@@ -38,7 +38,7 @@ export default function ListingDetails() {
   const { data: listing, isLoading, error } = useListingDetails(id || '');
   const { data: categories } = useCategories();
   const { getUserById } = useUser();
-  const { data: relatedListings = [] } = useSimilarListings(id || '', 8);
+  const { data: relatedListings = [], isLoading: relatedLoading, error: relatedError } = useSimilarListings(id || '', 8);
   
   // Saved listings functionality
   const { data: savedStatus } = useCheckIfSaved(id || '');
@@ -501,14 +501,30 @@ export default function ListingDetails() {
           </View>
 
           {/* Related Listings */}
-          {relatedListings.length > 0 && (
-            <View style={styles.relatedListings}>
-              <View style={styles.relatedHeader}>
-                <Text style={styles.relatedTitle}>Related Listings</Text>
+          <View style={styles.relatedListings}>
+            <View style={styles.relatedHeader}>
+              <Text style={styles.relatedTitle}>Related Listings</Text>
+              {relatedListings.length > 0 && (
                 <TouchableOpacity onPress={() => router.push('/(tabs)/listings')}>
                   <Text style={styles.seeAllText}>See All</Text>
                 </TouchableOpacity>
+              )}
+            </View>
+            {relatedLoading ? (
+              <View style={styles.relatedEmptyState}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.relatedEmptyText}>Loading related listings...</Text>
               </View>
+            ) : relatedError ? (
+              <View style={styles.relatedEmptyState}>
+                <Text style={styles.relatedEmptyText}>Couldn&apos;t fetch related listings</Text>
+              </View>
+            ) : relatedListings.length === 0 ? (
+              <View style={styles.relatedEmptyState}>
+                <Ionicons name="cube-outline" size={48} color={Colors.grey} />
+                <Text style={styles.relatedEmptyText}>No related listings</Text>
+              </View>
+            ) : (
               <View style={styles.relatedGrid}>
                 {relatedListings.map((item) => (
                   <ListingCard
@@ -526,8 +542,8 @@ export default function ListingDetails() {
                   />
                 ))}
               </View>
-            </View>
-          )}
+            )}
+          </View>
 
         </View>
       </ScrollView>
@@ -1038,6 +1054,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.primary,
     fontWeight: '600',
+  },
+  relatedEmptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 16,
+  },
+  relatedEmptyText: {
+    fontSize: 14,
+    color: Colors.grey,
+    marginTop: 12,
+    textAlign: 'center',
   },
   bottomBar: {
     position: 'absolute',
