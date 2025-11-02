@@ -148,7 +148,6 @@ const Home = (props: Props) => {
         });
     }, [router]);
 
-    // Organize categories into rows of 4 columns each
     const categoryRows = useMemo(() => {
         if (!categories || categories.length === 0) return [];
         
@@ -219,7 +218,7 @@ const Home = (props: Props) => {
                 {/* Browse Categories Section */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Browse Categories</Text>
+                        <Text style={styles.sectionTitle}>Explore Our Categories</Text>
                         <TouchableOpacity>
                             <Text style={styles.seeAllText}>See All</Text>
                         </TouchableOpacity>
@@ -269,7 +268,7 @@ const Home = (props: Props) => {
                 {/* For You Section */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>For You</Text>
+                        <Text style={styles.sectionTitle}>See It In Action: For You</Text>
                         <TouchableOpacity onPress={() => router.push('/(tabs)/discover')}>
                             <Text style={styles.seeAllText}>See More</Text>
                         </TouchableOpacity>

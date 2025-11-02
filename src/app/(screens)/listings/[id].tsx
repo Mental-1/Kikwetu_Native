@@ -1,7 +1,11 @@
+import ListingCard from '@/components/ListingCard';
+import { useCategories } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
+import { useSimilarListings } from '@/src/hooks/useApiListings';
 import { useCheckIfSaved, useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
 import { useListingDetails } from '@/src/hooks/useListingDetails';
 import { useUser } from '@/src/hooks/useUser';
+import { openDirections } from '@/src/utils/directionUtils';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -32,7 +36,9 @@ export default function ListingDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
   
   const { data: listing, isLoading, error } = useListingDetails(id || '');
+  const { data: categories } = useCategories();
   const { getUserById } = useUser();
+  const { data: relatedListings = [] } = useSimilarListings(id || '', 8);
   
   // Saved listings functionality
   const { data: savedStatus } = useCheckIfSaved(id || '');
@@ -105,7 +111,6 @@ export default function ListingDetails() {
         showSuccessAlert('Saved!', 'Listing added to your saved items');
       }
     } catch {
-      // Error handling is done by the mutation hooks
     }
   }, [id, savedStatus?.isSaved, unsaveListing, saveListing, showSuccessAlert]);
 
@@ -123,7 +128,7 @@ export default function ListingDetails() {
     }
     
     try {
-      const shareUrl = `https://kikwetu.com/listings/${listing.id}`;
+      const shareUrl = `https://ki-kwetu.com/listings/${listing.id}`;
       const shareMessage = `Check out this ${listing.title} for KES ${listing.price?.toLocaleString()} on Kikwetu! ${shareUrl}`;
 
       await Share.share({
@@ -205,7 +210,6 @@ export default function ListingDetails() {
 
   const handleReportSubmit = (reason: string) => {
     console.log('Report submitted:', { listingId: listing.id, reason });
-    // Show success alert
     showSuccessAlert('Listing Reported', 'Thank you for reporting this listing. We will review it shortly.');
   };
 
@@ -370,7 +374,11 @@ export default function ListingDetails() {
           {/* Category and Condition Badges */}
           <View style={styles.badgesContainer}>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{listing.category_id || 'Category'}</Text>
+              <Text style={styles.badgeText}>
+                {listing.category_id 
+                  ? categories?.find(cat => cat.id === listing.category_id)?.name || 'Category'
+                  : 'Category'}
+              </Text>
             </View>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{listing.condition || 'Condition'}</Text>
@@ -492,12 +500,61 @@ export default function ListingDetails() {
             </Text>
           </View>
 
+          {/* Related Listings */}
+          {relatedListings.length > 0 && (
+            <View style={styles.relatedListings}>
+              <View style={styles.relatedHeader}>
+                <Text style={styles.relatedTitle}>Related Listings</Text>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/listings')}>
+                  <Text style={styles.seeAllText}>See All</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.relatedGrid}>
+                {relatedListings.map((item) => (
+                  <ListingCard
+                    key={item.id}
+                    id={item.id}
+                    title={item.title || 'Untitled'}
+                    price={item.price ? `KES ${item.price.toLocaleString()}` : 'Price not set'}
+                    condition={item.condition || 'Used'}
+                    location={item.location || 'Location not specified'}
+                    image={item.images?.[0] || 'https://via.placeholder.com/200'}
+                    description={item.description}
+                    views={item.views}
+                    viewMode="grid"
+                    onPress={(listingId) => router.push(`/listings/${listingId}`)}
+                  />
+                ))}
+              </View>
+            </View>
+          )}
+
         </View>
       </ScrollView>
 
       {/* Bottom Action Bar */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.directionsButton} onPress={() => console.log('Get directions')}>
+        <TouchableOpacity 
+          style={styles.directionsButton} 
+          onPress={async () => {
+            if (listing?.latitude && listing?.longitude) {
+              try {
+                await openDirections(
+                  { latitude: listing.latitude, longitude: listing.longitude },
+                  listing.title
+                );
+              } catch (error) {
+                showAlert({
+                  title: 'Unable to Open Directions',
+                  message: error instanceof Error ? error.message : 'Please check your location permissions.',
+                  buttonText: 'OK',
+                  icon: 'alert-circle-outline',
+                  iconColor: '#FF9800',
+                });
+              }
+            }
+          }}
+        >
           <Ionicons name="navigate-outline" size={20} color={Colors.primary} />
           <Text style={styles.directionsButtonText}>Get Directions</Text>
         </TouchableOpacity>
@@ -954,6 +1011,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.grey,
     lineHeight: 20,
+  },
+  relatedListings: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  relatedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  relatedTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.black,
+  },
+  relatedGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '600',
   },
   bottomBar: {
     position: 'absolute',

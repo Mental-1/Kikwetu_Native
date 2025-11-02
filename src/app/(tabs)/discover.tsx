@@ -4,10 +4,13 @@ import { useSaveListing as useSaveListingHook } from '@/src/hooks/useApiSavedLis
 import { useOptimizedVideoPlayer, useVideoManager } from '@/src/hooks/useVideoManager';
 import { useBunnyVideoUrls, useMarkVideoViewed, useOptimizedVideoFeed, useToggleVideoLike } from '@/src/hooks/useVideos';
 import { showErrorToast, showSuccessToast } from '@/utils/toast';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { VideoView } from 'expo-video';
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Share, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Dimensions, FlatList, RefreshControl, Share, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+const LazyWriteReviewModal = lazy(() => import('@/components/WriteReviewModal'));
 
 const { width, height } = Dimensions.get('window');
 
@@ -32,11 +35,14 @@ const DiscoverContent = () => {
     const {
         isLoading: feedLoading,
         error: feedError,
+        refetch: refetchFeed,
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
         videos,
     } = useOptimizedVideoFeed(feedFilters);
+    
+    const [refreshing, setRefreshing] = useState(false);
 
     const {
         setCurrentVideoId,
@@ -116,12 +122,22 @@ const DiscoverContent = () => {
         // TODO: Implement message functionality - navigate to chat
     }, []);
 
+    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [selectedListing, setSelectedListing] = useState<{ id: string; title: string } | null>(null);
+
     const handleReview = useCallback((videoId: string) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         
-        console.log('Review pressed:', videoId);
-        // TODO: Implement review functionality - open review modal
-    }, []);
+        // Find the video to get its listing info
+        const video = videos.find(v => v.id === videoId);
+        if (video?.listing) {
+            setSelectedListing({
+                id: video.listing.id,
+                title: video.listing.title,
+            });
+            setShowReviewModal(true);
+        }
+    }, [videos]);
 
     const handleSearch = () => {
         setShowSearch(!showSearch);
@@ -238,41 +254,95 @@ const DiscoverContent = () => {
         }
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    if (feedLoading && videos.length === 0) {
-        return (
-            <View style={styles.container}>
-                <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={Colors.primary} />
-                </View>
-            </View>
-        );
-    }
-    
-    if (feedError) {
-        return (
-            <View style={styles.container}>
-                <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-                <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>Failed to load videos</Text>
-                </View>
-            </View>
-        );
-    }
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            await refetchFeed();
+        } finally {
+            setRefreshing(false);
+        }
+    }, [refetchFeed]);
+
+    // Create placeholder video for empty/error states to show overlay
+    const placeholderVideo = {
+        id: 'placeholder',
+        title: '',
+        user: {
+            id: '',
+            username: '',
+            avatar_url: undefined,
+            verified: false,
+        },
+        engagement: {
+            isLiked: false,
+            isFollowing: false,
+        },
+        likes: 0,
+        views: 0,
+        comments: 0,
+        tags: [],
+    };
 
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
             <FlatList
                 ref={flatListRef}
-                data={videos}
-                renderItem={renderVideoItem}
+                data={videos.length > 0 ? videos : [placeholderVideo]}
+                renderItem={({ item, index }) => {
+                    if (item.id === 'placeholder') {
+                        // Empty or Error State with Overlay
+                        return (
+                            <View style={styles.videoContainer}>
+                                <View style={styles.emptyVideoPlaceholder} />
+                                
+                                {/* Show overlay even without media */}
+                                <DiscoverOverlay
+                                    video={placeholderVideo as any}
+                                    activeTab={activeTab}
+                                    showSearch={showSearch}
+                                    onTabChange={setActiveTab}
+                                    onSearch={handleSearch}
+                                    onVideoPress={handleVideoPress}
+                                    onLike={handleLike}
+                                    onFollow={handleFollow}
+                                    onShare={handleShare}
+                                    onSave={handleSave}
+                                    onMessage={handleMessage}
+                                    onReview={handleReview}
+                                    isMuted={isMuted}
+                                    onToggleMute={handleToggleMute}
+                                />
+                                
+                                {/* Empty/Error State Content */}
+                                <View style={styles.emptyStateContainer}>
+                                    {feedError ? (
+                                        <>
+                                            <Text style={styles.emptyStateTitle}>Failed to load</Text>
+                                            <TouchableOpacity 
+                                                style={styles.retryButton}
+                                                onPress={() => refetchFeed()}
+                                            >
+                                                <Ionicons name="refresh-outline" size={24} color={Colors.white} />
+                                            </TouchableOpacity>
+                                        </>
+                                    ) : feedLoading ? (
+                                        <ActivityIndicator size="large" color={Colors.primary} />
+                                    ) : (
+                                        <Text style={styles.emptyStateText}>Oops. Nothing here</Text>
+                                    )}
+                                </View>
+                            </View>
+                        );
+                    }
+                    return renderVideoItem({ item, index });
+                }}
                 keyExtractor={(item) => item.id}
-                pagingEnabled
+                pagingEnabled={videos.length > 0}
                 showsVerticalScrollIndicator={false}
-                onViewableItemsChanged={onViewableItemsChanged}
+                onViewableItemsChanged={videos.length > 0 ? onViewableItemsChanged : undefined}
                 viewabilityConfig={viewabilityConfig}
-                snapToInterval={height}
+                snapToInterval={videos.length > 0 ? height : undefined}
                 snapToAlignment="start"
                 decelerationRate="fast"
                 removeClippedSubviews={true}
@@ -281,6 +351,14 @@ const DiscoverContent = () => {
                 initialNumToRender={2}
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.5}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={Colors.primary}
+                        colors={[Colors.primary]}
+                    />
+                }
                 ListFooterComponent={() => 
                     isFetchingNextPage ? (
                         <View style={styles.loadingFooter}>
@@ -294,6 +372,20 @@ const DiscoverContent = () => {
                     index,
                 })}
             />
+
+            {/* Review Modal */}
+            {showReviewModal && selectedListing && (
+                <Suspense fallback={null}>
+                    <LazyWriteReviewModal
+                        visible={showReviewModal}
+                        onClose={() => {
+                            setShowReviewModal(false);
+                            setSelectedListing(null);
+                        }}
+                        listingTitle={selectedListing.title}
+                    />
+                </Suspense>
+            )}
         </View>
     );
 };
@@ -332,6 +424,50 @@ const styles = StyleSheet.create({
         color: Colors.white,
         fontSize: 16,
         textAlign: 'center',
+    },
+    emptyVideoPlaceholder: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: Colors.black,
+    },
+    emptyStateContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+    emptyStateText: {
+        color: 'rgba(255, 255, 255, 0.5)',
+        fontSize: 18,
+        fontWeight: '500',
+        textAlign: 'center',
+    },
+    emptyStateTitle: {
+        color: Colors.white,
+        fontSize: 18,
+        fontWeight: '600',
+        textAlign: 'center',
+        marginBottom: 24,
+    },
+    retryButton: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: Colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
     },
     loadingFooter: {
         paddingVertical: 20,

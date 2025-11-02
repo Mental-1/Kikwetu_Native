@@ -31,90 +31,6 @@ interface WriteReviewModalProps {
   listingTitle: string;
 }
 
-// Mock reviews data
-const mockReviews: Review[] = [
-  {
-    id: '1',
-    reviewerName: 'Sarah Johnson',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-    rating: 5,
-    comment: 'Excellent product! Exactly as described. The seller was very responsive and the item arrived in perfect condition. Highly recommend this seller!',
-    date: '2 days ago'
-  },
-  {
-    id: '2',
-    reviewerName: 'Mike Chen',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-    rating: 4,
-    comment: 'Good quality item, fast shipping. Would buy again.',
-    date: '1 week ago'
-  },
-  {
-    id: '3',
-    reviewerName: 'Emily Davis',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-    rating: 5,
-    comment: 'Amazing seller! The product exceeded my expectations. Great communication throughout the process.',
-    date: '2 weeks ago'
-  },
-  {
-    id: '4',
-    reviewerName: 'Alex Rodriguez',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-    rating: 3,
-    comment: 'Item was okay, but took longer to arrive than expected. Seller was helpful though.',
-    date: '3 weeks ago'
-  },
-  {
-    id: '5',
-    reviewerName: 'Jessica Martinez',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face',
-    rating: 5,
-    comment: 'Perfect transaction! The item was exactly as described and arrived quickly. Seller was very professional and answered all my questions promptly.',
-    date: '1 month ago'
-  },
-  {
-    id: '6',
-    reviewerName: 'David Wilson',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
-    rating: 4,
-    comment: 'Great seller, fast response time. Item was in good condition. Would definitely recommend to others.',
-    date: '1 month ago'
-  },
-  {
-    id: '7',
-    reviewerName: 'Lisa Thompson',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face',
-    rating: 5,
-    comment: 'Outstanding service! The seller went above and beyond to ensure I was satisfied. Item was packaged perfectly and arrived on time.',
-    date: '2 months ago'
-  },
-  {
-    id: '8',
-    reviewerName: 'Robert Brown',
-    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face',
-    rating: 4,
-    comment: 'Good experience overall. The item was as described and the seller was communicative throughout the process.',
-    date: '2 months ago'
-  },
-  {
-    id: '9',
-    reviewerName: 'Amanda Taylor',
-    avatar: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=150&h=150&fit=crop&crop=face',
-    rating: 5,
-    comment: 'Excellent seller! Very responsive and helpful. The item exceeded my expectations and was delivered quickly.',
-    date: '3 months ago'
-  },
-  {
-    id: '10',
-    reviewerName: 'Kevin Anderson',
-    avatar: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=150&h=150&fit=crop&crop=face',
-    rating: 3,
-    comment: 'Decent experience. The item was okay but took a bit longer to arrive than expected. Seller was responsive to messages.',
-    date: '3 months ago'
-  }
-];
-
 export default function WriteReviewModal({
   visible,
   onClose,
@@ -122,6 +38,7 @@ export default function WriteReviewModal({
 }: WriteReviewModalProps) {
   const [newReview, setNewReview] = useState('');
   const [rating, setRating] = useState(0);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   // Format number with K and M notation
   const formatCount = (count: number): string => {
@@ -192,7 +109,7 @@ export default function WriteReviewModal({
         <TouchableWithoutFeedback>
           <View style={styles.reviewModal}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Reviews ({formatCount(mockReviews.length)})</Text>
+            <Text style={styles.modalTitle}>Reviews ({formatCount(reviews.length)})</Text>
             <TouchableOpacity 
               style={styles.closeButton}
               onPress={onClose}
@@ -202,13 +119,21 @@ export default function WriteReviewModal({
           </View>
 
           <View style={styles.reviewsSection}>
-            <FlatList
-              data={mockReviews}
-              renderItem={renderReviewItem}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={true}
-              style={styles.reviewsList}
-            />
+            {reviews.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="chatbubble-outline" size={64} color={Colors.grey} />
+                <Text style={styles.emptyTitle}>No reviews yet</Text>
+                <Text style={styles.emptySubtitle}>Be the first one to leave one...</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={reviews}
+                renderItem={renderReviewItem}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={true}
+                style={styles.reviewsList}
+              />
+            )}
           </View>
 
           <View style={styles.writeReviewSection}>
@@ -389,5 +314,23 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 64,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.black,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
   },
 });

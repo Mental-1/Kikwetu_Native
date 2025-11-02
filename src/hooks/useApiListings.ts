@@ -67,6 +67,22 @@ export function useUserListings(userId: string, status?: string) {
 }
 
 /**
+ * Hook to fetch similar/related listings
+ */
+export function useSimilarListings(listingId: string, limit = 10) {
+  return useQuery({
+    queryKey: ['similarListings', listingId, limit],
+    queryFn: async () => {
+      const response = await listingsService.getSimilarListings(listingId, limit);
+      return response.data || [];
+    },
+    enabled: !!listingId,
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+}
+
+/**
  * Hook to delete listing
  */
 export function useDeleteListing() {

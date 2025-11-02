@@ -2,7 +2,7 @@ import { Colors } from '@/src/constants/constant';
 import * as Location from 'expo-location';
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import MapView, { Marker, PROVIDER_DEFAULT, Region } from 'react-native-maps';
+import MapView, { PROVIDER_DEFAULT, Region } from 'react-native-maps';
 
 interface MapViewComponentProps {
   markers?: {
@@ -116,41 +116,18 @@ const MapViewComponent: React.FC<MapViewComponentProps> = ({
         style={styles.map}
         region={region}
         onRegionChangeComplete={handleRegionChange}
-        showsUserLocation={locationPermissionGranted && showUserLocation}
+        showsUserLocation={false}
         showsMyLocationButton={false}
-        showsCompass={true}
-        mapType="standard"
-        moveOnMarkerPress={false}
+        showsCompass={false}
+        mapType="hybrid"
         scrollEnabled={true}
         zoomEnabled={true}
-        pitchEnabled={true}
-        rotateEnabled={true}
+        pitchEnabled={false}
+        rotateEnabled={false}
         loadingEnabled={true}
         loadingIndicatorColor={Colors.primary}
         loadingBackgroundColor={Colors.background}
-      >
-        {/* Custom Markers for listings */}
-        {markers && markers.length > 0 && markers.map((marker) => {
-          if (!marker.coordinate || 
-              typeof marker.coordinate.latitude !== 'number' || 
-              typeof marker.coordinate.longitude !== 'number' ||
-              isNaN(marker.coordinate.latitude) ||
-              isNaN(marker.coordinate.longitude)) {
-            console.warn(`Invalid marker coordinate for marker ${marker.id}`);
-            return null;
-          }
-
-          return (
-            <Marker
-              key={marker.id}
-              coordinate={marker.coordinate}
-              title={marker.title}
-              description={marker.description}
-              onPress={() => handleMarkerPress(marker)}
-            />
-          );
-        })}
-      </MapView>
+      />
     </View>
   );
 };
