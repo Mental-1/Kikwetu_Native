@@ -41,7 +41,6 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     setShowSignUp(false);
   };
 
-  // Show loading while checking auth
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -51,14 +50,12 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     );
   }
 
-  // If user is authenticated, render children
   if (user) {
     return <>{children}</>;
   }
 
-  // If user is not authenticated, show sign-in modal
   return (
-    <>
+    <View style={styles.loadingContainer}>
       {showSignIn && (
         <SignIn
           visible={showSignIn}
@@ -73,7 +70,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           onSwitchToSignIn={handleSwitchToSignIn}
         />
       )}
-    </>
+    </View>
   );
 };
 

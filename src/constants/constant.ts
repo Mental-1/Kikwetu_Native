@@ -14,6 +14,9 @@ export type Color = keyof typeof Colors;
 
 export const categoryIcons: { [key: string]: any } = {
   'default': require('../../assets/images/categories/electronics.png'),
+  'art': require('../../assets/images/categories/art.png'),
+  'automobiles': require('../../assets/images/categories/automobile.png'),
+  'automobile': require('../../assets/images/categories/automobile.png'),
   'baby': require('../../assets/images/categories/baby.png'),
   'baby items': require('../../assets/images/categories/baby.png'),
   'beauty': require('../../assets/images/categories/beauty.png'),

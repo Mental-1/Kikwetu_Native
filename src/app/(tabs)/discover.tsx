@@ -396,9 +396,9 @@ const DiscoverContent = () => {
                                 />
                                 
                                 {/* Empty/Error State Content */}
-                                <View style={styles.emptyStateContainer}>
+                                <View style={styles.emptyStateContainer} pointerEvents="box-none">
                                     {feedError ? (
-                                        <>
+                                        <View pointerEvents="auto">
                                             <Text style={styles.emptyStateTitle}>Failed to load</Text>
                                             <TouchableOpacity 
                                                 style={styles.retryButton}
@@ -406,11 +406,13 @@ const DiscoverContent = () => {
                                             >
                                                 <Ionicons name="refresh-outline" size={24} color={Colors.white} />
                                             </TouchableOpacity>
-                                        </>
+                                        </View>
                                     ) : feedLoading ? (
-                                        <ActivityIndicator size="large" color={Colors.primary} />
+                                        <View pointerEvents="none">
+                                            <ActivityIndicator size="large" color={Colors.primary} />
+                                        </View>
                                     ) : (
-                                        <Text style={styles.emptyStateText}>Oops. Nothing here</Text>
+                                        <Text style={styles.emptyStateText} pointerEvents="none">Oops. Nothing here</Text>
                                     )}
                                 </View>
                             </View>
@@ -519,7 +521,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 10,
+        zIndex: 3, // Lower than overlay (zIndex: 5) so overlay remains interactive
     },
     emptyStateText: {
         color: 'rgba(255, 255, 255, 0.5)',

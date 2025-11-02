@@ -62,7 +62,10 @@ export default function Step1() {
   // Fetch categories, subcategories, and stores
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { data: subcategories } = useSubcategoriesByCategory(categoryId);
-  const { data: stores, isLoading: storesLoading } = useStores();
+  const { data: stores, isLoading: storesLoading, error: storesError } = useStores();
+  
+  // Handle stores error gracefully - use empty array if error
+  const safeStores = storesError ? [] : (stores || []);
 
   const handleBack = () => {
     router.push('/(tabs)/listings');
@@ -321,7 +324,7 @@ export default function Step1() {
               styles.dropdownText, 
               !storeId && styles.placeholderText
             ]}>
-              {storeId ? stores?.find(s => s.id === storeId.toString())?.name : 'Select Store (Optional)'}
+              {storeId ? safeStores.find(s => s.id === storeId.toString())?.name : 'Select Store (Optional)'}
             </Text>
             <Ionicons 
               name={showStoreDropdown ? "chevron-up" : "chevron-down"} 
@@ -354,10 +357,10 @@ export default function Step1() {
                     </TouchableOpacity>
                     
                     {/* Existing Stores */}
-                    {stores?.length === 0 ? (
+                    {safeStores.length === 0 ? (
                       <Text style={styles.loadingText}>No stores available</Text>
                     ) : (
-                      stores?.map((store) => (
+                      safeStores.map((store) => (
                         <TouchableOpacity
                           key={store.id}
                           style={styles.dropdownItem}

@@ -143,7 +143,9 @@ export async function getUserStores(): Promise<Store[]> {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      throw new Error('User not authenticated');
+      // Return empty array instead of throwing - stores are optional
+      console.log('User not authenticated, returning empty stores array');
+      return [];
     }
 
     const { data, error } = await supabase
@@ -154,13 +156,15 @@ export async function getUserStores(): Promise<Store[]> {
 
     if (error) {
       console.error('Error fetching user stores:', error);
-      throw new Error('Failed to fetch stores');
+      // Return empty array instead of throwing - stores are optional
+      return [];
     }
 
     return data || [];
   } catch (error) {
     console.error('getUserStores error:', error);
-    throw error;
+    // Return empty array instead of throwing - stores are optional
+    return [];
   }
 }
 

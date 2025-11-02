@@ -9,6 +9,8 @@ export function useStores() {
     queryKey: ['stores'],
     queryFn: storesService.getUserStores,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false, // Don't retry if auth fails
+    throwOnError: false, // Don't throw, return error in query result
   });
 }
 

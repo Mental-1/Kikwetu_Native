@@ -56,7 +56,7 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
     const displayHashtags = expandedHashtags ? (video.tags || []) : (video.tags || []).slice(0, 3);
 
     return (
-        <View style={styles.overlay}>
+        <View style={styles.overlay} pointerEvents="box-none">
             {/* Top Header */}
             <SafeAreaView style={styles.topHeader}>
                 <View style={styles.headerContent}>
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: 1,
+        zIndex: 5, // Higher than emptyStateContainer (zIndex: 3) to ensure it's interactive
     },
     topHeader: {
         position: 'absolute',
