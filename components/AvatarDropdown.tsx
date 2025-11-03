@@ -1,7 +1,7 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Modal, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Animated, Dimensions, Modal, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 interface AvatarDropdownProps {
   visible: boolean;
@@ -20,27 +20,36 @@ const AvatarDropdown: React.FC<AvatarDropdownProps> = ({
   userName,
   userEmail,
 }) => {
-  const slideAnim = useRef(new Animated.Value(-300)).current;
+  const screenWidth = Dimensions.get('window').width;
+  // Start from off-screen right (screenWidth means fully to the right of screen)
+  const slideAnim = useRef(new Animated.Value(screenWidth)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      // Reset animation values when opening - start from off-screen right
+      slideAnim.setValue(screenWidth);
+      opacityAnim.setValue(0);
+      
+      // Use requestAnimationFrame to ensure layout is measured before animating
+      requestAnimationFrame(() => {
+        Animated.parallel([
+          Animated.timing(slideAnim, {
+            toValue: 0, // Animate to final position (translateX: 0 means no translation from right: 0)
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacityAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
     } else {
       Animated.parallel([
         Animated.timing(slideAnim, {
-          toValue: -300,
+          toValue: screenWidth, // Animate back off-screen right
           duration: 250,
           useNativeDriver: true,
         }),
@@ -51,7 +60,7 @@ const AvatarDropdown: React.FC<AvatarDropdownProps> = ({
         }),
       ]).start();
     }
-  }, [visible, slideAnim, opacityAnim]);
+  }, [visible, slideAnim, opacityAnim, screenWidth]);
 
   return (
     <Modal

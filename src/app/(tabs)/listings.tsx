@@ -6,6 +6,7 @@ import { useCategories, useCategoryMutations, useSubcategories } from '@/hooks/u
 import { Colors } from '@/src/constants/constant';
 import { useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
 import { useListings } from '@/src/hooks/useListings';
+import { useAppStore } from '@/stores/useAppStore';
 import type { ListingItem } from '@/types/types';
 import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,7 +15,6 @@ import { StatusBar } from 'expo-status-bar';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppStore } from '@/stores/useAppStore';
 
 
 const { width } = Dimensions.get('window');
@@ -100,9 +100,32 @@ function ListingsContent() {
     return () => scrollY.removeListener(listener);
   }, [scrollY]);
 
-  const scrollToTop = () => {
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-  };
+  const scrollToTop = useCallback(() => {
+    console.log('scrollToTop called, flatListRef.current:', !!flatListRef.current);
+    if (!flatListRef.current) {
+      console.warn('flatListRef.current is null');
+      return;
+    }
+    
+    try {
+      console.log('Attempting scrollToOffset');
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+    } catch (error) {
+      console.error('Failed to scroll to top:', error);
+      try {
+        if (listings.length > 0) {
+          console.log('Attempting scrollToIndex as fallback');
+          flatListRef.current.scrollToIndex({ 
+            index: 0, 
+            animated: true,
+            viewPosition: 0
+          });
+        }
+      } catch (indexError) {
+        console.error('Failed to scroll using scrollToIndex:', indexError);
+      }
+    }
+  }, [listings.length]);
 
   const handleBackPress = () => {
     router.push('/(tabs)/home');
@@ -360,12 +383,20 @@ function ListingsContent() {
 
       {/* Back to Top Button */}
       {showBackToTop && (
-        <Animated.View style={[styles.backToTopButton, { opacity: scrollY.interpolate({
-          inputRange: [Dimensions.get('window').height * 1.5, Dimensions.get('window').height * 2],
-          outputRange: [0.7, 1],
-          extrapolate: 'clamp',
-        })}]}>
-          <TouchableOpacity style={styles.backToTopTouchable} onPress={scrollToTop}>
+        <Animated.View 
+          style={[styles.backToTopButton, { opacity: scrollY.interpolate({
+            inputRange: [Dimensions.get('window').height * 1.5, Dimensions.get('window').height * 2],
+            outputRange: [0.7, 1],
+            extrapolate: 'clamp',
+          })}]}
+          pointerEvents="box-none"
+        >
+          <TouchableOpacity 
+            style={styles.backToTopTouchable} 
+            onPress={scrollToTop}
+            activeOpacity={0.8}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="chevron-up" size={24} color={Colors.white} />
           </TouchableOpacity>
         </Animated.View>

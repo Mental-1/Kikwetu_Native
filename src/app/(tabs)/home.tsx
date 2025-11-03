@@ -165,7 +165,7 @@ const Home = (props: Props) => {
         <View style={styles.container}>
             <StatusBar style="light" />
             {/* Header with status bar background */}
-            <SafeAreaView style={styles.header}>
+            <SafeAreaView style={styles.header} edges={['top']}>
                 <View style={styles.headerContent}>
                 {/* Logo */}
                 <View style={styles.logoContainer}>
