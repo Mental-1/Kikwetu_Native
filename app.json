@@ -13,9 +13,7 @@
       "bundleIdentifier": "com.kawa-ida.Kikwetu",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": [
-          "whatsapp"
-        ]
+        "LSApplicationQueriesSchemes": ["whatsapp"]
       }
     },
     "android": {
@@ -32,56 +30,45 @@
         }
       }
     },
-    "extra": {
-      "EXPO_PUBLIC_SUPABASE_URL": "https://cvnertrkcwjjdrnnjswk.supabase.co",
-      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_4fLLnjGNmi013LGxxribpQ_dvcJvapo",
-      "eas": {
-        "projectId": "7f836722-0d8e-48d8-8c53-2ebad4137d71"
-      }
-    },
     "plugins": [
       "expo-web-browser",
       "expo-router",
       "expo-audio",
       "expo-video",
-      "expo-asset"
-    ]
-  },
-  "plugins": [
-    "expo-router",
-    [
-      "expo-splash-screen",
-      {
-        "image": "./assets/images/splash.png",
-        "resizeMode": "cover",
-        "backgroundColor": "#1461BD",
-        "edgeToEdgeEnabled": true
-      }
+      "expo-asset",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#1461BD",
+          "edgeToEdgeEnabled": true
+        }
+      ],
+      "expo-quick-actions",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "kikwetu-native",
+          "organization": "routteme"
+        }
+      ]
     ],
-    "expo-quick-actions",
-    "expo-secure-store",
-    "expo-font",
-    [
-      "@sentry/react-native/expo",
-      {
-        "url": "https://sentry.io/",
-        "project": "kikwetu-native",
-        "organization": "routteme"
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "EXPO_PUBLIC_SUPABASE_URL": "https://cvnertrkcwjjdrnnjswk.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_4fLLnjGNmi013LGxxribpQ_dvcJvapo",
+      "router": {},
+      "eas": {
+        "projectId": "7f836722-0d8e-48d8-8c53-2ebad4137d71"
       }
-    ],
-    "expo-video",
-    "expo-audio",
-    "expo-web-browser"
-  ],
-  "experiments": {
-    "typedRoutes": true,
-    "reactCompiler": true
-  },
-  "extra": {
-    "router": {},
-    "eas": {
-      "projectId": "7f836722-0d8e-48d8-8c53-2ebad4137d71"
-    }
-  },
-  "owner": "kawa_ida"
+    },
+    "owner": "kawa_ida"
+  }
 }

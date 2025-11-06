@@ -9,7 +9,7 @@ interface PostAdState {
   condition: string;
   categoryId: number | null;
   subcategoryId: number | null;
-  storeId: number | null;
+  storeId: string | null;
   tags: string[];
   images: string[];
   videos: string[];
@@ -24,7 +24,7 @@ interface PostAdState {
   setCondition: (condition: string) => void;
   setCategoryId: (categoryId: number | null) => void;
   setSubcategoryId: (subcategoryId: number | null) => void;
-  setStoreId: (storeId: number | null) => void;
+  setStoreId: (storeId: string | null) => void;
   setTags: (tags: string[]) => void;
   setImages: (images: string[]) => void;
   setVideos: (videos: string[]) => void;

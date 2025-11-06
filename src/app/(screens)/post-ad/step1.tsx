@@ -8,7 +8,7 @@ import { getLocationWithAddress } from '@/utils/locationUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -179,7 +179,12 @@ export default function Step1() {
         <View style={styles.placeholder} />
       </SafeAreaView>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        removeClippedSubviews={false}
+      >
         {/* Title */}
         <View style={styles.section}>
           <Text style={styles.label}>Title *</Text>
@@ -239,6 +244,7 @@ export default function Step1() {
                     style={styles.dropdownScroll}
                     showsVerticalScrollIndicator={true}
                     nestedScrollEnabled={true}
+                    keyboardShouldPersistTaps="handled"
                   >
                     {categoriesLoading ? (
                       <Text style={styles.loadingText}>Loading categories...</Text>
@@ -289,6 +295,7 @@ export default function Step1() {
                     style={styles.dropdownScroll}
                     showsVerticalScrollIndicator={true}
                     nestedScrollEnabled={true}
+                    keyboardShouldPersistTaps="handled"
                   >
                     {subcategories?.length === 0 ? (
                       <Text style={styles.loadingText}>No subcategories available</Text>
@@ -324,7 +331,7 @@ export default function Step1() {
               styles.dropdownText, 
               !storeId && styles.placeholderText
             ]}>
-              {storeId ? safeStores.find(s => s.id === storeId.toString())?.name : 'Select Store (Optional)'}
+              {storeId ? safeStores.find(s => s.id === storeId)?.name : 'Select Store (Optional)'}
             </Text>
             <Ionicons 
               name={showStoreDropdown ? "chevron-up" : "chevron-down"} 
@@ -339,6 +346,7 @@ export default function Step1() {
                 style={styles.dropdownScroll}
                 showsVerticalScrollIndicator={true}
                 nestedScrollEnabled={true}
+                keyboardShouldPersistTaps="handled"
               >
                 {storesLoading ? (
                   <Text style={styles.loadingText}>Loading stores...</Text>
@@ -365,7 +373,7 @@ export default function Step1() {
                           key={store.id}
                           style={styles.dropdownItem}
                           onPress={() => {
-                            setStoreId(parseInt(store.id));
+                            setStoreId(store.id);
                             setShowStoreDropdown(false);
                           }}
                         >
