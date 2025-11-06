@@ -1,13 +1,16 @@
 import { Colors } from '@/src/constants/constant';
+import { useProfileById } from '@/src/hooks/useProfile';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Profile = () => {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { data: profile, isLoading, error } = useProfileById(id || '');
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeTab, setActiveTab] = useState('listings');
 
@@ -23,6 +26,7 @@ const Profile = () => {
     router.push('/(screens)/(dashboard)/conversations');
   };
 
+  // Mock data for listings and stores
   // Mock data for listings and stores
   const mockListings = [
     { id: '1', title: 'iPhone 14 Pro', price: 'Kes 120,000', image: 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=300&h=300&fit=crop' },
@@ -137,6 +141,28 @@ const Profile = () => {
     </TouchableOpacity>
   );
 
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading profile...</Text>
+      </View>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>
+          {error?.message || 'Profile not found'}
+        </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+          <Text style={styles.retryButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
@@ -146,7 +172,7 @@ const Profile = () => {
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>
-        <Text style={styles.username}>John Doe</Text>
+        <Text style={styles.username}>{profile.username || profile.full_name || 'Profile'}</Text>
       </SafeAreaView>
 
       <View style={styles.content}>
@@ -154,35 +180,36 @@ const Profile = () => {
         <View style={styles.userCard}>
           <View style={styles.userHeader}>
             <Image 
-              source={{ uri: 'https://via.placeholder.com/80x80' }} 
+              source={{ uri: profile.avatar_url || 'https://via.placeholder.com/80x80' }} 
               style={styles.avatar}
             />
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>20</Text>
+                <Text style={styles.statNumber}>{profile.listing_count || 0}</Text>
                 <Text style={styles.statLabel}>Listings</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>1.2K</Text>
+                <Text style={styles.statNumber}>0</Text>
                 <Text style={styles.statLabel}>Followers</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>856</Text>
+                <Text style={styles.statNumber}>0</Text>
                 <Text style={styles.statLabel}>Following</Text>
               </View>
             </View>
           </View>
 
           <View style={styles.userInfo}>
-            <Text style={styles.brandName}>John&apos;s Electronics</Text>
+            <Text style={styles.brandName}>{profile.full_name || profile.username || 'User'}</Text>
             <Text style={styles.bio}>
-              Passionate about technology and electronics. Selling quality gadgets and accessories. 
-              Always looking for the latest tech trends and sharing them with the community.
+              {profile.bio || 'No bio available.'}
             </Text>
-            <TouchableOpacity style={styles.websiteLink}>
-              <Ionicons name="globe-outline" size={16} color={Colors.primary} />
-              <Text style={styles.websiteText}>www.johnselectronics.com</Text>
-            </TouchableOpacity>
+            {profile.website && (
+              <TouchableOpacity style={styles.websiteLink}>
+                <Ionicons name="globe-outline" size={16} color={Colors.primary} />
+                <Text style={styles.websiteText}>{profile.website}</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={styles.actionButtons}>
@@ -595,6 +622,41 @@ const styles = StyleSheet.create({
   storeFollowText: {
     fontSize: 12,
     color: Colors.primary,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: Colors.grey,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    color: Colors.grey,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: Colors.white,
+    fontSize: 16,
     fontWeight: '600',
   },
 });
