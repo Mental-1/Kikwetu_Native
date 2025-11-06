@@ -138,32 +138,33 @@ async function uploadStoreImages(
 /**
  * Fetches all stores for the authenticated user
  */
-export async function getUserStores(): Promise<Store[]> {
+export async function getUserStores(userId?: string): Promise<Store[]> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      // Return empty array instead of throwing - stores are optional
-      console.log('User not authenticated, returning empty stores array');
-      return [];
+    let ownerId = userId;
+
+    if (!ownerId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('User not authenticated, returning empty stores array');
+        return [];
+      }
+      ownerId = user.id;
     }
 
     const { data, error } = await supabase
       .from('stores')
       .select('*')
-      .eq('owner_id', user.id)
+      .eq('owner_id', ownerId)
       .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching user stores:', error);
-      // Return empty array instead of throwing - stores are optional
       return [];
     }
 
     return data || [];
   } catch (error) {
     console.error('getUserStores error:', error);
-    // Return empty array instead of throwing - stores are optional
     return [];
   }
 }

@@ -4,10 +4,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 /**
  * Hook to fetch user stores
  */
-export function useStores() {
+export function useStores(userId?: string) {
   return useQuery({
-    queryKey: ['stores'],
-    queryFn: storesService.getUserStores,
+    queryKey: ['stores', userId],
+    queryFn: () => storesService.getUserStores(userId),
+    enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: false, // Don't retry if auth fails
     throwOnError: false, // Don't throw, return error in query result

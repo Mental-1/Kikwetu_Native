@@ -40,6 +40,7 @@ export interface ListingFilters {
   negotiable?: boolean;
   status?: string;
   search?: string;
+  userId?: string;
 }
 
 export async function createListing(listingData: CreateListingData): Promise<ApiResponse<Listing>> {

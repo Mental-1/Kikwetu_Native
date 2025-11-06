@@ -1,5 +1,9 @@
+import ListingCard from '@/components/ListingCard';
+import StoreCard from '@/components/StoreCard';
 import { Colors } from '@/src/constants/constant';
+import { useMyListings } from '@/src/hooks/useMyListings';
 import { useProfileById } from '@/src/hooks/useProfile';
+import { useStores } from '@/src/hooks/useStores';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -11,6 +15,8 @@ const Profile = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: profile, isLoading, error } = useProfileById(id || '');
+  const { data: userListings, isLoading: listingsLoading } = useMyListings({ userId: id || '' });
+  const { data: userStores, isLoading: storesLoading } = useStores(id || '');
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeTab, setActiveTab] = useState('listings');
 
@@ -26,119 +32,34 @@ const Profile = () => {
     router.push('/(screens)/(dashboard)/conversations');
   };
 
-  // Mock data for listings and stores
-  // Mock data for listings and stores
-  const mockListings = [
-    { id: '1', title: 'iPhone 14 Pro', price: 'Kes 120,000', image: 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=300&h=300&fit=crop' },
-    { id: '2', title: 'MacBook Air M2', price: 'Kes 150,000', image: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=300&h=300&fit=crop' },
-    { id: '3', title: 'Samsung Galaxy S23', price: 'Kes 95,000', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&h=300&fit=crop' },
-    { id: '4', title: 'iPad Pro 12.9"', price: 'Kes 85,000', image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=300&h=300&fit=crop' },
-    { id: '5', title: 'AirPods Pro 2', price: 'Kes 25,000', image: 'https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=300&h=300&fit=crop' },
-    { id: '6', title: 'Apple Watch Series 8', price: 'Kes 45,000', image: 'https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=300&h=300&fit=crop' },
-  ];
-
-  const mockStores = [
-    { 
-      id: '1', 
-      name: 'Tech Gadgets Hub', 
-      description: 'Latest tech accessories and gadgets for tech enthusiasts', 
-      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=300&fit=crop',
-      category: 'Electronics',
-      products: 45,
-      rating: 4.8,
-      followers: 1200,
-      established: '2022'
-    },
-    { 
-      id: '2', 
-      name: 'Electronics Plus', 
-      description: 'Premium electronics store with quality guaranteed products', 
-      image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=300&fit=crop',
-      category: 'Electronics',
-      products: 32,
-      rating: 4.9,
-      followers: 850,
-      established: '2021'
-    },
-    { 
-      id: '3', 
-      name: 'Mobile Solutions', 
-      description: 'Mobile phones, accessories and repair services', 
-      image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&h=300&fit=crop',
-      category: 'Mobile',
-      products: 28,
-      rating: 4.7,
-      followers: 650,
-      established: '2023'
-    },
-    { 
-      id: '4', 
-      name: 'Home & Office', 
-      description: 'Furniture and office equipment for modern workspaces', 
-      image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=300&fit=crop',
-      category: 'Furniture',
-      products: 18,
-      rating: 4.6,
-      followers: 420,
-      established: '2023'
-    },
-    { 
-      id: '5', 
-      name: 'Gaming Zone', 
-      description: 'Gaming consoles, accessories and gaming equipment', 
-      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=300&fit=crop',
-      category: 'Gaming',
-      products: 22,
-      rating: 4.9,
-      followers: 980,
-      established: '2022'
-    },
-  ];
-
   const renderListingItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.gridItem}>
-      <Image source={{ uri: item.image }} style={styles.gridImage} />
-      <View style={styles.gridContent}>
-        <Text style={styles.gridTitle} numberOfLines={2}>{item.title}</Text>
-        <Text style={styles.gridPrice}>{item.price}</Text>
-      </View>
-    </TouchableOpacity>
+    <ListingCard
+      id={item.id}
+      title={item.title || 'Untitled'}
+      price={item.price ? `KES ${item.price.toLocaleString()}` : 'Price not set'}
+      condition={item.condition || 'Used'}
+      location={item.location || 'Location not specified'}
+      image={item.images?.[0] || 'https://via.placeholder.com/200'}
+      description={item.description}
+      views={item.views}
+      viewMode="grid"
+      onPress={(listingId) => router.push(`/listings/${listingId}`)}
+    />
   );
 
   const renderStoreItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.storeItem}>
-      <Image source={{ uri: item.image }} style={styles.storeImage} />
-      <View style={styles.storeContent}>
-        <View style={styles.storeHeader}>
-          <Text style={styles.storeName}>{item.name}</Text>
-          <View style={styles.storeCategory}>
-            <Text style={styles.storeCategoryText}>{item.category}</Text>
-          </View>
-        </View>
-        <Text style={styles.storeDescription}>{item.description}</Text>
-        <View style={styles.storeStats}>
-          <View style={styles.storeStatItem}>
-            <Ionicons name="star" size={14} color="#FFD700" />
-            <Text style={styles.storeStatText}>{item.rating}</Text>
-          </View>
-          <View style={styles.storeStatItem}>
-            <Ionicons name="cube-outline" size={14} color={Colors.grey} />
-            <Text style={styles.storeStatText}>{item.products} products</Text>
-          </View>
-          <View style={styles.storeStatItem}>
-            <Ionicons name="people-outline" size={14} color={Colors.grey} />
-            <Text style={styles.storeStatText}>{item.followers}</Text>
-          </View>
-        </View>
-        <View style={styles.storeFooter}>
-          <Text style={styles.storeEstablished}>Est. {item.established}</Text>
-          <TouchableOpacity style={styles.storeFollowButton}>
-            <Ionicons name="add" size={14} color={Colors.primary} />
-            <Text style={styles.storeFollowText}>Follow Store</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </TouchableOpacity>
+    <StoreCard
+      id={item.id}
+      name={item.name}
+      description={item.description}
+      image={item.profile_url || 'https://via.placeholder.com/200'}
+      category={item.category}
+      products={item.total_products}
+      rating={item.average_rating}
+      followers={item.follower_count}
+      established={item.created_at ? new Date(item.created_at).getFullYear().toString() : 'N/A'}
+      onPress={(storeId: string) => router.push(`/stores/${storeId}`)}
+    />
   );
 
   if (isLoading) {
@@ -266,25 +187,33 @@ const Profile = () => {
 
           <View style={styles.tabContent}>
             {activeTab === 'listings' ? (
-              <FlatList
-                key="listings-grid"
-                data={mockListings}
-                renderItem={renderListingItem}
-                keyExtractor={(item) => item.id}
-                numColumns={2}
-                columnWrapperStyle={styles.gridRow}
-                contentContainerStyle={styles.gridContainer}
-                showsVerticalScrollIndicator={false}
-              />
+              listingsLoading ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : (
+                <FlatList
+                  key="listings-grid"
+                  data={userListings?.pages.flatMap(page => page.data) || []}
+                  renderItem={renderListingItem}
+                  keyExtractor={(item) => item.id}
+                  numColumns={2}
+                  columnWrapperStyle={styles.gridRow}
+                  contentContainerStyle={styles.gridContainer}
+                  showsVerticalScrollIndicator={false}
+                />
+              )
             ) : (
-              <FlatList
-                key="stores-list"
-                data={mockStores}
-                renderItem={renderStoreItem}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.storesContainer}
-                showsVerticalScrollIndicator={false}
-              />
+              storesLoading ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : (
+                <FlatList
+                  key="stores-list"
+                  data={userStores || []}
+                  renderItem={renderStoreItem}
+                  keyExtractor={(item) => item.id}
+                  contentContainerStyle={styles.storesContainer}
+                  showsVerticalScrollIndicator={false}
+                />
+              )
             )}
           </View>
         </View>
@@ -292,7 +221,6 @@ const Profile = () => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
