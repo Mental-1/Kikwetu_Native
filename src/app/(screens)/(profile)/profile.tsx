@@ -15,8 +15,8 @@ const Profile = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: profile, isLoading, error } = useProfileById(id || '');
-  const { data: userListings, isLoading: listingsLoading } = useMyListings({ userId: id || '' });
-  const { data: userStores, isLoading: storesLoading } = useStores(id || '');
+  const { data: userListings, isLoading: listingsLoading, error: listingsError } = useMyListings({ userId: id || '' });
+  const { data: userStores, isLoading: storesLoading, error: storesError } = useStores(id || '');
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeTab, setActiveTab] = useState('listings');
 
@@ -189,6 +189,16 @@ const Profile = () => {
             {activeTab === 'listings' ? (
               listingsLoading ? (
                 <ActivityIndicator size="small" color={Colors.primary} />
+              ) : listingsError ? (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons name="alert-circle-outline" size={48} color={Colors.grey} />
+                  <Text style={styles.emptyStateText}>Error loading listings.</Text>
+                </View>
+              ) : userListings?.pages.flatMap(page => page.data).length === 0 ? (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons name="cube-outline" size={48} color={Colors.grey} />
+                  <Text style={styles.emptyStateText}>No listings found.</Text>
+                </View>
               ) : (
                 <FlatList
                   key="listings-grid"
@@ -204,6 +214,16 @@ const Profile = () => {
             ) : (
               storesLoading ? (
                 <ActivityIndicator size="small" color={Colors.primary} />
+              ) : storesError ? (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons name="alert-circle-outline" size={48} color={Colors.grey} />
+                  <Text style={styles.emptyStateText}>Error loading stores.</Text>
+                </View>
+              ) : userStores?.length === 0 ? (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons name="cube-outline" size={48} color={Colors.grey} />
+                  <Text style={styles.emptyStateText}>No stores found.</Text>
+                </View>
               ) : (
                 <FlatList
                   key="stores-list"
@@ -551,6 +571,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.primary,
     fontWeight: '600',
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 16,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: Colors.grey,
+    marginTop: 12,
+    textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,
