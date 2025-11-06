@@ -1,4 +1,5 @@
 import CustomAlert from '@/components/ui/CustomAlert';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 
 interface AlertOptions {
@@ -73,7 +74,7 @@ export const useCustomAlert = (): AlertHook => {
       message={options.message}
       buttonText={options.buttonText}
       onPress={handlePress}
-      icon={options.icon}
+      icon={options.icon as keyof typeof Ionicons.glyphMap}
       iconColor={options.iconColor}
       buttonColor={options.buttonColor}
     />

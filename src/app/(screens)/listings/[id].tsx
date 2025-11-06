@@ -4,13 +4,13 @@ import { Colors } from '@/src/constants/constant';
 import { useSimilarListings } from '@/src/hooks/useApiListings';
 import { useCheckIfSaved, useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
 import { useListingDetails } from '@/src/hooks/useListingDetails';
-import { useUser } from '@/src/hooks/useUser';
+import { useProfileById } from '@/src/hooks/useProfile';
 import { openDirections } from '@/src/utils/directionUtils';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -37,7 +37,7 @@ export default function ListingDetails() {
   
   const { data: listing, isLoading, error } = useListingDetails(id || '');
   const { data: categories } = useCategories();
-  const { getUserById } = useUser();
+  const { data: sellerInfo, isLoading: sellerLoading } = useProfileById(listing?.user_id || '');
   const { data: relatedListings = [], isLoading: relatedLoading, error: relatedError } = useSimilarListings(id || '', 8);
   
   // Saved listings functionality
@@ -50,7 +50,6 @@ export default function ListingDetails() {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [sellerInfo, setSellerInfo] = useState<{ name: string; rating: number; avatar?: string } | null>(null);
   const wiggleAnim = useRef(new Animated.Value(0)).current;
   
   const { showAlert, AlertComponent } = useCustomAlert();
@@ -70,30 +69,6 @@ export default function ListingDetails() {
     savedStatus?.isSaved || false,
     [savedStatus?.isSaved]
   );
-
-  useEffect(() => {
-    const fetchSellerInfo = async () => {
-      if (listing?.user_id) {
-        try {
-          const userData = await getUserById(listing.user_id);
-          if (userData) {
-            setSellerInfo({
-              name: userData.fullName || userData.username || 'Seller',
-              rating: userData.rating || 0,
-              avatar: userData.avatarUrl,
-            });
-          }
-        } catch {
-          setSellerInfo({
-            name: 'Seller',
-            rating: 0,
-          });
-        }
-      }
-    };
-
-    fetchSellerInfo();
-  }, [listing?.user_id, getUserById]);
 
   const handleBack = useCallback(() => {
     router.back();
@@ -258,7 +233,7 @@ export default function ListingDetails() {
       <StatusBar style="dark" />
       
       {/* Header */}
-      <SafeAreaView style={styles.header}>
+      <SafeAreaView style={styles.header} edges={['top']}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>
@@ -396,13 +371,13 @@ export default function ListingDetails() {
             <View style={styles.sellerDetails}>
               <View style={styles.sellerMain}>
                 <Image 
-                  source={{ uri: sellerInfo?.avatar || 'https://via.placeholder.com/50x50' }} 
+                  source={{ uri: sellerInfo?.avatar_url || 'https://via.placeholder.com/50x50' }} 
                   style={styles.sellerAvatar}
                 />
                 <View style={styles.sellerStats}>
                   <View style={styles.sellerTopRow}>
                     <View style={styles.sellerLeft}>
-                      <Text style={styles.sellerName}>{sellerInfo?.name || 'Seller'}</Text>
+                      <Text style={styles.sellerName}>{sellerInfo?.full_name || sellerInfo?.username || 'Seller'}</Text>
                       <View style={styles.sellerRating}>
                         <Ionicons name="star" size={16} color="#FFD700" />
                         <Text style={styles.sellerRatingText}>{sellerInfo?.rating?.toFixed(1) || '0.0'}</Text>
@@ -587,10 +562,10 @@ export default function ListingDetails() {
             visible={showContactModal}
             onClose={() => setShowContactModal(false)}
             seller={{
-              name: sellerInfo?.name || 'Seller',
-              phone: '+254712345678', // TODO: Get from user profile
-              email: 'seller@example.com', // TODO: Get from user profile
-              whatsapp: '+254712345678' // TODO: Get from user profile
+              name: sellerInfo?.full_name || sellerInfo?.username || 'Seller',
+              phone: sellerInfo?.phone_number || '', 
+              email: sellerInfo?.email || '', 
+              whatsapp: sellerInfo?.phone_number || ''
             }}
             listingTitle={listing.title}
           />

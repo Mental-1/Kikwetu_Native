@@ -1,6 +1,7 @@
-import { supabase } from '@/lib/supabase';
+import { apiClient, ApiResponse, PaginatedResponse } from './api';
 
-export interface CreateListingData {
+export interface Listing {
+  id: string;
   title: string;
   description: string;
   price: number;
@@ -13,18 +14,21 @@ export interface CreateListingData {
   negotiable: boolean;
   images: string[];
   videos: string[];
-  store_id?: number;
+  store_id?: string;
   tags?: string[];
-  status: 'draft' | 'active' | 'pending' | 'rejected' | 'under_review';
+  status: 'draft' | 'active' | 'pending' | 'rejected' | 'under_review' | 'sold';
   payment_status?: 'pending' | 'completed' | 'failed';
   plan?: string;
   views?: number;
   expiry_date?: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface UpdateListingData extends Partial<CreateListingData> {
-  id: string;
-}
+export interface CreateListingData extends Omit<Listing, 'id' | 'user_id' | 'created_at' | 'updated_at'> {}
+
+export interface UpdateListingData extends Partial<CreateListingData> {}
 
 export interface ListingFilters {
   category_id?: number;
@@ -38,255 +42,80 @@ export interface ListingFilters {
   search?: string;
 }
 
-/**
- * Create a new listing
- */
-export async function createListing(listingData: CreateListingData): Promise<any> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    // Calculate expiry date (30 days from now)
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 30);
-
-    const { data, error } = await supabase
-      .from('listings')
-      .insert({
-        ...listingData,
-        user_id: user.id,
-        views: 0,
-        expiry_date: expiryDate.toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating listing:', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Create listing service error:', error);
-    throw error;
-  }
+export async function createListing(listingData: CreateListingData): Promise<ApiResponse<Listing>> {
+  return apiClient.post<Listing>('/listings', listingData);
 }
 
-/**
- * Update an existing listing
- */
-export async function updateListing(listingId: string, listingData: Partial<CreateListingData>): Promise<any> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    const { data, error } = await supabase
-      .from('listings')
-      .update({
-        ...listingData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', listingId)
-      .eq('user_id', user.id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating listing:', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Update listing service error:', error);
-    throw error;
-  }
+export async function updateListing(listingId: string, listingData: UpdateListingData): Promise<ApiResponse<Listing>> {
+  return apiClient.put<Listing>(`/listings/${listingId}`, listingData);
 }
 
-/**
- * Delete a listing (soft delete by setting status to 'deleted')
- */
-export async function deleteListing(listingId: string): Promise<boolean> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    const { error } = await supabase
-      .from('listings')
-      .update({
-        status: 'deleted',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', listingId)
-      .eq('user_id', user.id);
-
-    if (error) {
-      console.error('Error deleting listing:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Delete listing service error:', error);
-    return false;
-  }
+export async function deleteListing(listingId: string): Promise<ApiResponse<void>> {
+  return apiClient.delete<void>(`/listings/${listingId}`);
 }
 
-/**
- * Get user's listings with optional filters
- */
-export async function getUserListings(filters?: ListingFilters): Promise<any[]> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    let query = supabase
-      .from('listings')
-      .select(`
-        *,
-        category:categories(name),
-        subcategory:subcategories(name)
-      `)
-      .eq('user_id', user.id)
-      .neq('status', 'deleted')
-      .order('created_at', { ascending: false });
-
-    // Apply filters
-    if (filters) {
-      if (filters.category_id) query = query.eq('category_id', filters.category_id);
-      if (filters.subcategory_id) query = query.eq('subcategory_id', filters.subcategory_id);
-      if (filters.condition) query = query.eq('condition', filters.condition);
-      if (filters.status) query = query.eq('status', filters.status);
-      if (filters.price_min) query = query.gte('price', filters.price_min);
-      if (filters.price_max) query = query.lte('price', filters.price_max);
-      if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
-      }
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching user listings:', error);
-      throw error;
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error('Get user listings service error:', error);
-    throw error;
-  }
+export async function getUserListings(filters?: ListingFilters, page: number = 1): Promise<PaginatedResponse<Listing>> {
+  return apiClient.get<Listing[]>('/listings/my-listings', { ...filters, page }) as unknown as PaginatedResponse<Listing>;
 }
 
-/**
- * Get a single listing by ID
- */
-export async function getListingById(listingId: string): Promise<any | null> {
-  try {
-    const { data, error } = await supabase
-      .from('listings')
-      .select(`
-        *,
-        category:categories(name),
-        subcategory:subcategories(name),
-        store:stores(name, description)
-      `)
-      .eq('id', listingId)
-      .neq('status', 'deleted')
-      .single();
-
-    if (error) {
-      console.error('Error fetching listing:', error);
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Get listing service error:', error);
-    return null;
-  }
+export async function getListingById(listingId: string): Promise<ApiResponse<Listing>> {
+  return apiClient.get<Listing>(`/listings/${listingId}`);
 }
 
-/**
- * Get all listings with optional filters and pagination
- */
-export async function getListings(filters: ListingFilters = {}, page: number = 1, limit: number = 20): Promise<{ data: any[], hasMore: boolean, totalCount: number }> {
-  try {
-    let query = supabase
-      .from('listings')
-      .select('*', { count: 'exact' })
-      .neq('status', 'deleted')
-      .order('created_at', { ascending: false })
-      .range((page - 1) * limit, page * limit - 1);
-
-    // Apply filters
-    if (filters) {
-      if (filters.category_id) query = query.eq('category_id', filters.category_id);
-      if (filters.subcategory_id) query = query.eq('subcategory_id', filters.subcategory_id);
-      if (filters.condition) query = query.eq('condition', filters.condition);
-      if (filters.status) query = query.eq('status', filters.status);
-      if (filters.price_min) query = query.gte('price', filters.price_min);
-      if (filters.price_max) query = query.lte('price', filters.price_max);
-      if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
-      }
-    }
-
-    const { data, error, count } = await query;
-
-    if (error) {
-      console.error('Error fetching listings:', error);
-      throw error;
-    }
-
-    const totalCount = count || 0;
-    const hasMore = (page * limit) < totalCount;
-
-    return { data: data || [], hasMore, totalCount };
-  } catch (error) {
-    console.error('Get listings service error:', error);
-    throw error;
-  }
+export async function getListings(filters: ListingFilters = {}, page: number = 1, limit: number = 20): Promise<PaginatedResponse<Listing>> {
+  return apiClient.get<Listing[]>('/listings', { ...filters, page, limit }) as unknown as PaginatedResponse<Listing>;
 }
 
-/**
- * Update listing status (for admin or user actions)
- */
-export async function updateListingStatus(listingId: string, status: string): Promise<boolean> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    const { error } = await supabase
-      .from('listings')
-      .update({
-        status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', listingId)
-      .eq('user_id', user.id);
-
-    if (error) {
-      console.error('Error updating listing status:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Update listing status service error:', error);
-    return false;
-  }
+export async function updateListingStatus(listingId: string, status: string): Promise<ApiResponse<Listing>> {
+  return apiClient.patch<Listing>(`/listings/${listingId}/status`, { status });
 }
+
+export async function getListingStats(): Promise<ApiResponse<any>> {
+    return apiClient.get<any>('/listings/stats');
+}
+
+export async function renewListing(id: string, planId: string): Promise<ApiResponse<Listing>> {
+    return apiClient.post<Listing>(`/listings/${id}/renew`, { planId });
+}
+
+export async function markAsSold(id: string): Promise<ApiResponse<Listing>> {
+    return apiClient.patch<Listing>(`/listings/${id}/sold`);
+}
+
+export async function requestReview(id: string, notes?: string): Promise<ApiResponse<Listing>> {
+    return apiClient.post<Listing>(`/listings/${id}/request-review`, { notes });
+}
+
+export async function uploadListingImages(listingId: string, imageUris: string[]): Promise<ApiResponse<string[]>> {
+    const formData = new FormData();
+    imageUris.forEach(uri => {
+        const uriParts = uri.split('.');
+        const fileType = uriParts[uriParts.length - 1];
+        formData.append('images', {
+            uri,
+            name: `photo.${fileType}`,
+            type: `image/${fileType}`,
+        } as any);
+    });
+    return apiClient.post<string[]>(`/listings/${listingId}/images`, formData);
+}
+
+export async function deleteListingImage(listingId: string, imageUrl: string): Promise<ApiResponse<void>> {
+    return apiClient.delete<void>(`/listings/${listingId}/images?imageUrl=${imageUrl}`);
+}
+
+export const listingsService = {
+    createListing,
+    updateListing,
+    deleteListing,
+    getUserListings,
+    getListingById,
+    getListings,
+    updateListingStatus,
+    getListingStats,
+    renewListing,
+    markAsSold,
+    requestReview,
+    uploadListingImages,
+    deleteListingImage,
+};

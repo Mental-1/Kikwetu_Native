@@ -228,7 +228,8 @@ export function useListings(filters: ListingFilters = {}) {
     queryFn: ({ pageParam = 1 }) => getListings(filters, pageParam),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
-      return lastPage.hasMore ? allPages.length + 1 : undefined;
+      if (!lastPage.pagination) return undefined;
+      return lastPage.pagination.page < lastPage.pagination.totalPages ? allPages.length + 1 : undefined;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes

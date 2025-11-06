@@ -95,7 +95,7 @@ export default function Step3() {
                   images: validation.data!.images!,
                   videos: validation.data!.videos!,
                   tags: validation.data!.tags!,
-                  store_id: validation.data!.store_id ?? undefined,
+                  store_id: validation.data!.store_id ? String(validation.data!.store_id) : undefined,
                   status: 'active',
                 },
                 imageUris: images,
@@ -213,7 +213,7 @@ export default function Step3() {
     <View style={styles.container}>
       <StatusBar style="dark" />
       {/* Header */}
-      <SafeAreaView style={styles.header}>
+      <SafeAreaView style={styles.header} edges={['top']}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>

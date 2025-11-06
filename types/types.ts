@@ -55,9 +55,9 @@ export interface ListingItem {
     images: string[] | null;
     condition: string | null;
     location: string | null;
-    views: number | null;
+    views?: number | undefined;
     category_id: number | null;
-    subcategory_id: number | null;
+    subcategory_id?: number | undefined;
     created_at: string | null;
     status: string | null;
 }

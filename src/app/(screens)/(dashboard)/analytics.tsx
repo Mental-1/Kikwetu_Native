@@ -27,8 +27,8 @@ export default function Analytics() {
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
-  const { data: dashboardData, isLoading, refetch } = useDashboardAnalytics();
-  const { data: listingData, isLoading: listingLoading } = useListingAnalytics();
+  const { data: dashboardData, isLoading, refetch } = useDashboardAnalytics(selectedPeriod);
+  const { data: listingData, isLoading: listingLoading } = useListingAnalytics(selectedPeriod);
   
   const { currentSubscription } = useSubscriptions();
 

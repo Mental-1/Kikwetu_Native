@@ -110,7 +110,7 @@ const PaymentConfirmation = () => {
     <View style={styles.container}>
       <StatusBar style="dark" />
       
-      <SafeAreaView style={styles.content}>
+      <SafeAreaView style={styles.content} edges={['top']}>
         {/* Status Icon */}
         <View style={styles.statusContainer}>
           <View style={[styles.statusIcon, { backgroundColor: statusIcon.color + '20' }]}>
