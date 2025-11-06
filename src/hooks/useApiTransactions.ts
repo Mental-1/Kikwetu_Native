@@ -14,16 +14,34 @@ export function useTransactions(status?: string) {
   return useQuery({
     queryKey: ['transactions', status],
     queryFn: async () => {
-      const response = await transactionsService.getTransactions({
-        status,
-        page: 1,
-        pageSize: 100,
-      });
+      try {
+        const response = await transactionsService.getTransactions({
+          status,
+          page: 1,
+          pageSize: 100,
+        });
 
-      return response.data || [];
+        if (response && typeof response === 'object') {
+          if ('data' in response && Array.isArray(response.data)) {
+            return response.data;
+          }
+          if (Array.isArray(response)) {
+            return response;
+          }
+          if ('success' in response && 'data' in response && Array.isArray(response.data)) {
+            return response.data;
+          }
+        }
+        
+        return [];
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+        return [];
+      }
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
     retry: 2,
+    throwOnError: false,
   });
 }
 
@@ -40,7 +58,7 @@ export function useTransactionStats() {
       }
       return response.data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     retry: 2,
   });
 }

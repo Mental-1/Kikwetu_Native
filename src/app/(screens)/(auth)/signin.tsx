@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, TouchableWithoutFeedback } from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
 import { z } from 'zod';
 
@@ -69,119 +69,116 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
             transparent={true}
             onRequestClose={handleClose}
         >
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalHeader}>
-                        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                            <Ionicons name="close" size={24} color={Colors.primary} />
-                        </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Welcome Back!</Text>
-                    </View>
-                    
-                    <View style={styles.modalContent}>
-                        <ScrollView 
-                            style={styles.authForm} 
-                            contentContainerStyle={styles.authFormContent}
-                            showsVerticalScrollIndicator={false}
-                            keyboardShouldPersistTaps="handled"
-                            keyboardDismissMode="on-drag"
-                        >
-                            <Text style={styles.subtitle}>Sign in to continue</Text>
-                            
-                            <View style={styles.formContainer}>
-                                {/* Email */}
-                                <Controller
-                                    control={control}
-                                    name="email"
-                                    render={({ field: { onChange, onBlur, value } }) => (
-                                        <TextInput
-                                            label="Email"
-                                            value={value}
-                                            onBlur={onBlur}
-                                            onChangeText={onChange}
-                                            error={!!errors.email}
-                                            mode="outlined"
-                                            keyboardType="email-address"
-                                            autoCapitalize="none"
-                                            style={styles.textInput}
-                                            textColor={Colors.black}
-                                            outlineColor={Colors.primary}
-                                            activeOutlineColor={Colors.primary}
-                                            theme={{
-                                                colors: {
-                                                    primary: Colors.primary,
-                                                    placeholder: Colors.black,
-                                                    text: Colors.black,
-                                                    outline: Colors.primary,
-                                                }
-                                            }}
-                                        />
-                                    )}
-                                />
-                                {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
-                                
-                                {/* Password */}
-                                <Controller
-                                    control={control}
-                                    name="password"
-                                    render={({ field: { onChange, onBlur, value } }) => (
-                                        <TextInput
-                                            label="Password"
-                                            value={value}
-                                            onBlur={onBlur}
-                                            onChangeText={onChange}
-                                            error={!!errors.password}
-                                            mode="outlined"
-                                            secureTextEntry={!showPassword}
-                                            style={styles.textInput}
-                                            textColor={Colors.black}
-                                            outlineColor={Colors.primary}
-                                            activeOutlineColor={Colors.primary}
-                                            theme={{
-                                                colors: {
-                                                    primary: Colors.primary,
-                                                    placeholder: Colors.black,
-                                                    text: Colors.black,
-                                                    outline: Colors.primary,
-                                                }
-                                            }}
-                                            right={
-                                                <TextInput.Icon
-                                                    icon={showPassword ? "eye-off" : "eye"}
-                                                    onPress={() => setShowPassword(!showPassword)}
+            <TouchableWithoutFeedback onPress={handleClose}>
+                <View style={styles.modalOverlay}>
+                    <TouchableWithoutFeedback>
+                        <View style={styles.modalContainer}>
+                            <View style={styles.modalContent}>
+                                <ScrollView 
+                                    style={styles.authForm} 
+                                    contentContainerStyle={styles.authFormContent}
+                                    showsVerticalScrollIndicator={false}
+                                    keyboardShouldPersistTaps="handled"
+                                    keyboardDismissMode="on-drag"
+                                >
+                                    <Text style={styles.subtitle}>Sign in to continue</Text>
+                                    
+                                    <View style={styles.formContainer}>
+                                        {/* Email */}
+                                        <Controller
+                                            control={control}
+                                            name="email"
+                                            render={({ field: { onChange, onBlur, value } }) => (
+                                                <TextInput
+                                                    label="Email"
+                                                    value={value}
+                                                    onBlur={onBlur}
+                                                    onChangeText={onChange}
+                                                    error={!!errors.email}
+                                                    mode="outlined"
+                                                    keyboardType="email-address"
+                                                    autoCapitalize="none"
+                                                    style={styles.textInput}
+                                                    textColor={Colors.black}
+                                                    outlineColor={Colors.primary}
+                                                    activeOutlineColor={Colors.primary}
+                                                    theme={{
+                                                        colors: {
+                                                            primary: Colors.primary,
+                                                            placeholder: Colors.black,
+                                                            text: Colors.black,
+                                                            outline: Colors.primary,
+                                                        }
+                                                    }}
                                                 />
-                                            }
+                                            )}
                                         />
-                                    )}
-                                />
-                                {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
+                                        {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
+                                        
+                                        {/* Password */}
+                                        <Controller
+                                            control={control}
+                                            name="password"
+                                            render={({ field: { onChange, onBlur, value } }) => (
+                                                <TextInput
+                                                    label="Password"
+                                                    value={value}
+                                                    onBlur={onBlur}
+                                                    onChangeText={onChange}
+                                                    error={!!errors.password}
+                                                    mode="outlined"
+                                                    secureTextEntry={!showPassword}
+                                                    style={styles.textInput}
+                                                    textColor={Colors.black}
+                                                    outlineColor={Colors.primary}
+                                                    activeOutlineColor={Colors.primary}
+                                                    theme={{
+                                                        colors: {
+                                                            primary: Colors.primary,
+                                                            placeholder: Colors.black,
+                                                            text: Colors.black,
+                                                            outline: Colors.primary,
+                                                        }
+                                                    }}
+                                                    right={
+                                                        <TextInput.Icon
+                                                            icon={showPassword ? "eye-off" : "eye"}
+                                                            onPress={() => setShowPassword(!showPassword)}
+                                                        />
+                                                    }
+                                                />
+                                            )}
+                                        />
+                                        {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
+                                    </View>
+                                    
+                                    <Button
+                                        mode="contained"
+                                        onPress={handleSubmit(onSubmitSignIn)}
+                                        style={styles.submitButton}
+                                        labelStyle={styles.submitButtonText}
+                                        loading={isLoading}
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? 'Signing In...' : 'Sign In with Email'}
+                                    </Button>
+                                    
+                                    <TouchableOpacity style={styles.authButton} onPress={() => {}}>
+                                        <Ionicons name="logo-google" size={24} color={Colors.white} />
+                                        <Text style={styles.authButtonText}>Sign In with Google</Text>
+                                    </TouchableOpacity>
+                                    
+                                    <TouchableOpacity style={styles.switchAuthButton} onPress={onSwitchToSignUp}>
+                                        <Text style={styles.switchAuthText}>
+                                            Don&apos;t have an account? <Text style={styles.switchAuthLink}>Sign Up</Text>
+                                        </Text>
+                                    </TouchableOpacity>
+                                </ScrollView>
                             </View>
-                            
-                            <Button
-                                mode="contained"
-                                onPress={handleSubmit(onSubmitSignIn)}
-                                style={styles.submitButton}
-                                labelStyle={styles.submitButtonText}
-                                loading={isLoading}
-                                disabled={isLoading}
-                            >
-                                {isLoading ? 'Signing In...' : 'Sign In with Email'}
-                            </Button>
-                            
-                            <TouchableOpacity style={styles.authButton} onPress={() => {}}>
-                                <Ionicons name="logo-google" size={24} color={Colors.white} />
-                                <Text style={styles.authButtonText}>Sign In with Google</Text>
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity style={styles.switchAuthButton} onPress={onSwitchToSignUp}>
-                                <Text style={styles.switchAuthText}>
-                                    Don&apos;t have an account? <Text style={styles.switchAuthLink}>Sign Up</Text>
-                                </Text>
-                            </TouchableOpacity>
-                        </ScrollView>
-                    </View>
+                        </View>
+                    </TouchableWithoutFeedback>
                 </View>
-            </View>
+            </TouchableWithoutFeedback>
         </Modal>
     );
 };
@@ -234,10 +231,11 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
     },
     subtitle: {
-        fontSize: 16,
+        fontSize: 18,
         color: Colors.grey,
         textAlign: 'center',
-        marginBottom: 15,
+        marginBottom: 5,
+        fontWeight: 'bold',
     },
     formContainer: {
         marginVertical: 10,
@@ -253,7 +251,7 @@ const styles = StyleSheet.create({
         marginLeft: 16,
     },
     submitButton: {
-        marginTop: 10,
+        marginTop: 20,
         marginBottom: 8,
         backgroundColor: Colors.primary,
         borderRadius: 12,

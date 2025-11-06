@@ -175,13 +175,13 @@ module.exports = {
         },
       },
       fontFamily: {
-        heading: undefined,
-        body: undefined,
+        heading: ['Montserrat', 'sans-serif'],
+        body: ['Montserrat', 'sans-serif'],
         mono: undefined,
         jakarta: ['var(--font-plus-jakarta-sans)'],
         roboto: ['var(--font-roboto)'],
         code: ['var(--font-source-code-pro)'],
-        inter: ['var(--font-inter)'],
+        montserrat: ['Montserrat', 'sans-serif'],
         'space-mono': ['var(--font-space-mono)'],
       },
       fontWeight: {

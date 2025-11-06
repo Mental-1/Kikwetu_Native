@@ -38,18 +38,33 @@ const Transactions = () => {
 
   // Transform API data to match UI
   const transactions: Transaction[] = useMemo(() => {
-    return (transactionsData || []).map(t => ({
-      id: t.id,
-      date: new Date(t.created_at).toLocaleDateString(),
-      description: t.description,
-      amount: t.amount,
-      currency: t.currency,
-      status: t.status,
-      type: t.type,
-      category: t.category,
-      paymentMethod: t.payment_method,
-      reference: t.reference,
-    }));
+    if (!transactionsData || !Array.isArray(transactionsData)) {
+      return [];
+    }
+    
+    return transactionsData.map(t => {
+      // Defensive checks for all required fields
+      const createdAt = t.created_at || t.date || new Date().toISOString();
+      let dateStr: string;
+      try {
+        dateStr = new Date(createdAt).toLocaleDateString();
+      } catch {
+        dateStr = 'Invalid Date';
+      }
+      
+      return {
+        id: t.id || '',
+        date: dateStr,
+        description: t.description || t.title || 'Transaction',
+        amount: typeof t.amount === 'number' ? t.amount : 0,
+        currency: t.currency || 'KES',
+        status: (t.status || 'pending') as 'completed' | 'pending' | 'failed' | 'refunded',
+        type: (t.type || 'one-time') as 'subscription' | 'one-time' | 'refund' | 'payout',
+        category: (t.category || 'plan') as 'plan' | 'listing' | 'feature' | 'refund' | 'withdrawal',
+        paymentMethod: t.payment_method || t.paymentMethod || 'Unknown',
+        reference: t.reference || t.id || '',
+      };
+    });
   }, [transactionsData]);
 
 
@@ -149,8 +164,11 @@ const Transactions = () => {
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesFilter = selectedFilter === 'all' || transaction.status === selectedFilter;
-    const matchesSearch = transaction.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         transaction.reference.toLowerCase().includes(searchQuery.toLowerCase());
+    const description = transaction.description || '';
+    const reference = transaction.reference || '';
+    const matchesSearch = !searchQuery || 
+      description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      reference.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -172,71 +190,87 @@ const Transactions = () => {
     </TouchableOpacity>
   );
 
-  const renderTransaction = (transaction: Transaction) => (
-    <TouchableOpacity
-      key={transaction.id}
-      style={styles.transactionCard}
-      onPress={() => handleViewTransactionDetails(transaction)}
-    >
-      <View style={styles.transactionHeader}>
-        <View style={[styles.categoryIcon, { backgroundColor: getCategoryColor(transaction.category) + '20' }]}>
-          <Ionicons 
-            name={getCategoryIcon(transaction.category)} 
-            size={20} 
-            color={getCategoryColor(transaction.category)} 
-          />
-        </View>
-        <View style={styles.transactionInfo}>
-          <Text style={styles.transactionDescription}>{transaction.description}</Text>
-          <View style={styles.transactionMeta}>
-            <Text style={styles.transactionDate}>{transaction.date}</Text>
-            <Text style={styles.transactionReference}>• {transaction.reference}</Text>
-          </View>
-        </View>
-        <View style={styles.transactionAmount}>
-          <Text style={[
-            styles.amountText,
-            transaction.type === 'refund' || transaction.type === 'payout' ? styles.refundAmount : null
-          ]}>
-            {transaction.currency} {transaction.amount.toLocaleString()}
-          </Text>
-          <View style={styles.statusContainer}>
+  const renderTransaction = (transaction: Transaction) => {
+    // Safety check - skip rendering if transaction is invalid
+    if (!transaction || !transaction.id) {
+      return null;
+    }
+    
+    const category = transaction.category || 'plan';
+    const status = transaction.status || 'pending';
+    const description = transaction.description || 'Transaction';
+    const date = transaction.date || '';
+    const reference = transaction.reference || '';
+    const currency = transaction.currency || 'KES';
+    const amount = typeof transaction.amount === 'number' ? transaction.amount : 0;
+    const type = transaction.type || 'one-time';
+    
+    return (
+      <TouchableOpacity
+        key={transaction.id}
+        style={styles.transactionCard}
+        onPress={() => handleViewTransactionDetails(transaction)}
+      >
+        <View style={styles.transactionHeader}>
+          <View style={[styles.categoryIcon, { backgroundColor: getCategoryColor(category) + '20' }]}>
             <Ionicons 
-              name={getStatusIcon(transaction.status)} 
-              size={14} 
-              color={getStatusColor(transaction.status)} 
+              name={getCategoryIcon(category)} 
+              size={20} 
+              color={getCategoryColor(category)} 
             />
-            <Text style={[styles.statusText, { color: getStatusColor(transaction.status) }]}>
-              {transaction.status}
+          </View>
+          <View style={styles.transactionInfo}>
+            <Text style={styles.transactionDescription}>{description}</Text>
+            <View style={styles.transactionMeta}>
+              <Text style={styles.transactionDate}>{date}</Text>
+              {reference && <Text style={styles.transactionReference}>• {reference}</Text>}
+            </View>
+          </View>
+          <View style={styles.transactionAmount}>
+            <Text style={[
+              styles.amountText,
+              type === 'refund' || type === 'payout' ? styles.refundAmount : null
+            ]}>
+              {currency} {amount.toLocaleString()}
             </Text>
+            <View style={styles.statusContainer}>
+              <Ionicons 
+                name={getStatusIcon(status)} 
+                size={14} 
+                color={getStatusColor(status)} 
+              />
+              <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
+                {status}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-      
-      <View style={styles.transactionActions}>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => handleDownloadReceipt(transaction)}
-        >
-          <Ionicons name="download-outline" size={16} color={Colors.primary} />
-          <Text style={styles.actionText}>Receipt</Text>
-        </TouchableOpacity>
-        {transaction.status === 'pending' && (
+        
+        <View style={styles.transactionActions}>
           <TouchableOpacity 
             style={styles.actionButton}
-            onPress={() => success('Info', 'Payment is being processed')}
+            onPress={() => handleDownloadReceipt(transaction)}
           >
-            <Ionicons name="information-circle-outline" size={16} color="#FF9800" />
-            <Text style={[styles.actionText, { color: '#FF9800' }]}>Track</Text>
+            <Ionicons name="download-outline" size={16} color={Colors.primary} />
+            <Text style={styles.actionText}>Receipt</Text>
           </TouchableOpacity>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+          {status === 'pending' && (
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => success('Info', 'Payment is being processed')}
+            >
+              <Ionicons name="information-circle-outline" size={16} color="#FF9800" />
+              <Text style={[styles.actionText, { color: '#FF9800' }]}>Track</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const totalAmount = filteredTransactions
     .filter((t) => t.status === 'completed')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : 0), 0);
 
   return (
     <View style={styles.container}>
@@ -318,7 +352,10 @@ const Transactions = () => {
             </View>
           ) : (
             <View style={styles.transactionsContainer}>
-              {filteredTransactions.map(renderTransaction)}
+              {filteredTransactions
+                .filter(t => t && t.id) // Filter out invalid transactions
+                .map(renderTransaction)
+                .filter(Boolean)} {/* Filter out null renders */}
             </View>
           )}
         </View>

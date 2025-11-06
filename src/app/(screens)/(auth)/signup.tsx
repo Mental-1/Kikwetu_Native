@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Button, Divider, TextInput } from 'react-native-paper';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, TouchableWithoutFeedback } from 'react-native';
+import { Button, TextInput } from 'react-native-paper';
 import { z } from 'zod';
 
 // Form validation schema
@@ -82,243 +82,239 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
             transparent={true}
             onRequestClose={handleClose}
         >
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalHeader}>
-                        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                            <Ionicons name="close" size={24} color={Colors.primary} />
-                        </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Sign Up</Text>
-                    </View>
-                    
-                    <View style={styles.modalContent}>
-                        <ScrollView 
-                            style={styles.authForm} 
-                            contentContainerStyle={styles.authFormContent}
-                            showsVerticalScrollIndicator={false}
-                        >
-                            <Text style={styles.welcomeText}>Join Kikwetu!</Text>
-                            <Text style={styles.subtitle}>Create your account</Text>
-                            
-                            <View style={styles.formContainer}>
-                                {/* Full Name */}
-                                <Controller
-                                    control={control}
-                                    name="fullName"
-                                    render={({ field: { onChange, onBlur, value } }) => (
-                                        <TextInput
-                                            label="Full Name"
-                                            value={value}
-                                            onBlur={onBlur}
-                                            onChangeText={onChange}
-                                            error={!!errors.fullName}
-                                            mode="outlined"
-                                            style={styles.textInput}
-                                            textColor={Colors.black}
-                                            outlineColor={Colors.primary}
-                                            activeOutlineColor={Colors.primary}
-                                            theme={{
-                                                colors: {
-                                                    primary: Colors.primary,
-                                                    placeholder: Colors.black,
-                                                    text: Colors.black,
-                                                    outline: Colors.primary,
-                                                }
-                                            }}
-                                        />
-                                    )}
-                                />
-                                {errors.fullName && <Text style={styles.errorText}>{errors.fullName.message}</Text>}
-                                
-                                {/* Username */}
-                                <Controller
-                                    control={control}
-                                    name="username"
-                                    render={({ field: { onChange, onBlur, value } }) => (
-                                        <TextInput
-                                            label="Username"
-                                            value={value}
-                                            onBlur={onBlur}
-                                            onChangeText={onChange}
-                                            error={!!errors.username}
-                                            mode="outlined"
-                                            autoCapitalize="none"
-                                            style={styles.textInput}
-                                            textColor={Colors.black}
-                                            outlineColor={Colors.primary}
-                                            activeOutlineColor={Colors.primary}
-                                            theme={{
-                                                colors: {
-                                                    primary: Colors.primary,
-                                                    placeholder: Colors.black,
-                                                    text: Colors.black,
-                                                    outline: Colors.primary,
-                                                }
-                                            }}
-                                        />
-                                    )}
-                                />
-                                {errors.username && <Text style={styles.errorText}>{errors.username.message}</Text>}
-                                
-                                {/* Email */}
-                                <Controller
-                                    control={control}
-                                    name="email"
-                                    render={({ field: { onChange, onBlur, value } }) => (
-                                        <TextInput
-                                            label="Email"
-                                            value={value}
-                                            onBlur={onBlur}
-                                            onChangeText={onChange}
-                                            error={!!errors.email}
-                                            mode="outlined"
-                                            keyboardType="email-address"
-                                            autoCapitalize="none"
-                                            style={styles.textInput}
-                                            textColor={Colors.black}
-                                            outlineColor={Colors.primary}
-                                            activeOutlineColor={Colors.primary}
-                                            theme={{
-                                                colors: {
-                                                    primary: Colors.primary,
-                                                    placeholder: Colors.black,
-                                                    text: Colors.black,
-                                                    outline: Colors.primary,
-                                                }
-                                            }}
-                                        />
-                                    )}
-                                />
-                                {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
-                                
-                                {/* Phone Number */}
-                                <Controller
-                                    control={control}
-                                    name="phoneNumber"
-                                    render={({ field: { onChange, onBlur, value } }) => (
-                                        <TextInput
-                                            label="Phone Number (e.g., +254712345678)"
-                                            value={value}
-                                            onBlur={onBlur}
-                                            onChangeText={onChange}
-                                            error={!!errors.phoneNumber}
-                                            mode="outlined"
-                                            keyboardType="phone-pad"
-                                            style={styles.textInput}
-                                            textColor={Colors.black}
-                                            outlineColor={Colors.primary}
-                                            activeOutlineColor={Colors.primary}
-                                            theme={{
-                                                colors: {
-                                                    primary: Colors.primary,
-                                                    placeholder: Colors.black,
-                                                    text: Colors.black,
-                                                    outline: Colors.primary,
-                                                }
-                                            }}
-                                        />
-                                    )}
-                                />
-                                {errors.phoneNumber && <Text style={styles.errorText}>{errors.phoneNumber.message}</Text>}
-                                
-                                {/* Password */}
-                                <Controller
-                                    control={control}
-                                    name="password"
-                                    render={({ field: { onChange, onBlur, value } }) => (
-                                        <TextInput
-                                            label="Password"
-                                            value={value}
-                                            onBlur={onBlur}
-                                            onChangeText={onChange}
-                                            error={!!errors.password}
-                                            mode="outlined"
-                                            secureTextEntry={!showPassword}
-                                            style={styles.textInput}
-                                            textColor={Colors.black}
-                                            outlineColor={Colors.primary}
-                                            activeOutlineColor={Colors.primary}
-                                            theme={{
-                                                colors: {
-                                                    primary: Colors.primary,
-                                                    placeholder: Colors.black,
-                                                    text: Colors.black,
-                                                    outline: Colors.primary,
-                                                }
-                                            }}
-                                            right={
-                                                <TextInput.Icon
-                                                    icon={showPassword ? "eye-off" : "eye"}
-                                                    onPress={() => setShowPassword(!showPassword)}
+            <TouchableWithoutFeedback onPress={handleClose}>
+                <View style={styles.modalOverlay}>
+                    <TouchableWithoutFeedback>
+                        <View style={styles.modalContainer}>
+                            <View style={styles.modalContent}>
+                                <ScrollView 
+                                    style={styles.authForm} 
+                                    contentContainerStyle={styles.authFormContent}
+                                    showsVerticalScrollIndicator={false}
+                                >
+                                    <Text style={styles.welcomeText}>Join Kikwetu!</Text>
+                                    <Text style={styles.subtitle}>Create your account</Text>
+                                    
+                                    <View style={styles.formContainer}>
+                                        {/* Full Name */}
+                                        <Controller
+                                            control={control}
+                                            name="fullName"
+                                            render={({ field: { onChange, onBlur, value } }) => (
+                                                <TextInput
+                                                    label="Full Name"
+                                                    value={value}
+                                                    onBlur={onBlur}
+                                                    onChangeText={onChange}
+                                                    error={!!errors.fullName}
+                                                    mode="outlined"
+                                                    style={styles.textInput}
+                                                    textColor={Colors.black}
+                                                    outlineColor={Colors.primary}
+                                                    activeOutlineColor={Colors.primary}
+                                                    theme={{
+                                                        colors: {
+                                                            primary: Colors.primary,
+                                                            placeholder: Colors.black,
+                                                            text: Colors.black,
+                                                            outline: Colors.primary,
+                                                        }
+                                                    }}
                                                 />
-                                            }
+                                            )}
                                         />
-                                    )}
-                                />
-                                {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
-                                
-                                {/* Confirm Password */}
-                                <Controller
-                                    control={control}
-                                    name="confirmPassword"
-                                    render={({ field: { onChange, onBlur, value } }) => (
-                                        <TextInput
-                                            label="Confirm Password"
-                                            value={value}
-                                            onBlur={onBlur}
-                                            onChangeText={onChange}
-                                            error={!!errors.confirmPassword}
-                                            mode="outlined"
-                                            secureTextEntry={!showConfirmPassword}
-                                            style={styles.textInput}
-                                            textColor={Colors.black}
-                                            outlineColor={Colors.primary}
-                                            activeOutlineColor={Colors.primary}
-                                            theme={{
-                                                colors: {
-                                                    primary: Colors.primary,
-                                                    placeholder: Colors.black,
-                                                    text: Colors.black,
-                                                    outline: Colors.primary,
-                                                }
-                                            }}
-                                            right={
-                                                <TextInput.Icon
-                                                    icon={showConfirmPassword ? "eye-off" : "eye"}
-                                                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        {errors.fullName && <Text style={styles.errorText}>{errors.fullName.message}</Text>}
+                                        
+                                        {/* Username */}
+                                        <Controller
+                                            control={control}
+                                            name="username"
+                                            render={({ field: { onChange, onBlur, value } }) => (
+                                                <TextInput
+                                                    label="Username"
+                                                    value={value}
+                                                    onBlur={onBlur}
+                                                    onChangeText={onChange}
+                                                    error={!!errors.username}
+                                                    mode="outlined"
+                                                    autoCapitalize="none"
+                                                    style={styles.textInput}
+                                                    textColor={Colors.black}
+                                                    outlineColor={Colors.primary}
+                                                    activeOutlineColor={Colors.primary}
+                                                    theme={{
+                                                        colors: {
+                                                            primary: Colors.primary,
+                                                            placeholder: Colors.black,
+                                                            text: Colors.black,
+                                                            outline: Colors.primary,
+                                                        }
+                                                    }}
                                                 />
-                                            }
+                                            )}
                                         />
-                                    )}
-                                />
-                                {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword.message}</Text>}
+                                        {errors.username && <Text style={styles.errorText}>{errors.username.message}</Text>}
+                                        
+                                        {/* Email */}
+                                        <Controller
+                                            control={control}
+                                            name="email"
+                                            render={({ field: { onChange, onBlur, value } }) => (
+                                                <TextInput
+                                                    label="Email"
+                                                    value={value}
+                                                    onBlur={onBlur}
+                                                    onChangeText={onChange}
+                                                    error={!!errors.email}
+                                                    mode="outlined"
+                                                    keyboardType="email-address"
+                                                    autoCapitalize="none"
+                                                    style={styles.textInput}
+                                                    textColor={Colors.black}
+                                                    outlineColor={Colors.primary}
+                                                    activeOutlineColor={Colors.primary}
+                                                    theme={{
+                                                        colors: {
+                                                            primary: Colors.primary,
+                                                            placeholder: Colors.black,
+                                                            text: Colors.black,
+                                                            outline: Colors.primary,
+                                                        }
+                                                    }}
+                                                />
+                                            )}
+                                        />
+                                        {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
+                                        
+                                        {/* Phone Number */}
+                                        <Controller
+                                            control={control}
+                                            name="phoneNumber"
+                                            render={({ field: { onChange, onBlur, value } }) => (
+                                                <TextInput
+                                                    label="Phone Number (e.g., +254712345678)"
+                                                    value={value}
+                                                    onBlur={onBlur}
+                                                    onChangeText={onChange}
+                                                    error={!!errors.phoneNumber}
+                                                    mode="outlined"
+                                                    keyboardType="phone-pad"
+                                                    style={styles.textInput}
+                                                    textColor={Colors.black}
+                                                    outlineColor={Colors.primary}
+                                                    activeOutlineColor={Colors.primary}
+                                                    theme={{
+                                                        colors: {
+                                                            primary: Colors.primary,
+                                                            placeholder: Colors.black,
+                                                            text: Colors.black,
+                                                            outline: Colors.primary,
+                                                        }
+                                                    }}
+                                                />
+                                            )}
+                                        />
+                                        {errors.phoneNumber && <Text style={styles.errorText}>{errors.phoneNumber.message}</Text>}
+                                        
+                                        {/* Password */}
+                                        <Controller
+                                            control={control}
+                                            name="password"
+                                            render={({ field: { onChange, onBlur, value } }) => (
+                                                <TextInput
+                                                    label="Password"
+                                                    value={value}
+                                                    onBlur={onBlur}
+                                                    onChangeText={onChange}
+                                                    error={!!errors.password}
+                                                    mode="outlined"
+                                                    secureTextEntry={!showPassword}
+                                                    style={styles.textInput}
+                                                    textColor={Colors.black}
+                                                    outlineColor={Colors.primary}
+                                                    activeOutlineColor={Colors.primary}
+                                                    theme={{
+                                                        colors: {
+                                                            primary: Colors.primary,
+                                                            placeholder: Colors.black,
+                                                            text: Colors.black,
+                                                            outline: Colors.primary,
+                                                        }
+                                                    }}
+                                                    right={
+                                                        <TextInput.Icon
+                                                            icon={showPassword ? "eye-off" : "eye"}
+                                                            onPress={() => setShowPassword(!showPassword)}
+                                                        />
+                                                    }
+                                                />
+                                            )}
+                                        />
+                                        {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
+                                        
+                                        {/* Confirm Password */}
+                                        <Controller
+                                            control={control}
+                                            name="confirmPassword"
+                                            render={({ field: { onChange, onBlur, value } }) => (
+                                                <TextInput
+                                                    label="Confirm Password"
+                                                    value={value}
+                                                    onBlur={onBlur}
+                                                    onChangeText={onChange}
+                                                    error={!!errors.confirmPassword}
+                                                    mode="outlined"
+                                                    secureTextEntry={!showConfirmPassword}
+                                                    style={styles.textInput}
+                                                    textColor={Colors.black}
+                                                    outlineColor={Colors.primary}
+                                                    activeOutlineColor={Colors.primary}
+                                                    theme={{
+                                                        colors: {
+                                                            primary: Colors.primary,
+                                                            placeholder: Colors.black,
+                                                            text: Colors.black,
+                                                            outline: Colors.primary,
+                                                        }
+                                                    }}
+                                                    right={
+                                                        <TextInput.Icon
+                                                            icon={showConfirmPassword ? "eye-off" : "eye"}
+                                                            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                        />
+                                                    }
+                                                />
+                                            )}
+                                        />
+                                        {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword.message}</Text>}
+                                    </View>
+                                    
+                                    <Button
+                                        mode="contained"
+                                        onPress={handleSubmit(onSubmitSignUp)}
+                                        style={styles.submitButton}
+                                        labelStyle={styles.submitButtonText}
+                                        loading={isLoading}
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? 'Creating Account...' : 'Create Account'}
+                                    </Button>
+                                    <TouchableOpacity style={styles.authButton} onPress={() => {}}>
+                                        <Ionicons name="logo-google" size={24} color={Colors.white} />
+                                        <Text style={styles.authButtonText}>Continue with Google</Text>
+                                    </TouchableOpacity>
+                                    
+                                    <TouchableOpacity style={styles.switchAuthButton} onPress={onSwitchToSignIn}>
+                                        <Text style={styles.switchAuthText}>
+                                            Already have an account? <Text style={styles.switchAuthLink}>Sign In</Text>
+                                        </Text>
+                                    </TouchableOpacity>
+                                </ScrollView>
                             </View>
-                            
-                            <Button
-                                mode="contained"
-                                onPress={handleSubmit(onSubmitSignUp)}
-                                style={styles.submitButton}
-                                labelStyle={styles.submitButtonText}
-                                loading={isLoading}
-                                disabled={isLoading}
-                            >
-                                {isLoading ? 'Creating Account...' : 'Create Account'}
-                            </Button>
-                            <Divider style={styles.divider}/>
-                            <TouchableOpacity style={styles.authButton} onPress={() => {}}>
-                                <Ionicons name="logo-google" size={24} color={Colors.white} />
-                                <Text style={styles.authButtonText}>Continue with Google</Text>
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity style={styles.switchAuthButton} onPress={onSwitchToSignIn}>
-                                <Text style={styles.switchAuthText}>
-                                    Already have an account? <Text style={styles.switchAuthLink}>Sign In</Text>
-                                </Text>
-                            </TouchableOpacity>
-                        </ScrollView>
-                    </View>
+                        </View>
+                    </TouchableWithoutFeedback>
                 </View>
-            </View>
+            </TouchableWithoutFeedback>
         </Modal>
     );
 };
@@ -370,17 +366,18 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
     },
     welcomeText: {
-        fontSize: 26,
-        color: Colors.primary,
+        fontSize: 28,
+        color: Colors.black,
         letterSpacing: 1.5,
         fontWeight: 'bold',
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: 16,
+        fontSize: 18,
         color: Colors.grey,
         textAlign: 'center',
-        marginBottom: 20,
+        marginBottom: 5,
+        fontWeight: 'bold',
     },
     formContainer: {
         marginVertical: 10,
