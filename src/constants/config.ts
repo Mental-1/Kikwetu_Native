@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://app.ki-kwetu.com';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.ki-kwetu.com';
 
 // App Configuration
 export const APP_CONFIG = {

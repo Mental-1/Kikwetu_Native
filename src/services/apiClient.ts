@@ -5,7 +5,7 @@
 
 import { getAccessToken, getRefreshToken, setTokens } from '../utils/tokenManager';
 
-const API_BASE_URL = 'https://app.ki-kwetu.com/api/v1';
+const API_BASE_URL = 'https://api.ki-kwetu.com/v1';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -54,9 +54,9 @@ class ApiClient {
    * Handle API response
    */
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
-    try {
-      const data = await response.json();
-
+          try {
+            console.log('Raw API response:', response); // Added for debugging
+            const data = await response.json();
       // If token expired, try to refresh
       if (response.status === 401 && data.error?.includes('expired')) {
         const refreshed = await this.refreshToken();

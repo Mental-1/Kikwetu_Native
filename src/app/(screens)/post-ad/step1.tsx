@@ -31,6 +31,8 @@ export default function Step1() {
     setPrice,
     setIsNegotiable,
     setLocation,
+    setLatitude,
+    setLongitude,
     setCondition,
     setCategoryId,
     setSubcategoryId,
@@ -146,6 +148,8 @@ export default function Step1() {
         const locationText = locationData.address || 
           `${locationData.latitude.toFixed(6)}, ${locationData.longitude.toFixed(6)}`;
         setLocation(locationText);
+        setLatitude(locationData.latitude);
+        setLongitude(locationData.longitude);
         
         // Show success alert with auto-dismiss after 2 seconds
         showLocationSuccessAlert('Your location has been automatically detected and filled in.');
