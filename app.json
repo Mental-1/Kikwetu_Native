@@ -13,7 +13,10 @@
       "bundleIdentifier": "com.kawa-ida.Kikwetu",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": ["whatsapp"]
+        "LSApplicationQueriesSchemes": [
+          "whatsapp",
+          "whatsapp"
+        ]
       }
     },
     "android": {
@@ -28,7 +31,13 @@
         "googleMaps": {
           "apiKey": "YOUR_GOOGLE_MAPS_API_KEY_HERE"
         }
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "plugins": [
       "expo-web-browser",
@@ -69,6 +78,12 @@
         "projectId": "7f836722-0d8e-48d8-8c53-2ebad4137d71"
       }
     },
-    "owner": "kawa_ida"
+    "owner": "kawa_ida",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7f836722-0d8e-48d8-8c53-2ebad4137d71"
+    }
   }
 }
