@@ -242,12 +242,14 @@ export default function Step2() {
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>Next: Preview</Text>
-          <Ionicons name="chevron-forward" size={20} color={Colors.white} />
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView edges={['bottom']}>
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+            <Text style={styles.nextButtonText}>Next: Preview</Text>
+            <Ionicons name="chevron-forward" size={20} color={Colors.white} />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }

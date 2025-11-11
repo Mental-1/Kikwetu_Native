@@ -8,6 +8,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
 import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import OfflineScreen from '@/components/OfflineScreen';
+import { useConnectivity } from '@/src/hooks/useConnectivity';
 
 Sentry.init({
   dsn: 'https://c670fa4991891b62dc670c9e71806185@o4509619077382144.ingest.us.sentry.io/4510064800169984',
@@ -54,10 +56,16 @@ function Navigator() {
     );
 }
 
+
 function RootLayout() {
+    const { isConnected } = useConnectivity();
     useEffect(() => {
         SplashScreen.hideAsync();
     }, []);
+
+    if (!isConnected) {
+        return <OfflineScreen />;
+    }
 
     return (
         <SafeAreaProvider>

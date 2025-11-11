@@ -6,8 +6,40 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';;
+
+interface PaymentMethod {
+  id: string;
+  type: 'card' | 'bank' | 'mobile';
+  name: string;
+  lastFour: string;
+  expiryDate?: string;
+  isDefault: boolean;
+  icon: string;
+  brand?: string;
+}
+
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: string;
+  period: string;
+  billingCycle: 'monthly' | 'annual';
+}
 
 interface PaymentMethod {
   id: string;
@@ -52,7 +84,7 @@ const Payment = () => {
   const { data: paymentMethodsData, isLoading: methodsLoading } = usePaymentMethods();
   const initiateMpesa = useInitiateMpesaPayment();
   const initializePaystack = useInitializePaystackPayment();
-  
+
   const { data: paymentStatusData, isLoading: statusLoading } = usePaymentStatus(currentTransactionId || '');
 
   const paymentMethods: PaymentMethod[] = (paymentMethodsData || []).map(pm => ({
@@ -85,7 +117,6 @@ const Payment = () => {
     },
     ...paymentMethods,
   ];
-
 
   const handleBack = () => {
     router.back();
@@ -153,7 +184,7 @@ const Payment = () => {
 
         if (result.authorization_url) {
           await Linking.openURL(result.authorization_url);
-          
+
           showAlert({
             title: 'Redirecting to Paystack',
             message: 'Complete your payment on the Paystack page that just opened.',
@@ -202,7 +233,7 @@ const Payment = () => {
         currency: 'KES',
         planName: selectedPlan.name,
         billingCycle: selectedPlan.billingCycle,
-        paymentMethod: selectedPaymentMethod === 'mpesa' ? 'M-Pesa' : 
+        paymentMethod: selectedPaymentMethod === 'mpesa' ? 'M-Pesa' :
                      selectedPaymentMethod === 'paystack' ? 'Paystack' : 'Card',
         status,
         processedAt: paymentStatusData?.processedAt,
@@ -217,7 +248,7 @@ const Payment = () => {
   useEffect(() => {
     if (paymentStatusData && currentTransactionId) {
       setPaymentStatus(paymentStatusData.status);
-      
+
       if (paymentStatusData.status === 'completed') {
         navigateToConfirmation('completed');
       } else if (paymentStatusData.status === 'failed') {
@@ -225,7 +256,6 @@ const Payment = () => {
       }
     }
   }, [paymentStatusData, currentTransactionId, navigateToConfirmation]);
-
 
   const getPaymentMethodIcon = (method: PaymentMethod) => {
     if (method.type === 'card') {
@@ -258,10 +288,10 @@ const Payment = () => {
     >
       <View style={styles.paymentMethodHeader}>
         <View style={[styles.paymentIcon, { backgroundColor: getPaymentMethodColor(method) + '20' }]}>
-          <Ionicons 
-            name={getPaymentMethodIcon(method)} 
-            size={24} 
-            color={getPaymentMethodColor(method)} 
+          <Ionicons
+            name={getPaymentMethodIcon(method)}
+            size={24}
+            color={getPaymentMethodColor(method)}
           />
         </View>
         <View style={styles.paymentDetails}>
@@ -303,173 +333,180 @@ const Payment = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      
-      {/* Header */}
-      <SafeAreaView style={styles.header} edges={['top']}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Ionicons name="chevron-back" size={24} color={Colors.black} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Complete Payment</Text>
-        <View style={styles.headerRight} />
-      </SafeAreaView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          <StatusBar style="dark" />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Order Summary */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Summary</Text>
-          <View style={styles.orderSummaryCard}>
-            <View style={styles.orderItem}>
-              <View style={styles.orderInfo}>
-                <Text style={styles.orderName}>{selectedPlan.name} Plan</Text>
-                <Text style={styles.orderDescription}>
-                  {selectedPlan.billingCycle === 'annual' ? 'Annual billing' : 'Monthly billing'}
-                </Text>
-              </View>
-              <Text style={styles.orderPrice}>{selectedPlan.price}</Text>
-            </View>
-            <View style={styles.orderDivider} />
-            <View style={styles.orderTotal}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalPrice}>{selectedPlan.price}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Payment Method */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Payment Method</Text>
-            <TouchableOpacity onPress={handleChangePaymentMethod}>
-              <Text style={styles.changeButton}>Manage</Text>
+          {/* Header */}
+          <SafeAreaView style={styles.header} edges={['top']}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <Ionicons name="chevron-back" size={24} color={Colors.black} />
             </TouchableOpacity>
-          </View>
-          
-          {methodsLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={Colors.primary} />
-              <Text style={styles.loadingText}>Loading payment methods...</Text>
-            </View>
-          ) : (
-            <View style={styles.paymentMethodsContainer}>
-              {allPaymentOptions.map(renderPaymentMethod)}
-            </View>
-          )}
+            <Text style={styles.headerTitle}>Complete Payment</Text>
+            <View style={styles.headerRight} />
+          </SafeAreaView>
 
-          {/* M-Pesa Phone Number Input */}
-          {selectedPaymentMethod === 'mpesa' && (
-            <View style={styles.phoneInputContainer}>
-              <Text style={styles.inputLabel}>M-Pesa Phone Number</Text>
-              <View style={styles.phoneInput}>
-                <Ionicons name="call-outline" size={20} color={Colors.grey} />
-                <TextInput
-                  style={styles.phoneTextInput}
-                  placeholder="254712345678"
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  keyboardType="phone-pad"
-                  placeholderTextColor={Colors.grey}
-                />
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            {/* Order Summary */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Order Summary</Text>
+              <View style={styles.orderSummaryCard}>
+                <View style={styles.orderItem}>
+                  <View style={styles.orderInfo}>
+                    <Text style={styles.orderName}>{selectedPlan.name} Plan</Text>
+                    <Text style={styles.orderDescription}>
+                      {selectedPlan.billingCycle === 'annual' ? 'Annual billing' : 'Monthly billing'}
+                    </Text>
+                  </View>
+                  <Text style={styles.orderPrice}>{selectedPlan.price}</Text>
+                </View>
+                <View style={styles.orderDivider} />
+                <View style={styles.orderTotal}>
+                  <Text style={styles.totalLabel}>Total</Text>
+                  <Text style={styles.totalPrice}>{selectedPlan.price}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Payment Method */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Payment Method</Text>
+                <TouchableOpacity onPress={handleChangePaymentMethod}>
+                  <Text style={styles.changeButton}>Manage</Text>
+                </TouchableOpacity>
+              </View>
+
+              {methodsLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <Text style={styles.loadingText}>Loading payment methods...</Text>
+                </View>
+              ) : (
+                <View style={styles.paymentMethodsContainer}>
+                  {allPaymentOptions.map(renderPaymentMethod)}
+                </View>
+              )}
+
+              {/* M-Pesa Phone Number Input */}
+              {selectedPaymentMethod === 'mpesa' && (
+                <View style={styles.phoneInputContainer}>
+                  <Text style={styles.inputLabel}>M-Pesa Phone Number</Text>
+                  <View style={styles.phoneInput}>
+                    <Ionicons name="call-outline" size={20} color={Colors.grey} />
+                    <TextInput
+                      style={styles.phoneTextInput}
+                      placeholder="254712345678"
+                      value={phoneNumber}
+                      onChangeText={setPhoneNumber}
+                      keyboardType="phone-pad"
+                      placeholderTextColor={Colors.grey}
+                    />
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Payment Terms */}
+            <View style={styles.section}>
+              <View style={styles.termsCard}>
+                <View style={styles.termsItem}>
+                  <Ionicons name="shield-checkmark-outline" size={20} color="#4CAF50" />
+                  <Text style={styles.termsText}>Secure payment processing</Text>
+                </View>
+                <View style={styles.termsItem}>
+                  <Ionicons name="refresh-outline" size={20} color="#4CAF50" />
+                  <Text style={styles.termsText}>
+                    Cancel anytime • No long-term contracts
+                  </Text>
+                </View>
+                <View style={styles.termsItem}>
+                  <Ionicons name="card-outline" size={20} color="#4CAF50" />
+                  <Text style={styles.termsText}>
+                    {selectedPlan.billingCycle === 'annual'
+                      ? 'Billed annually • Next charge in 12 months'
+                      : 'Billed monthly • Next charge in 30 days'
+                    }
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Bottom padding for better scrolling */}
+            <View style={styles.bottomPadding} />
+          </ScrollView>
+
+          {/* Payment Status Indicator */}
+          {currentTransactionId && paymentStatus && (
+            <View style={styles.paymentStatusContainer}>
+              <View style={styles.paymentStatusCard}>
+                <View style={styles.paymentStatusHeader}>
+                  <Ionicons
+                    name={paymentStatus === 'completed' ? 'checkmark-circle' :
+                          paymentStatus === 'failed' ? 'close-circle' :
+                          'time-outline'}
+                    size={24}
+                    color={paymentStatus === 'completed' ? '#4CAF50' :
+                           paymentStatus === 'failed' ? '#F44336' :
+                           Colors.primary}
+                  />
+                  <Text style={styles.paymentStatusTitle}>
+                    {paymentStatus === 'completed' ? 'Payment Completed' :
+                     paymentStatus === 'failed' ? 'Payment Failed' :
+                     paymentStatus === 'processing' ? 'Processing Payment' :
+                     'Waiting for Payment'}
+                  </Text>
+                </View>
+                <Text style={styles.paymentStatusMessage}>
+                  {paymentStatus === 'completed' ? 'Your payment has been processed successfully.' :
+                   paymentStatus === 'failed' ? 'Your payment could not be processed. Please try again.' :
+                   paymentStatus === 'processing' ? 'Your payment is being processed. Please wait...' :
+                   'Please complete your payment to continue.'}
+                </Text>
+                {statusLoading && (
+                  <View style={styles.statusLoadingContainer}>
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                    <Text style={styles.statusLoadingText}>Checking status...</Text>
+                  </View>
+                )}
               </View>
             </View>
           )}
-        </View>
 
-        {/* Payment Terms */}
-        <View style={styles.section}>
-          <View style={styles.termsCard}>
-            <View style={styles.termsItem}>
-              <Ionicons name="shield-checkmark-outline" size={20} color="#4CAF50" />
-              <Text style={styles.termsText}>Secure payment processing</Text>
-            </View>
-            <View style={styles.termsItem}>
-              <Ionicons name="refresh-outline" size={20} color="#4CAF50" />
-              <Text style={styles.termsText}>
-                Cancel anytime • No long-term contracts
-              </Text>
-            </View>
-            <View style={styles.termsItem}>
-              <Ionicons name="card-outline" size={20} color="#4CAF50" />
-              <Text style={styles.termsText}>
-                {selectedPlan.billingCycle === 'annual' 
-                  ? 'Billed annually • Next charge in 12 months'
-                  : 'Billed monthly • Next charge in 30 days'
-                }
-              </Text>
-            </View>
-          </View>
-        </View>
+          {/* Payment Button */}
+          <View style={styles.paymentFooter}>
+            <TouchableOpacity
+              style={[styles.payButton, isProcessing && styles.payButtonDisabled]}
+              onPress={handleProcessPayment}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <View style={styles.processingContainer}>
+                  <Ionicons name="refresh" size={20} color={Colors.white} />
+                  <Text style={styles.payButtonText}>Processing...</Text>
+                </View>
+              ) : (
+                <View style={styles.payButtonContainer}>
+                  <Text style={styles.payButtonText}>Pay {selectedPlan.price}</Text>
+                  <Ionicons name="arrow-forward" size={20} color={Colors.white} />
+                </View>
+              )}
+            </TouchableOpacity>
 
-        {/* Bottom padding for better scrolling */}
-        <View style={styles.bottomPadding} />
-      </ScrollView>
-
-      {/* Payment Status Indicator */}
-      {currentTransactionId && paymentStatus && (
-        <View style={styles.paymentStatusContainer}>
-          <View style={styles.paymentStatusCard}>
-            <View style={styles.paymentStatusHeader}>
-              <Ionicons 
-                name={paymentStatus === 'completed' ? 'checkmark-circle' : 
-                      paymentStatus === 'failed' ? 'close-circle' : 
-                      'time-outline'} 
-                size={24} 
-                color={paymentStatus === 'completed' ? '#4CAF50' : 
-                       paymentStatus === 'failed' ? '#F44336' : 
-                       Colors.primary} 
-              />
-              <Text style={styles.paymentStatusTitle}>
-                {paymentStatus === 'completed' ? 'Payment Completed' :
-                 paymentStatus === 'failed' ? 'Payment Failed' :
-                 paymentStatus === 'processing' ? 'Processing Payment' :
-                 'Waiting for Payment'}
-              </Text>
-            </View>
-            <Text style={styles.paymentStatusMessage}>
-              {paymentStatus === 'completed' ? 'Your payment has been processed successfully.' :
-               paymentStatus === 'failed' ? 'Your payment could not be processed. Please try again.' :
-               paymentStatus === 'processing' ? 'Your payment is being processed. Please wait...' :
-               'Please complete your payment to continue.'}
+            <Text style={styles.paymentDisclaimer}>
+              By completing this payment, you agree to our Terms of Service and Privacy Policy
             </Text>
-            {statusLoading && (
-              <View style={styles.statusLoadingContainer}>
-                <ActivityIndicator size="small" color={Colors.primary} />
-                <Text style={styles.statusLoadingText}>Checking status...</Text>
-              </View>
-            )}
           </View>
-        </View>
-      )}
 
-      {/* Payment Button */}
-      <View style={styles.paymentFooter}>
-        <TouchableOpacity
-          style={[styles.payButton, isProcessing && styles.payButtonDisabled]}
-          onPress={handleProcessPayment}
-          disabled={isProcessing}
-        >
-          {isProcessing ? (
-            <View style={styles.processingContainer}>
-              <Ionicons name="refresh" size={20} color={Colors.white} />
-              <Text style={styles.payButtonText}>Processing...</Text>
-            </View>
-          ) : (
-            <View style={styles.payButtonContainer}>
-              <Text style={styles.payButtonText}>Pay {selectedPlan.price}</Text>
-              <Ionicons name="arrow-forward" size={20} color={Colors.white} />
-            </View>
-          )}
-        </TouchableOpacity>
-        
-        <Text style={styles.paymentDisclaimer}>
-          By completing this payment, you agree to our Terms of Service and Privacy Policy
-        </Text>
-      </View>
-      
-      {/* Custom Alert Component */}
-      <AlertComponent />
-    </View>
+          {/* Custom Alert Component */}
+          <AlertComponent />
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 

@@ -1,5 +1,8 @@
 import CustomDialog from '@/components/ui/CustomDialog';
-import { useCategories, useSubcategoriesByCategory } from '@/hooks/useCategories';
+import {
+  useCategories,
+  useSubcategoriesByCategory,
+} from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { useStores } from '@/src/hooks/useStores';
 import { useAppStore } from '@/stores/useAppStore';
@@ -9,19 +12,31 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 
 export default function Step1() {
   const router = useRouter();
-  const { 
-    title, 
-    description, 
-    price, 
+  const {
+    title,
+    description,
+    price,
     isNegotiable,
-    location, 
-    condition, 
+    location,
+    condition,
     categoryId,
     subcategoryId,
     storeId,
@@ -37,7 +52,7 @@ export default function Step1() {
     setCategoryId,
     setSubcategoryId,
     setStoreId,
-    setTags
+    setTags,
   } = useAppStore((state) => state.postAd);
 
   const [tagInput, setTagInput] = useState('');
@@ -55,19 +70,25 @@ export default function Step1() {
   }, [price]);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
-  
-  const { showAlert, AlertComponent } = useCustomAlert();
-  // Memoize alert helpers to prevent recreation on every render
-  const alertHelpers = useMemo(() => createAlertHelpers(showAlert), [showAlert]);
-  const { locationSuccess: showLocationSuccessAlert, error: showErrorAlert } = alertHelpers;
 
-  // Fetch categories, subcategories, and stores
+  const { showAlert, AlertComponent } = useCustomAlert();
+
+  const alertHelpers = useMemo(
+    () => createAlertHelpers(showAlert),
+    [showAlert]
+  );
+  const { locationSuccess: showLocationSuccessAlert, error: showErrorAlert } =
+    alertHelpers;
+
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { data: subcategories } = useSubcategoriesByCategory(categoryId);
-  const { data: stores, isLoading: storesLoading, error: storesError } = useStores();
-  
-  // Handle stores error gracefully - use empty array if error
-  const safeStores = storesError ? [] : (stores || []);
+  const {
+    data: stores,
+    isLoading: storesLoading,
+    error: storesError,
+  } = useStores();
+
+  const safeStores = storesError ? [] : stores || [];
 
   const handleBack = () => {
     router.push('/(tabs)/listings');
@@ -98,24 +119,20 @@ export default function Step1() {
       Alert.alert('Required Field', 'Please select a category');
       return;
     }
-    // Store selection is now optional - no validation needed
     router.push('/(screens)/post-ad/step2');
   };
 
   const formatPrice = (value: string) => {
-    // Remove all non-numeric characters
     const numericValue = value.replace(/\D/g, '');
     if (numericValue === '') return '';
-    
-    // Add thousand separators
+
     return parseInt(numericValue).toLocaleString();
   };
 
   const handlePriceChange = (text: string) => {
     const formatted = formatPrice(text);
     setPriceInput(formatted);
-    
-    // Update the store with numeric value
+
     const numericValue = text.replace(/\D/g, '');
     setPrice(numericValue ? parseFloat(numericValue) : null);
   };
@@ -123,15 +140,16 @@ export default function Step1() {
   const addTag = () => {
     const trimmedTag = tagInput.trim();
     if (trimmedTag && !tags.includes(trimmedTag)) {
-      // Remove # prefix if user added it
-      const cleanTag = trimmedTag.startsWith('#') ? trimmedTag.slice(1) : trimmedTag;
+      const cleanTag = trimmedTag.startsWith('#')
+        ? trimmedTag.slice(1)
+        : trimmedTag;
       setTags([...tags, cleanTag]);
       setTagInput('');
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
   const requestLocation = () => {
@@ -144,22 +162,28 @@ export default function Step1() {
     try {
       const locationData = await getLocationWithAddress();
       if (locationData) {
-        // Use the address if available, otherwise use coordinates
-        const locationText = locationData.address || 
-          `${locationData.latitude.toFixed(6)}, ${locationData.longitude.toFixed(6)}`;
+        const locationText =
+          locationData.address ||
+          `${locationData.latitude.toFixed(
+            6
+          )}, ${locationData.longitude.toFixed(6)}`;
         setLocation(locationText);
         setLatitude(locationData.latitude);
         setLongitude(locationData.longitude);
-        
-        // Show success alert with auto-dismiss after 2 seconds
-        showLocationSuccessAlert('Your location has been automatically detected and filled in.');
+
+        showLocationSuccessAlert(
+          'Your location has been automatically detected and filled in.'
+        );
       } else {
-        showErrorAlert('Location Error', 'Unable to detect your location. Please enter it manually.');
+        showErrorAlert(
+          'Location Error',
+          'Unable to detect your location. Please enter it manually.'
+        );
       }
     } catch (error) {
       console.error('Location error:', error);
       showErrorAlert(
-        'Location Error', 
+        'Location Error',
         'Failed to get your location. Please check your location permissions and try again, or enter your location manually.'
       );
     } finally {
@@ -172,363 +196,442 @@ export default function Step1() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      {/* Header */}
-      <SafeAreaView style={styles.header} edges={['top']}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Ionicons name="chevron-back" size={24} color={Colors.black} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Post Ad - Details</Text>
-        <View style={styles.placeholder} />
-      </SafeAreaView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          <StatusBar style='dark' />
+          {/* Header */}
+          <SafeAreaView style={styles.header} edges={['top']}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <Ionicons name='chevron-back' size={24} color={Colors.black} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Post Ad - Details</Text>
+            <View style={styles.placeholder} />
+          </SafeAreaView>
 
-      <ScrollView 
-        style={styles.content} 
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        removeClippedSubviews={false}
-      >
-        {/* Title */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Title *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter listing title"
-            placeholderTextColor={Colors.grey}
-            value={title}
-            onChangeText={setTitle}
-            maxLength={100}
-          />
-          <Text style={styles.characterCount}>{title.length}/100</Text>
-        </View>
-
-        {/* Description */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Description *</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Describe your item in detail"
-            placeholderTextColor={Colors.grey}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={4}
-            maxLength={500}
-          />
-          <Text style={styles.characterCount}>{description.length}/500</Text>
-        </View>
-
-        {/* Category and Subcategory */}
-        <View style={styles.section}>
-          <View style={styles.rowContainer}>
-            {/* Category Dropdown */}
-            <View style={styles.halfWidth}>
-              <Text style={styles.label}>Category *</Text>
-              <TouchableOpacity 
-                style={styles.dropdown} 
-                onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
-              >
-                <Text style={[
-                  styles.dropdownText, 
-                  !categoryId && styles.placeholderText
-                ]}>
-                  {categoryId ? categories?.find(c => c.id === categoryId)?.name : 'Select Category'}
-                </Text>
-                <Ionicons 
-                  name={showCategoryDropdown ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color={Colors.grey} 
-                />
-              </TouchableOpacity>
-              
-              {showCategoryDropdown && (
-                <View style={styles.dropdownList}>
-                  <ScrollView 
-                    style={styles.dropdownScroll}
-                    showsVerticalScrollIndicator={true}
-                    nestedScrollEnabled={true}
-                    keyboardShouldPersistTaps="handled"
-                  >
-                    {categoriesLoading ? (
-                      <Text style={styles.loadingText}>Loading categories...</Text>
-                    ) : (
-                      categories?.map((category) => (
-                        <TouchableOpacity
-                          key={category.id}
-                          style={styles.dropdownItem}
-                          onPress={() => {
-                            setCategoryId(category.id);
-                            setShowCategoryDropdown(false);
-                          }}
-                        >
-                          <Text style={styles.dropdownItemText}>{category.name}</Text>
-                        </TouchableOpacity>
-                      ))
-                    )}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-
-            {/* Subcategory Dropdown */}
-            <View style={styles.halfWidth}>
-              <Text style={styles.label}>Subcategory</Text>
-              <TouchableOpacity 
-                style={[styles.dropdown, !categoryId && styles.disabledDropdown]} 
-                onPress={() => categoryId && setShowSubcategoryDropdown(!showSubcategoryDropdown)}
-                disabled={!categoryId}
-              >
-                <Text style={[
-                  styles.dropdownText, 
-                  (!subcategoryId || !categoryId) && styles.placeholderText
-                ]}>
-                  {!categoryId ? 'Select category first' : 
-                   subcategoryId ? subcategories?.find(s => s.id === subcategoryId)?.name : 'Select Subcategory'}
-                </Text>
-                <Ionicons 
-                  name={showSubcategoryDropdown ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color={Colors.grey} 
-                />
-              </TouchableOpacity>
-              
-              {showSubcategoryDropdown && categoryId && (
-                <View style={styles.dropdownList}>
-                  <ScrollView 
-                    style={styles.dropdownScroll}
-                    showsVerticalScrollIndicator={true}
-                    nestedScrollEnabled={true}
-                    keyboardShouldPersistTaps="handled"
-                  >
-                    {subcategories?.length === 0 ? (
-                      <Text style={styles.loadingText}>No subcategories available</Text>
-                    ) : (
-                      subcategories?.map((subcategory) => (
-                        <TouchableOpacity
-                          key={subcategory.id}
-                          style={styles.dropdownItem}
-                          onPress={() => {
-                            setSubcategoryId(subcategory.id);
-                            setShowSubcategoryDropdown(false);
-                          }}
-                        >
-                          <Text style={styles.dropdownItemText}>{subcategory.name}</Text>
-                        </TouchableOpacity>
-                      ))
-                    )}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-          </View>
-        </View>
-
-        {/* Store Selection */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Store (Optional)</Text>
-          <TouchableOpacity 
-            style={styles.dropdown} 
-            onPress={() => setShowStoreDropdown(!showStoreDropdown)}
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps='handled'
+            removeClippedSubviews={false}
           >
-            <Text style={[
-              styles.dropdownText, 
-              !storeId && styles.placeholderText
-            ]}>
-              {storeId ? safeStores.find(s => s.id === storeId)?.name : 'Select Store (Optional)'}
-            </Text>
-            <Ionicons 
-              name={showStoreDropdown ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color={Colors.grey} 
-            />
-          </TouchableOpacity>
-          
-          {showStoreDropdown && (
-            <View style={styles.dropdownList}>
-              <ScrollView 
-                style={styles.dropdownScroll}
-                showsVerticalScrollIndicator={true}
-                nestedScrollEnabled={true}
-                keyboardShouldPersistTaps="handled"
-              >
-                {storesLoading ? (
-                  <Text style={styles.loadingText}>Loading stores...</Text>
-                ) : (
-                  <>
-                    {/* Create Store Option */}
-                    <TouchableOpacity
-                      style={[styles.dropdownItem, styles.createStoreItem]}
-                      onPress={() => {
-                        setShowStoreDropdown(false);
-                        router.push('/(screens)/(dashboard)/stores/store-create');
-                      }}
+            {/* Title */}
+            <View style={styles.section}>
+              <Text style={styles.label}>Title *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder='Enter listing title'
+                placeholderTextColor={Colors.grey}
+                value={title}
+                onChangeText={setTitle}
+                maxLength={100}
+              />
+              <Text style={styles.characterCount}>{title.length}/100</Text>
+            </View>
+
+            {/* Description */}
+            <View style={styles.section}>
+              <Text style={styles.label}>Description *</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder='Describe your item in detail'
+                placeholderTextColor={Colors.grey}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={4}
+                maxLength={500}
+              />
+              <Text style={styles.characterCount}>
+                {description.length}/500
+              </Text>
+            </View>
+
+            {/* Category and Subcategory */}
+            <View style={styles.section}>
+              <View style={styles.rowContainer}>
+                {/* Category Dropdown */}
+                <View style={styles.halfWidth}>
+                  <Text style={styles.label}>Category *</Text>
+                  <TouchableOpacity
+                    style={styles.dropdown}
+                    onPress={() =>
+                      setShowCategoryDropdown(!showCategoryDropdown)
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.dropdownText,
+                        !categoryId && styles.placeholderText,
+                      ]}
                     >
-                      <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
-                      <Text style={[styles.dropdownItemText, styles.createStoreText]}>Create New Store</Text>
-                    </TouchableOpacity>
-                    
-                    {/* Existing Stores */}
-                    {safeStores.length === 0 ? (
-                      <Text style={styles.loadingText}>No stores available</Text>
+                      {categoryId
+                        ? categories?.find((c) => c.id === categoryId)?.name
+                        : 'Select Category'}
+                    </Text>
+                    <Ionicons
+                      name={
+                        showCategoryDropdown ? 'chevron-up' : 'chevron-down'
+                      }
+                      size={20}
+                      color={Colors.grey}
+                    />
+                  </TouchableOpacity>
+
+                  {showCategoryDropdown && (
+                    <View style={styles.dropdownList}>
+                      <ScrollView
+                        style={styles.dropdownScroll}
+                        showsVerticalScrollIndicator={true}
+                        nestedScrollEnabled={true}
+                        keyboardShouldPersistTaps='handled'
+                      >
+                        {categoriesLoading ? (
+                          <Text style={styles.loadingText}>
+                            Loading categories...
+                          </Text>
+                        ) : (
+                          categories?.map((category) => (
+                            <TouchableOpacity
+                              key={category.id}
+                              style={styles.dropdownItem}
+                              onPress={() => {
+                                setCategoryId(category.id);
+                                setShowCategoryDropdown(false);
+                              }}
+                            >
+                              <Text style={styles.dropdownItemText}>
+                                {category.name}
+                              </Text>
+                            </TouchableOpacity>
+                          ))
+                        )}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+
+                {/* Subcategory Dropdown */}
+                <View style={styles.halfWidth}>
+                  <Text style={styles.label}>Subcategory</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.dropdown,
+                      !categoryId && styles.disabledDropdown,
+                    ]}
+                    onPress={() =>
+                      categoryId &&
+                      setShowSubcategoryDropdown(!showSubcategoryDropdown)
+                    }
+                    disabled={!categoryId}
+                  >
+                    <Text
+                      style={[
+                        styles.dropdownText,
+                        (!subcategoryId || !categoryId) &&
+                          styles.placeholderText,
+                      ]}
+                    >
+                      {!categoryId
+                        ? 'Select category first'
+                        : subcategoryId
+                        ? subcategories?.find((s) => s.id === subcategoryId)
+                            ?.name
+                        : 'Select Subcategory'}
+                    </Text>
+                    <Ionicons
+                      name={
+                        showSubcategoryDropdown ? 'chevron-up' : 'chevron-down'
+                      }
+                      size={20}
+                      color={Colors.grey}
+                    />
+                  </TouchableOpacity>
+
+                  {showSubcategoryDropdown && categoryId && (
+                    <View style={styles.dropdownList}>
+                      <ScrollView
+                        style={styles.dropdownScroll}
+                        showsVerticalScrollIndicator={true}
+                        nestedScrollEnabled={true}
+                        keyboardShouldPersistTaps='handled'
+                      >
+                        {subcategories?.length === 0 ? (
+                          <Text style={styles.loadingText}>
+                            No subcategories available
+                          </Text>
+                        ) : (
+                          subcategories?.map((subcategory) => (
+                            <TouchableOpacity
+                              key={subcategory.id}
+                              style={styles.dropdownItem}
+                              onPress={() => {
+                                setSubcategoryId(subcategory.id);
+                                setShowSubcategoryDropdown(false);
+                              }}
+                            >
+                              <Text style={styles.dropdownItemText}>
+                                {subcategory.name}
+                              </Text>
+                            </TouchableOpacity>
+                          ))
+                        )}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            {/* Store Selection */}
+            <View style={styles.section}>
+              <Text style={styles.label}>Store (Optional)</Text>
+              <TouchableOpacity
+                style={styles.dropdown}
+                onPress={() => setShowStoreDropdown(!showStoreDropdown)}
+              >
+                <Text
+                  style={[
+                    styles.dropdownText,
+                    !storeId && styles.placeholderText,
+                  ]}
+                >
+                  {storeId
+                    ? safeStores.find((s) => s.id === storeId)?.name
+                    : 'Select Store (Optional)'}
+                </Text>
+                <Ionicons
+                  name={showStoreDropdown ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={Colors.grey}
+                />
+              </TouchableOpacity>
+
+              {showStoreDropdown && (
+                <View style={styles.dropdownList}>
+                  <ScrollView
+                    style={styles.dropdownScroll}
+                    showsVerticalScrollIndicator={true}
+                    nestedScrollEnabled={true}
+                    keyboardShouldPersistTaps='handled'
+                  >
+                    {storesLoading ? (
+                      <Text style={styles.loadingText}>Loading stores...</Text>
                     ) : (
-                      safeStores.map((store) => (
+                      <>
+                        {/* Create Store Option */}
                         <TouchableOpacity
-                          key={store.id}
-                          style={styles.dropdownItem}
+                          style={[styles.dropdownItem, styles.createStoreItem]}
                           onPress={() => {
-                            setStoreId(store.id);
                             setShowStoreDropdown(false);
+                            router.push(
+                              '/(screens)/(dashboard)/stores/store-create'
+                            );
                           }}
                         >
-                          <Text style={styles.dropdownItemText}>{store.name}</Text>
+                          <Ionicons
+                            name='add-circle-outline'
+                            size={20}
+                            color={Colors.primary}
+                          />
+                          <Text
+                            style={[
+                              styles.dropdownItemText,
+                              styles.createStoreText,
+                            ]}
+                          >
+                            Create New Store
+                          </Text>
                         </TouchableOpacity>
-                      ))
+
+                        {/* Existing Stores */}
+                        {safeStores.length === 0 ? (
+                          <Text style={styles.loadingText}>
+                            No stores available
+                          </Text>
+                        ) : (
+                          safeStores.map((store) => (
+                            <TouchableOpacity
+                              key={store.id}
+                              style={styles.dropdownItem}
+                              onPress={() => {
+                                setStoreId(store.id);
+                                setShowStoreDropdown(false);
+                              }}
+                            >
+                              <Text style={styles.dropdownItemText}>
+                                {store.name}
+                              </Text>
+                            </TouchableOpacity>
+                          ))
+                        )}
+                      </>
                     )}
-                  </>
-                )}
-              </ScrollView>
-            </View>
-          )}
-        </View>
-
-        {/* Price */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Price (Kes) *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter price"
-            placeholderTextColor={Colors.grey}
-            value={priceInput}
-            onChangeText={handlePriceChange}
-            keyboardType="numeric"
-          />
-          
-          {/* Negotiable Checkbox */}
-          <TouchableOpacity 
-            style={styles.checkboxContainer}
-            onPress={() => setIsNegotiable(!isNegotiable)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.checkbox, isNegotiable && styles.checkboxChecked]}>
-              {isNegotiable && (
-                <Ionicons name="checkmark" size={16} color={Colors.white} />
+                  </ScrollView>
+                </View>
               )}
             </View>
-            <Text style={styles.checkboxLabel}>Price is negotiable</Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* Location */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Location *</Text>
-          <View style={styles.locationContainer}>
-            <TextInput
-              style={[styles.input, styles.locationInput]}
-              placeholder="Enter location"
-              placeholderTextColor={Colors.grey}
-              value={location}
-              onChangeText={setLocation}
-            />
-            <TouchableOpacity 
-              style={[styles.locationButton, isLoadingLocation && styles.locationButtonLoading]} 
-              onPress={requestLocation}
-              disabled={isLoadingLocation}
-            >
-              {isLoadingLocation ? (
-                <ActivityIndicator size="small" color={Colors.primary} />
-              ) : (
-                <Ionicons name="location-outline" size={20} color={Colors.primary} />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
+            {/* Price */}
+            <View style={styles.section}>
+              <Text style={styles.label}>Price (Kes) *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder='Enter price'
+                placeholderTextColor={Colors.grey}
+                value={priceInput}
+                onChangeText={handlePriceChange}
+                keyboardType='numeric'
+              />
 
-        {/* Condition */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Condition *</Text>
-          <View style={styles.conditionContainer}>
-            {['New', 'Like New', 'Good', 'Fair', 'Poor'].map((cond) => (
+              {/* Negotiable Checkbox */}
               <TouchableOpacity
-                key={cond}
-                style={[
-                  styles.conditionButton,
-                  condition === cond && styles.conditionButtonSelected
-                ]}
-                onPress={() => setCondition(cond)}
+                style={styles.checkboxContainer}
+                onPress={() => setIsNegotiable(!isNegotiable)}
+                activeOpacity={0.7}
               >
-                <Text style={[
-                  styles.conditionText,
-                  condition === cond && styles.conditionTextSelected
-                ]}>
-                  {cond}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Tags */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Tags (for search and classification)</Text>
-          <View style={styles.tagInputContainer}>
-            <TextInput
-              style={[styles.input, styles.tagInput]}
-              placeholder="Add a tag (e.g., electronics, furniture)"
-              placeholderTextColor={Colors.grey}
-              value={tagInput}
-              onChangeText={setTagInput}
-              onSubmitEditing={addTag}
-              returnKeyType="done"
-              blurOnSubmit={false}
-            />
-            <TouchableOpacity style={styles.addTagButton} onPress={addTag}>
-              <Ionicons name="add" size={20} color={Colors.white} />
-            </TouchableOpacity>
-          </View>
-          
-          {/* Display Tags */}
-          {tags.length > 0 && (
-            <View style={styles.tagsContainer}>
-              {tags.map((tag, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.tag}
-                  onPress={() => removeTag(tag)}
+                <View
+                  style={[
+                    styles.checkbox,
+                    isNegotiable && styles.checkboxChecked,
+                  ]}
                 >
-                  <Text style={styles.tagText}>#{tag}</Text>
-                  <Ionicons name="close" size={16} color={Colors.white} />
-                </TouchableOpacity>
-              ))}
+                  {isNegotiable && (
+                    <Ionicons name='checkmark' size={16} color={Colors.white} />
+                  )}
+                </View>
+                <Text style={styles.checkboxLabel}>Price is negotiable</Text>
+              </TouchableOpacity>
             </View>
-          )}
+
+            {/* Location */}
+            <View style={styles.section}>
+              <Text style={styles.label}>Location *</Text>
+              <View style={styles.locationContainer}>
+                <TextInput
+                  style={[styles.input, styles.locationInput]}
+                  placeholder='Enter location'
+                  placeholderTextColor={Colors.grey}
+                  value={location}
+                  onChangeText={setLocation}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.locationButton,
+                    isLoadingLocation && styles.locationButtonLoading,
+                  ]}
+                  onPress={requestLocation}
+                  disabled={isLoadingLocation}
+                >
+                  {isLoadingLocation ? (
+                    <ActivityIndicator size='small' color={Colors.primary} />
+                  ) : (
+                    <Ionicons
+                      name='location-outline'
+                      size={20}
+                      color={Colors.primary}
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Condition */}
+            <View style={styles.section}>
+              <Text style={styles.label}>Condition *</Text>
+              <View style={styles.conditionContainer}>
+                {['New', 'Like New', 'Good', 'Fair', 'Poor'].map((cond) => (
+                  <TouchableOpacity
+                    key={cond}
+                    style={[
+                      styles.conditionButton,
+                      condition === cond && styles.conditionButtonSelected,
+                    ]}
+                    onPress={() => setCondition(cond)}
+                  >
+                    <Text
+                      style={[
+                        styles.conditionText,
+                        condition === cond && styles.conditionTextSelected,
+                      ]}
+                    >
+                      {cond}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Tags */}
+            <View style={styles.section}>
+              <Text style={styles.label}>
+                Tags (for search and classification)
+              </Text>
+              <View style={styles.tagInputContainer}>
+                <TextInput
+                  style={[styles.input, styles.tagInput]}
+                  placeholder='Add a tag (e.g., electronics, furniture)'
+                  placeholderTextColor={Colors.grey}
+                  value={tagInput}
+                  onChangeText={setTagInput}
+                  onSubmitEditing={addTag}
+                  returnKeyType='done'
+                  blurOnSubmit={false}
+                />
+                <TouchableOpacity style={styles.addTagButton} onPress={addTag}>
+                  <Ionicons name='add' size={20} color={Colors.white} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Display Tags */}
+              {tags.length > 0 && (
+                <View style={styles.tagsContainer}>
+                  {tags.map((tag, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.tag}
+                      onPress={() => removeTag(tag)}
+                    >
+                      <Text style={styles.tagText}>#{tag}</Text>
+                      <Ionicons name='close' size={16} color={Colors.white} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          </ScrollView>
+
+          {/* Next Button */}
+          <SafeAreaView edges={['bottom']}>
+            <View style={styles.footer}>
+              <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+                <Text style={styles.nextButtonText}>Next: Add Media</Text>
+                <Ionicons name='chevron-forward' size={20} color={Colors.white} />
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+
+          {/* Custom Location Permission Dialog */}
+          <CustomDialog
+            visible={showLocationDialog}
+            title='Location Permission'
+            message='Allow Kikwetu to access your location for automatic detection?'
+            confirmText='Allow'
+            denyText='Deny'
+            onConfirm={handleLocationConfirm}
+            onDeny={handleLocationDeny}
+            icon='location-outline'
+            iconColor={Colors.primary}
+          />
+
+          {/* Custom Alert */}
+          <AlertComponent />
         </View>
-      </ScrollView>
-
-      {/* Next Button */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>Next: Add Media</Text>
-          <Ionicons name="chevron-forward" size={20} color={Colors.white} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Custom Location Permission Dialog */}
-      <CustomDialog
-        visible={showLocationDialog}
-        title="Location Permission"
-        message="Allow Kikwetu to access your location for automatic detection?"
-        confirmText="Allow"
-        denyText="Deny"
-        onConfirm={handleLocationConfirm}
-        onDeny={handleLocationDeny}
-        icon="location-outline"
-        iconColor={Colors.primary}
-      />
-
-      {/* Custom Alert */}
-      <AlertComponent />
-    </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -696,6 +799,7 @@ const styles = StyleSheet.create({
   },
   halfWidth: {
     flex: 1,
+    flexShrink: 1,
   },
   dropdown: {
     backgroundColor: Colors.white,

@@ -19,6 +19,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -279,133 +281,130 @@ const Chat = () => {
   ), []);
 
   return (
-    <TouchableOpacity 
-      style={styles.container} 
-      activeOpacity={1} 
-      onPress={() => showDropdown && setShowDropdown(false)}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
     >
-      <StatusBar style="dark" />
-      
-      {/* Header */}
-      <SafeAreaView style={styles.header} edges={['top']}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-          <Ionicons name="chevron-back" size={24} color={Colors.black} />
-        </TouchableOpacity>
-        
-        <View style={styles.sellerInfo}>
-          <Image source={{ uri: sellerInfo.avatar }} style={styles.sellerAvatar} />
-          <View style={styles.sellerDetails}>
-            <Text style={styles.sellerName}>{sellerInfo.name}</Text>
-            <View style={styles.onlineStatus}>
-              <View style={[
-                styles.onlineDot,
-                { backgroundColor: sellerInfo.online ? Colors.green : Colors.grey }
-              ]} />
-              <Text style={styles.onlineText}>
-                {sellerInfo.online ? 'Online' : 'Offline'}
-              </Text>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          <StatusBar style="dark" />
+          
+          {/* Header */}
+          <SafeAreaView style={styles.header} edges={['top']}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+              <Ionicons name="chevron-back" size={24} color={Colors.black} />
+            </TouchableOpacity>
+            
+            <View style={styles.sellerInfo}>
+              <Image source={{ uri: sellerInfo.avatar }} style={styles.sellerAvatar} />
+              <View style={styles.sellerDetails}>
+                <Text style={styles.sellerName}>{sellerInfo.name}</Text>
+                <View style={styles.onlineStatus}>
+                  <View style={[
+                    styles.onlineDot,
+                    { backgroundColor: sellerInfo.online ? Colors.green : Colors.grey }
+                  ]} />
+                  <Text style={styles.onlineText}>
+                    {sellerInfo.online ? 'Online' : 'Offline'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.moreButton} onPress={handleMorePress}>
+              <Ionicons name="ellipsis-vertical" size={20} color={Colors.black} />
+            </TouchableOpacity>
+          </SafeAreaView>
+
+          {/* Dropdown Menu */}
+          {showDropdown && (
+            <View style={styles.dropdownContainer}>
+              <TouchableOpacity 
+                style={styles.dropdownItem}
+                onPress={handleDeleteConversation}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="trash-outline" size={20} color={Colors.red} />
+                <Text style={styles.dropdownText}>Delete Conversation</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Listing Info Header */}
+          {renderHeader()}
+
+          {/* Messages List */}
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMessage}
+            style={styles.messagesList}
+            contentContainerStyle={styles.messagesContent}
+            showsVerticalScrollIndicator={false}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          />
+
+          {/* Message Input */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.messageInput}
+                placeholder="Type a message..."
+                placeholderTextColor={Colors.grey}
+                value={messageText}
+                onChangeText={setMessageText}
+                multiline
+                maxLength={500}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  messageText.trim() ? styles.sendButtonActive : styles.sendButtonInactive
+                ]}
+                onPress={handleSendMessage}
+                disabled={!messageText.trim()}
+              >
+                <Ionicons 
+                  name="send" 
+                  size={20} 
+                  color={messageText.trim() ? Colors.white : Colors.grey} 
+                />
+              </TouchableOpacity>
             </View>
           </View>
+
+          {/* Delete Dialog */}
+          <CustomDialog
+            visible={showDeleteDialog}
+            title="Delete Conversation"
+            message="Are you sure you want to delete this conversation? This action cannot be undone."
+            confirmText="Delete"
+            denyText="Cancel"
+            onConfirm={handleDeleteConfirm}
+            onDeny={handleDeleteCancel}
+            icon="trash-outline"
+            iconColor={Colors.red}
+            confirmColor={Colors.red}
+            denyColor={Colors.grey}
+            confirmWeight="600"
+            denyWeight="400"
+          />
+
+          {/* Message Context Menu */}
+          <ContextMenu
+            visible={showMessageContextMenu}
+            items={messageContextMenuItems}
+            onItemPress={handleMessageContextMenuItemPress}
+            onClose={() => setShowMessageContextMenu(false)}
+            position={contextMenuPosition}
+          />
+
+          {/* Custom Alert */}
+          <AlertComponent />
         </View>
-
-        <TouchableOpacity style={styles.moreButton} onPress={handleMorePress}>
-          <Ionicons name="ellipsis-vertical" size={20} color={Colors.black} />
-        </TouchableOpacity>
-      </SafeAreaView>
-
-      {/* Dropdown Menu */}
-      {showDropdown && (
-        <View style={styles.dropdownContainer}>
-          <TouchableOpacity 
-            style={styles.dropdownItem}
-            onPress={handleDeleteConversation}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="trash-outline" size={20} color={Colors.red} />
-            <Text style={styles.dropdownText}>Delete Conversation</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Listing Info Header */}
-      {renderHeader()}
-
-      <KeyboardAvoidingView 
-        style={styles.chatContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
-        {/* Messages List */}
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderMessage}
-          style={styles.messagesList}
-          contentContainerStyle={styles.messagesContent}
-          showsVerticalScrollIndicator={false}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        />
-
-        {/* Message Input */}
-        <View style={styles.inputContainer}>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.messageInput}
-              placeholder="Type a message..."
-              placeholderTextColor={Colors.grey}
-              value={messageText}
-              onChangeText={setMessageText}
-              multiline
-              maxLength={500}
-            />
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                messageText.trim() ? styles.sendButtonActive : styles.sendButtonInactive
-              ]}
-              onPress={handleSendMessage}
-              disabled={!messageText.trim()}
-            >
-              <Ionicons 
-                name="send" 
-                size={20} 
-                color={messageText.trim() ? Colors.white : Colors.grey} 
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-
-      {/* Delete Dialog */}
-      <CustomDialog
-        visible={showDeleteDialog}
-        title="Delete Conversation"
-        message="Are you sure you want to delete this conversation? This action cannot be undone."
-        confirmText="Delete"
-        denyText="Cancel"
-        onConfirm={handleDeleteConfirm}
-        onDeny={handleDeleteCancel}
-        icon="trash-outline"
-        iconColor={Colors.red}
-        confirmColor={Colors.red}
-        denyColor={Colors.grey}
-        confirmWeight="600"
-        denyWeight="400"
-      />
-
-      {/* Message Context Menu */}
-      <ContextMenu
-        visible={showMessageContextMenu}
-        items={messageContextMenuItems}
-        onItemPress={handleMessageContextMenuItemPress}
-        onClose={() => setShowMessageContextMenu(false)}
-        position={contextMenuPosition}
-      />
-
-      {/* Custom Alert */}
-      <AlertComponent />
-    </TouchableOpacity>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 

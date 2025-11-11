@@ -6,25 +6,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { 
-  ActivityIndicator, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
   View,
-  Dimensions
+  Dimensions,
+  PermissionsAndroid
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import BottomSheet, { BottomSheetFlashList, BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetFlashList } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { FlashList } from '@shopify/flash-list';
+import * as Location from 'expo-location';
 
-const MapLoading = () => (
-  <View style={styles.loadingContainer}>
-    <ActivityIndicator size="large" color={Colors.primary} />
-    <Text style={styles.loadingText}>Loading map...</Text>
-  </View>
-);
+const { height: INITIAL_SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface MockListing {
   id: string;
@@ -97,6 +95,44 @@ const mockListings: MockListing[] = [
   },
 ];
 
+// Simple Error Boundary for the component
+class MapErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('MapScreen error:', error, errorInfo);
+    // Optional: Send to Sentry/Crashlytics
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.errorContainer}>
+          <Ionicons name="warning" size={64} color={Colors.primary} />
+          <Text style={styles.errorTitle}>Something went wrong</Text>
+          <Text style={styles.errorSubtitle}>Please try reloading the app.</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Loading fallback component
+const MapLoading = () => (
+  <View style={styles.loadingContainer}>
+    <ActivityIndicator size="large" color={Colors.primary} />
+    <Text style={styles.loadingText}>Loading map...</Text>
+  </View>
+);
+
 const MapScreenContent = () => {
   const router = useRouter();
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
@@ -104,8 +140,20 @@ const MapScreenContent = () => {
   const [error, setError] = useState<string | null>(null);
   const hasLoadedInitialLocation = useRef(false);
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['25%', Dimensions.get('window').height - 80], []);
+  const [dimensions, setDimensions] = useState({ width: INITIAL_SCREEN_HEIGHT, height: INITIAL_SCREEN_HEIGHT });
+  const [itemHeight, setItemHeight] = useState(150); // Dynamic height for FlashList
+
+  const snapPoints = useMemo(() => ['25%', dimensions.height - 80], [dimensions.height]);
+
   const [currentLocationText, setCurrentLocationText] = useState('Loading location...');
+
+  // Handle orientation changes
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setDimensions({ width: window.width, height: window.height });
+    });
+    return () => subscription?.remove();
+  }, []);
 
   useEffect(() => {
     if (userLocation?.city && userLocation?.country) {
@@ -117,22 +165,44 @@ const MapScreenContent = () => {
     }
   }, [userLocation]);
 
+  const requestLocationPermission = useCallback(async () => {
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Location Permission',
+          message: 'This app needs access to location to show nearby listings.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    return status === 'granted';
+  }, []);
+
   const loadUserLocation = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      const hasPermission = await requestLocationPermission();
+      if (!hasPermission) {
+        throw new Error('Location permission denied');
+      }
       const location = await getLocationWithAddress();
       setUserLocation(location);
-    } catch (error) {
-      console.error('Error loading location:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Could not load your location';
+    } catch (err) {
+      console.error('Error loading location:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Could not load your location';
       setError(errorMessage);
       setCurrentLocationText('Location unavailable');
-      console.log('Location load failed:', errorMessage);
+      Alert.alert('Location Error', errorMessage, [{ text: 'OK' }]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [requestLocationPermission]);
 
   useEffect(() => {
     if (!hasLoadedInitialLocation.current) {
@@ -141,22 +211,17 @@ const MapScreenContent = () => {
     }
   }, [loadUserLocation]);
 
-  const handleMarkerPress = useCallback((marker: any) => {
-    // Instead of Alert, we could potentially show details in the bottom sheet
-    // For now, we'll just log and keep the bottom sheet for general listings
+  const handleMarkerPress = useCallback((marker: { id: string; title: string }) => {
+    if (!marker?.id) return;
     console.log('Marker pressed:', marker.title);
-    router.push(`/(screens)/listings/${marker.id}` as any);
+    router.push(`/listings/${marker.id}`); // Clean path, no 'as any'
   }, [router]);
 
   const handleBackPress = useCallback(() => {
-    try {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/');
-      }
-    } catch (error) {
-      console.error('Navigation error:', error);
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
     }
   }, [router]);
 
@@ -166,6 +231,12 @@ const MapScreenContent = () => {
 
   const handleOpenBottomSheet = useCallback(() => {
     bottomSheetRef.current?.expand();
+  }, []);
+
+  const handleSheetChange = useCallback((index: number) => {
+    if (index === -1) {
+      bottomSheetRef.current?.close();
+    }
   }, []);
 
   // Memoize markers array to prevent recreation on every render
@@ -179,121 +250,164 @@ const MapScreenContent = () => {
     []
   );
 
-  return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      
-      {/* Full Screen Map */}
-      <View style={styles.mapContainer}>
-        <MapViewComponent
-          markers={markers}
-          onMarkerPress={handleMarkerPress}
-          showUserLocation={true}
-          style={styles.map}
-        />
-      </View>
+  const renderListingCard = useCallback(({ item }: { item: MockListing }) => (
+    <ListingCard
+      id={item.id}
+      title={item.title}
+      price={item.price}
+      condition="Used"
+      location="Nairobi"
+      image="https://via.placeholder.com/150"
+      description={item.description}
+      views={100}
+      viewMode="list"
+      onPress={(listingId: string) => {
+        bottomSheetRef.current?.close();
+        router.push(`/listings/${listingId}`);
+      }}
+      onLayout={(event) => {
+        const { height } = event.nativeEvent.layout;
+        if (Math.abs(height - itemHeight) > 10) {
+          setItemHeight(height);
+        }
+      }}
+    />
+  ), [itemHeight, router]);
 
-      {/* Floating Header */}
-      <SafeAreaView style={styles.floatingHeader} edges={['top']} pointerEvents="box-none">
-        <View style={styles.headerContent}>
+  return (
+    <MapErrorBoundary>
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        
+        {/* Full Screen Map */}
+        <View style={styles.mapContainer}>
+          <MapViewComponent
+            markers={markers}
+            onMarkerPress={handleMarkerPress}
+            showUserLocation={true}
+            style={styles.map}
+          />
+        </View>
+
+        {/* Floating Header */}
+        <SafeAreaView style={styles.floatingHeader} edges={['top']} pointerEvents="box-none">
+          <View style={styles.headerContent}>
+            <TouchableOpacity 
+              style={styles.backButton} 
+              onPress={handleBackPress}
+              activeOpacity={0.7}
+              accessibilityLabel="Go back to previous screen"
+              accessibilityRole="button"
+              accessibilityHint="Navigates back"
+            >
+              <Ionicons name="chevron-back" size={24} color={Colors.white} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle} accessibilityLabel="Map View Screen">
+              Map View
+            </Text>
+            <TouchableOpacity 
+              style={[styles.refreshButton, loading && styles.refreshButtonDisabled]} 
+              onPress={handleRefresh}
+              disabled={loading}
+              activeOpacity={0.7}
+              accessibilityLabel={loading ? "Refreshing location" : "Refresh current location"}
+              accessibilityRole="button"
+              accessibilityState={{ busy: loading }}
+            >
+              <Ionicons 
+                name="refresh" 
+                size={24} 
+                color={loading ? Colors.grey : Colors.white} 
+              />
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+
+        {/* Error Banner */}
+        {error && (
+          <View style={styles.errorBanner}>
+            <Ionicons name="warning" size={16} color={Colors.white} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {/* Listings Count Button */}
+        <TouchableOpacity 
+          style={styles.listingsButton}
+          activeOpacity={0.8}
+          onPress={handleOpenBottomSheet}
+          accessibilityLabel={`View listings in ${currentLocationText}`}
+          accessibilityRole="button"
+          accessibilityHint="Opens a bottom sheet with nearby listings"
+        >
+          <Ionicons name="list" size={14} color={Colors.white} />
+          <Text style={styles.listingsButtonText}>
+            Listings in: {currentLocationText}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Map Controls */}
+        <View style={styles.mapControls}>
           <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={handleBackPress}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-back" size={24} color={Colors.white} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Map View</Text>
-          <TouchableOpacity 
-            style={[styles.refreshButton, loading && styles.refreshButtonDisabled]} 
+            style={styles.controlButton} 
             onPress={handleRefresh}
             disabled={loading}
             activeOpacity={0.7}
+            accessibilityLabel="Center map on current location"
+            accessibilityRole="button"
+            accessibilityHint={loading ? "Locating..." : "Centers the map on your position"}
+            accessibilityState={{ busy: loading }}
           >
             <Ionicons 
-              name="refresh" 
-              size={24} 
-              color={loading ? Colors.grey : Colors.white} 
+              name="locate" 
+              size={20} 
+              color={loading ? Colors.grey : Colors.primary} 
             />
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.controlButton}
+            activeOpacity={0.7}
+            accessibilityLabel="Toggle map layers"
+            accessibilityRole="button"
+            accessibilityHint="Switches between map views"
+            onPress={() => { /* Implement layer toggle */ }}
+          >
+            <Ionicons name="layers" size={20} color={Colors.primary} />
+          </TouchableOpacity>
         </View>
-      </SafeAreaView>
 
-      {/* Error Banner */}
-      {error && (
-        <View style={styles.errorBanner}>
-          <Ionicons name="warning" size={16} color={Colors.white} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      {/* Listings Count Button */}
-      <TouchableOpacity 
-        style={styles.listingsButton}
-        activeOpacity={0.8}
-        onPress={handleOpenBottomSheet}
-      >
-        <Ionicons name="list" size={14} color={Colors.white} />
-        <Text style={styles.listingsButtonText}>
-          Listings in: {currentLocationText}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Map Controls */}
-      <View style={styles.mapControls}>
-        <TouchableOpacity 
-          style={styles.controlButton} 
-          onPress={handleRefresh}
-          disabled={loading}
-          activeOpacity={0.7}
+        {/* Bottom Sheet for Listings */}
+        <BottomSheet
+          ref={bottomSheetRef}
+          index={-1}
+          snapPoints={snapPoints}
+          enablePanDownToClose={true}
+          backgroundStyle={styles.bottomSheetBackground}
+          handleIndicatorStyle={styles.bottomSheetHandle}
+          onChange={handleSheetChange}
+          enableDynamicSizing={false}
+          overDragResistanceFactor={0.5}
+          accessibilityViewIsModal={true}
+          accessibilityLabel="Listings bottom sheet"
         >
-          <Ionicons 
-            name="locate" 
-            size={20} 
-            color={loading ? Colors.grey : Colors.primary} 
-          />
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.controlButton}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="layers" size={20} color={Colors.primary} />
-        </TouchableOpacity>
+          <View style={styles.bottomSheetContent}>
+            <Text style={styles.bottomSheetTitle} accessibilityLabel={`Listings in ${currentLocationText}`}>
+              Listings in: {currentLocationText}
+            </Text>
+            <BottomSheetFlashList
+              data={mockListings}
+              keyExtractor={(item: MockListing) => item.id}
+              renderItem={renderListingCard}
+              estimatedItemSize={itemHeight}
+              removeClippedSubviews={true}
+              enableEmptySections={false}
+              contentContainerStyle={styles.bottomSheetListContainer}
+              accessibilityLabel="Scrollable list of nearby listings"
+            />
+          </View>
+        </BottomSheet>
       </View>
-
-      {/* Bottom Sheet for Listings */}
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose={true}
-        backgroundStyle={styles.bottomSheetBackground}
-        handleIndicatorStyle={styles.bottomSheetHandle}
-      >
-        <View style={styles.bottomSheetContent}>
-          <Text style={styles.bottomSheetTitle}>Listings in: {currentLocationText}</Text>
-          <BottomSheetFlashList
-            data={mockListings}
-            keyExtractor={(item: MockListing) => item.id}
-            renderItem={({ item }: { item: MockListing }) => (
-              <ListingCard
-                id={item.id}
-                title={item.title}
-                price={item.price}
-                condition="Used"
-                location="Nairobi"
-                image="https://via.placeholder.com/150"
-                description={item.description}
-                views={100}
-                onPress={(listingId) => router.push(`/(screens)/listings/${listingId}` as any)}
-              />
-            )}
-            estimatedItemSize={150}
-            contentContainerStyle={styles.bottomSheetListContainer}
-          />
-        </View>
-      </BottomSheet>
-    </View>
+    </MapErrorBoundary>
   );
 };
 
@@ -322,6 +436,25 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: Colors.white,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: Colors.black,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.white,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
   },
   floatingHeader: {
     position: 'absolute',

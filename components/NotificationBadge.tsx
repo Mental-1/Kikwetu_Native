@@ -28,11 +28,11 @@ interface NotificationDropdownProps {
     }[];
 }
 
-const NotificationDropdown = ({ 
-    visible, 
-    onClose, 
-    onMarkAllAsRead, 
-    notifications = [] 
+const NotificationDropdown = ({
+    visible,
+    onClose,
+    onMarkAllAsRead,
+    notifications = []
 }: NotificationDropdownProps) => {
     if (!visible) return null;
 
@@ -48,38 +48,38 @@ const NotificationDropdown = ({
             <Pressable style={styles.modalBackdrop} onPress={onClose}>
                 <View style={styles.dropdownContainer}>
                     <View style={styles.dropdown}>
-                <View style={styles.dropdownHeader}>
-                    <Text style={styles.dropdownTitle}>Notifications</Text>
-                    <Pressable onPress={onMarkAllAsRead} style={styles.markAllButton}>
-                        <Text style={styles.markAllText}>Mark all as read</Text>
-                    </Pressable>
-                </View>
-                
-                <ScrollView style={styles.notificationsList} nestedScrollEnabled={true}>
-                    {mockNotifications.map((notification) => (
-                        <View 
-                            key={notification.id} 
-                            style={[
-                                styles.notificationItem,
-                                !notification.isRead && styles.unreadNotification
-                            ]}
-                        >
-                            <View style={styles.notificationContent}>
-                                <Text style={styles.notificationTitle}>{notification.title}</Text>
-                                <Text style={styles.notificationMessage}>{notification.message}</Text>
-                                <Text style={styles.notificationTimestamp}>{notification.timestamp}</Text>
-                            </View>
-                            {!notification.isRead && <View style={styles.unreadDot} />}
+                        <View style={styles.dropdownHeader}>
+                            <Text style={styles.dropdownTitle}>Notifications</Text>
+                            <Pressable onPress={onMarkAllAsRead} style={styles.markAllButton}>
+                                <Text style={styles.markAllText}>Mark all as read</Text>
+                            </Pressable>
                         </View>
-                    ))}
-                </ScrollView>
-                
-                {mockNotifications.length === 0 && (
-                    <View style={styles.emptyState}>
-                        <Ionicons name="notifications-outline" size={48} color={Colors.grey} />
-                        <Text style={styles.emptyStateText}>No notifications yet</Text>
-                    </View>
-                )}
+                        
+                        <ScrollView style={styles.notificationsList} nestedScrollEnabled={true}>
+                            {mockNotifications.map((notification) => (
+                                <View
+                                    key={notification.id}
+                                    style={[
+                                        styles.notificationItem,
+                                        !notification.isRead && styles.unreadNotification
+                                    ]}
+                                >
+                                    <View style={styles.notificationContent}>
+                                        <Text style={styles.notificationTitle}>{notification.title}</Text>
+                                        <Text style={styles.notificationMessage}>{notification.message}</Text>
+                                        <Text style={styles.notificationTimestamp}>{notification.timestamp}</Text>
+                                    </View>
+                                    {!notification.isRead && <View style={styles.unreadDot} />}
+                                </View>
+                            ))}
+                        </ScrollView>
+                        
+                        {mockNotifications.length === 0 && (
+                            <View style={styles.emptyState}>
+                                <Ionicons name="notifications-outline" size={48} color={Colors.grey} />
+                                <Text style={styles.emptyStateText}>No notifications yet</Text>
+                            </View>
+                        )}
                     </View>
                 </View>
             </Pressable>
@@ -87,10 +87,12 @@ const NotificationDropdown = ({
     );
 };
 
-const NotificationBadge = React.memo(({
-    notifications = [], 
-    onPress, 
-    onMarkAllAsRead 
+NotificationDropdown.displayName = 'NotificationDropdown';
+
+const NotificationBadgeComponent = ({
+    notifications = [],
+    onPress,
+    onMarkAllAsRead
 }: NotificationBadgeProps) => {
     const [showDropdown, setShowDropdown] = useState(false);
     const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
@@ -111,7 +113,7 @@ const NotificationBadge = React.memo(({
 
     return (
         <View style={styles.container}>
-            <Pressable 
+            <Pressable
                 style={({ pressed }) => [
                     styles.iconButton,
                     pressed && styles.iconButtonPressed,
@@ -130,7 +132,12 @@ const NotificationBadge = React.memo(({
             />
         </View>
     );
-});
+};
+
+const NotificationBadge = React.memo(NotificationBadgeComponent);
+
+NotificationBadge.displayName = 'NotificationBadge';
+
 const styles = StyleSheet.create({
     container: {
         position: 'relative',
@@ -142,7 +149,7 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     iconButtonPressed: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)', // Keep same opacity when pressed
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     badge: {
         position: 'absolute',
@@ -155,13 +162,12 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.white,
     },
-    // Dropdown Styles
     modalBackdrop: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.3)',
         justifyContent: 'flex-start',
         alignItems: 'flex-end',
-        paddingTop: 100, // Position below the header
+        paddingTop: 100,
         paddingRight: 16,
     },
     dropdownContainer: {

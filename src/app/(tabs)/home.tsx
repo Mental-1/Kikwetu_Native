@@ -219,9 +219,6 @@ const Home = (props: Props) => {
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Explore Our Categories</Text>
-                        <TouchableOpacity>
-                            <Text style={styles.seeAllText}>See All</Text>
-                        </TouchableOpacity>
                     </View>
                     
                     {categoriesLoading ? (

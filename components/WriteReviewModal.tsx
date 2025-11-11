@@ -5,13 +5,15 @@ import {
   Dimensions,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View
+  View,
 } from 'react-native';
 
 const { height } = Dimensions.get('window');
@@ -31,10 +33,27 @@ interface WriteReviewModalProps {
   listingTitle: string;
 }
 
+
+
+interface Review {
+  id: string;
+  reviewerName: string;
+  avatar: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
+
+interface WriteReviewModalProps {
+  visible: boolean;
+  onClose: () => void;
+  listingTitle: string;
+}
+
 export default function WriteReviewModal({
   visible,
   onClose,
-  listingTitle
+  listingTitle,
 }: WriteReviewModalProps) {
   const [newReview, setNewReview] = useState('');
   const [rating, setRating] = useState(0);
@@ -84,9 +103,7 @@ export default function WriteReviewModal({
           <Text style={styles.reviewerName}>{item.reviewerName}</Text>
           <Text style={styles.reviewDate}>{item.date}</Text>
         </View>
-        <View style={styles.ratingContainer}>
-          {renderStars(item.rating, 14)}
-        </View>
+        <View style={styles.ratingContainer}>{renderStars(item.rating, 14)}</View>
         <Text style={styles.reviewComment} numberOfLines={2}>
           {item.comment}
         </Text>
@@ -101,86 +118,84 @@ export default function WriteReviewModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <TouchableOpacity 
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        <TouchableWithoutFeedback>
-          <View style={styles.reviewModal}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Reviews ({formatCount(reviews.length)})</Text>
-            <TouchableOpacity 
-              style={styles.closeButton}
-              onPress={onClose}
-            >
-              <Ionicons name="close" size={24} color={Colors.black} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.reviewsSection}>
-            {reviews.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="chatbubble-outline" size={64} color={Colors.grey} />
-                <Text style={styles.emptyTitle}>No reviews yet</Text>
-                <Text style={styles.emptySubtitle}>Be the first one to leave one...</Text>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+          <TouchableWithoutFeedback>
+            <View style={styles.reviewModal}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Reviews ({formatCount(reviews.length)})</Text>
+                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                  <Ionicons name="close" size={24} color={Colors.black} />
+                </TouchableOpacity>
               </View>
-            ) : (
-              <FlatList
-                data={reviews}
-                renderItem={renderReviewItem}
-                keyExtractor={(item) => item.id}
-                showsVerticalScrollIndicator={true}
-                style={styles.reviewsList}
-              />
-            )}
-          </View>
 
-          <View style={styles.writeReviewSection}>
-            <View style={styles.ratingInputContainer}>
-              <Text style={styles.ratingLabel}>Rating:</Text>
-              <View style={styles.starsInputContainer}>
-                {[1, 2, 3, 4, 5].map((star) => (
+              <View style={styles.reviewsSection}>
+                {reviews.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="chatbubble-outline" size={64} color={Colors.grey} />
+                    <Text style={styles.emptyTitle}>No reviews yet</Text>
+                    <Text style={styles.emptySubtitle}>Be the first one to leave one...</Text>
+                  </View>
+                ) : (
+                  <FlatList
+                    data={reviews}
+                    renderItem={renderReviewItem}
+                    keyExtractor={(item) => item.id}
+                    showsVerticalScrollIndicator={true}
+                    style={styles.reviewsList}
+                  />
+                )}
+              </View>
+
+              <View style={styles.writeReviewSection}>
+                <View style={styles.ratingInputContainer}>
+                  <Text style={styles.ratingLabel}>Rating:</Text>
+                  <View style={styles.starsInputContainer}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <TouchableOpacity
+                        key={star}
+                        onPress={() => setRating(star)}
+                        style={styles.starButton}
+                      >
+                        <Ionicons
+                          name={star <= rating ? 'star' : 'star-outline'}
+                          size={24}
+                          color={star <= rating ? '#FFD700' : Colors.grey}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.commentInputContainer}>
+                  <TextInput
+                    style={styles.commentInput}
+                    placeholder="Write your review here..."
+                    placeholderTextColor={Colors.grey}
+                    value={newReview}
+                    onChangeText={setNewReview}
+                    multiline
+                    maxLength={500}
+                  />
                   <TouchableOpacity
-                    key={star}
-                    onPress={() => setRating(star)}
-                    style={styles.starButton}
+                    style={[
+                      styles.sendButton,
+                      { opacity: newReview.trim() && rating > 0 ? 1 : 0.5 },
+                    ]}
+                    onPress={handleSendReview}
+                    disabled={!newReview.trim() || rating === 0}
                   >
-                    <Ionicons
-                      name={star <= rating ? 'star' : 'star-outline'}
-                      size={24}
-                      color={star <= rating ? '#FFD700' : Colors.grey}
-                    />
+                    <Ionicons name="send" size={20} color={Colors.white} />
                   </TouchableOpacity>
-                ))}
+                </View>
               </View>
             </View>
-            
-            <View style={styles.commentInputContainer}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Write your review here..."
-                placeholderTextColor={Colors.grey}
-                value={newReview}
-                onChangeText={setNewReview}
-                multiline
-                maxLength={500}
-              />
-              <TouchableOpacity 
-                style={[
-                  styles.sendButton,
-                  { opacity: newReview.trim() && rating > 0 ? 1 : 0.5 }
-                ]}
-                onPress={handleSendReview}
-                disabled={!newReview.trim() || rating === 0}
-              >
-                <Ionicons name="send" size={20} color={Colors.white} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </TouchableWithoutFeedback>
-      </TouchableOpacity>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

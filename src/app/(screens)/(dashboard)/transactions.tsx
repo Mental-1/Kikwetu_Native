@@ -5,8 +5,34 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+interface Transaction {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  currency: string;
+  status: 'completed' | 'pending' | 'failed' | 'refunded';
+  type: 'subscription' | 'one-time' | 'refund' | 'payout';
+  category: 'plan' | 'listing' | 'feature' | 'refund' | 'withdrawal';
+  paymentMethod: string;
+  reference: string;
+}
+
 
 interface Transaction {
   id: string;
@@ -41,8 +67,8 @@ const Transactions = () => {
     if (!transactionsData || !Array.isArray(transactionsData)) {
       return [];
     }
-    
-    return transactionsData.map(t => {
+
+    return transactionsData.map((t) => {
       // Defensive checks for all required fields
       const createdAt = t.created_at || t.date || new Date().toISOString();
       let dateStr: string;
@@ -51,7 +77,7 @@ const Transactions = () => {
       } catch {
         dateStr = 'Invalid Date';
       }
-      
+
       return {
         id: t.id || '',
         date: dateStr,
@@ -67,13 +93,20 @@ const Transactions = () => {
     });
   }, [transactionsData]);
 
-
   const filterOptions = [
     { id: 'all', label: 'All', count: transactions.length },
-    { id: 'completed', label: 'Completed', count: transactions.filter(t => t.status === 'completed').length },
-    { id: 'pending', label: 'Pending', count: transactions.filter(t => t.status === 'pending').length },
-    { id: 'failed', label: 'Failed', count: transactions.filter(t => t.status === 'failed').length },
-    { id: 'refunded', label: 'Refunded', count: transactions.filter(t => t.status === 'refunded').length },
+    {
+      id: 'completed',
+      label: 'Completed',
+      count: transactions.filter((t) => t.status === 'completed').length,
+    },
+    { id: 'pending', label: 'Pending', count: transactions.filter((t) => t.status === 'pending').length },
+    { id: 'failed', label: 'Failed', count: transactions.filter((t) => t.status === 'failed').length },
+    {
+      id: 'refunded',
+      label: 'Refunded',
+      count: transactions.filter((t) => t.status === 'refunded').length,
+    },
   ];
 
   const handleBack = () => {
@@ -84,13 +117,15 @@ const Transactions = () => {
     showAlert({
       title: 'Transaction Details',
       message: `${transaction.description}\n\nAmount: ${transaction.amount}\nDate: ${transaction.date}\nStatus: ${transaction.status}\nReference: ${transaction.reference}\nPayment Method: ${transaction.paymentMethod}`,
-      buttons: [{
-        text: 'OK',
-        color: Colors.primary,
-        onPress: () => {
-          success('Success', 'Transaction details displayed');
+      buttons: [
+        {
+          text: 'OK',
+          color: Colors.primary,
+          onPress: () => {
+            success('Success', 'Transaction details displayed');
+          },
         },
-      }],
+      ],
       icon: 'receipt-outline',
       iconColor: Colors.primary,
     });
@@ -99,26 +134,28 @@ const Transactions = () => {
   const handleDownloadReceipt = async (transaction: Transaction) => {
     try {
       await downloadReceipt.mutateAsync(transaction.id);
-        } catch {
-          // Error toast shown by mutation
-        }
+    } catch {
+      // Error toast shown by mutation
+    }
   };
 
   const handleExportTransactions = async () => {
     showAlert({
       title: 'Export Transactions',
       message: 'Choose export format',
-      buttons: [{
-        text: 'CSV',
-        color: Colors.primary,
-        onPress: async () => {
-          try {
-            await exportTransactions.mutateAsync('csv');
-          } catch {
-            // Error toast shown by mutation
-          }
+      buttons: [
+        {
+          text: 'CSV',
+          color: Colors.primary,
+          onPress: async () => {
+            try {
+              await exportTransactions.mutateAsync('csv');
+            } catch {
+              // Error toast shown by mutation
+            }
+          },
         },
-      }],
+      ],
       icon: 'document-outline',
       iconColor: Colors.primary,
     });
@@ -126,51 +163,74 @@ const Transactions = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return '#4CAF50';
-      case 'pending': return '#FF9800';
-      case 'failed': return '#F44336';
-      case 'refunded': return '#9C27B0';
-      default: return Colors.grey;
+      case 'completed':
+        return '#4CAF50';
+      case 'pending':
+        return '#FF9800';
+      case 'failed':
+        return '#F44336';
+      case 'refunded':
+        return '#9C27B0';
+      default:
+        return Colors.grey;
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return 'checkmark-circle';
-      case 'pending': return 'time-outline';
-      case 'failed': return 'close-circle';
-      case 'refunded': return 'refresh-circle';
-      default: return 'help-circle';
+      case 'completed':
+        return 'checkmark-circle';
+      case 'pending':
+        return 'time-outline';
+      case 'failed':
+        return 'close-circle';
+      case 'refunded':
+        return 'refresh-circle';
+      default:
+        return 'help-circle';
     }
   };
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'plan': return 'card-outline';
-      case 'listing': return 'list-outline';
-      case 'feature': return 'star-outline';
-      case 'refund': return 'refresh-outline';
-      case 'withdrawal': return 'arrow-up-outline';
-      default: return 'receipt-outline';
+      case 'plan':
+        return 'card-outline';
+      case 'listing':
+        return 'list-outline';
+      case 'feature':
+        return 'star-outline';
+      case 'refund':
+        return 'refresh-outline';
+      case 'withdrawal':
+        return 'arrow-up-outline';
+      default:
+        return 'receipt-outline';
     }
   };
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'plan': return '#3B82F6';
-      case 'listing': return '#8B5CF6';
-      case 'feature': return '#F59E0B';
-      case 'refund': return '#9C27B0';
-      case 'withdrawal': return '#10B981';
-      default: return Colors.grey;
+      case 'plan':
+        return '#3B82F6';
+      case 'listing':
+        return '#8B5CF6';
+      case 'feature':
+        return '#F59E0B';
+      case 'refund':
+        return '#9C27B0';
+      case 'withdrawal':
+        return '#10B981';
+      default:
+        return Colors.grey;
     }
   };
 
-  const filteredTransactions = transactions.filter(transaction => {
+  const filteredTransactions = transactions.filter((transaction) => {
     const matchesFilter = selectedFilter === 'all' || transaction.status === selectedFilter;
     const description = transaction.description || '';
     const reference = transaction.reference || '';
-    const matchesSearch = !searchQuery || 
+    const matchesSearch =
+      !searchQuery ||
       description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       reference.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
@@ -179,27 +239,32 @@ const Transactions = () => {
   const renderFilterButton = (filter: any) => (
     <TouchableOpacity
       key={filter.id}
-      style={[
-        styles.filterButton,
-        selectedFilter === filter.id && styles.selectedFilter
-      ]}
+      style={[styles.filterButton, selectedFilter === filter.id && styles.selectedFilter]}
       onPress={() => setSelectedFilter(filter.id)}
     >
-      <Text style={[
-        styles.filterText,
-        selectedFilter === filter.id && styles.selectedFilterText
-      ]}>
+      <Text
+        style={[styles.filterText, selectedFilter === filter.id && styles.selectedFilterText]}
+      >
         {filter.label} ({filter.count})
       </Text>
     </TouchableOpacity>
   );
+
+  const truncateId = (id: string, maxLength: number = 12) => {
+    if (id.length <= maxLength) {
+      return id;
+    }
+    const start = id.substring(0, Math.ceil(maxLength / 2) - 1); 
+    const end = id.substring(id.length - Math.floor(maxLength / 2) + 1);
+    return `${start}...${end}`;
+  };
 
   const renderTransaction = (transaction: Transaction) => {
     // Safety check - skip rendering if transaction is invalid
     if (!transaction || !transaction.id) {
       return null;
     }
-    
+
     const category = transaction.category || 'plan';
     const status = transaction.status || 'pending';
     const description = transaction.description || 'Transaction';
@@ -208,7 +273,7 @@ const Transactions = () => {
     const currency = transaction.currency || 'KES';
     const amount = typeof transaction.amount === 'number' ? transaction.amount : 0;
     const type = transaction.type || 'one-time';
-    
+
     return (
       <TouchableOpacity
         key={transaction.id}
@@ -217,49 +282,40 @@ const Transactions = () => {
       >
         <View style={styles.transactionHeader}>
           <View style={[styles.categoryIcon, { backgroundColor: getCategoryColor(category) + '20' }]}>
-            <Ionicons 
-              name={getCategoryIcon(category)} 
-              size={20} 
-              color={getCategoryColor(category)} 
-            />
+            <Ionicons name={getCategoryIcon(category)} size={20} color={getCategoryColor(category)} />
           </View>
           <View style={styles.transactionInfo}>
             <Text style={styles.transactionDescription}>{description}</Text>
             <View style={styles.transactionMeta}>
               <Text style={styles.transactionDate}>{date}</Text>
-              {reference && <Text style={styles.transactionReference}>• {reference}</Text>}
+              {reference && <Text style={styles.transactionReference}>• {truncateId(reference)}</Text>}
             </View>
           </View>
           <View style={styles.transactionAmount}>
-            <Text style={[
-              styles.amountText,
-              type === 'refund' || type === 'payout' ? styles.refundAmount : null
-            ]}>
+            <Text
+              style={[
+                styles.amountText,
+                type === 'refund' || type === 'payout' ? styles.refundAmount : null,
+              ]}
+            >
               {currency} {amount.toLocaleString()}
             </Text>
             <View style={styles.statusContainer}>
-              <Ionicons 
-                name={getStatusIcon(status)} 
-                size={14} 
-                color={getStatusColor(status)} 
-              />
+              <Ionicons name={getStatusIcon(status)} size={14} color={getStatusColor(status)} />
               <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
                 {status}
               </Text>
             </View>
           </View>
         </View>
-        
+
         <View style={styles.transactionActions}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => handleDownloadReceipt(transaction)}
-          >
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleDownloadReceipt(transaction)}>
             <Ionicons name="download-outline" size={16} color={Colors.primary} />
             <Text style={styles.actionText}>Receipt</Text>
           </TouchableOpacity>
           {status === 'pending' && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => success('Info', 'Payment is being processed')}
             >
@@ -277,100 +333,109 @@ const Transactions = () => {
     .reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : 0), 0);
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      
-      {/* Header */}
-      <SafeAreaView style={styles.header} edges={['top']}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Ionicons name="chevron-back" size={24} color={Colors.black} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Transactions</Text>
-        <TouchableOpacity style={styles.exportButton} onPress={handleExportTransactions}>
-          <Ionicons name="download-outline" size={24} color={Colors.primary} />
-        </TouchableOpacity>
-      </SafeAreaView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          <StatusBar style="dark" />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Summary Cards */}
-        <View style={styles.summarySection}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Total Transactions</Text>
-            <Text style={styles.summaryValue}>{filteredTransactions.length}</Text>
-          </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Total Amount</Text>
-            <Text style={styles.summaryValue}>KES {totalAmount.toLocaleString()}</Text>
-          </View>
-        </View>
+          {/* Header */}
+          <SafeAreaView style={styles.header} edges={['top']}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <Ionicons name="chevron-back" size={24} color={Colors.black} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Transactions</Text>
+            <TouchableOpacity style={styles.exportButton} onPress={handleExportTransactions}>
+              <Ionicons name="download-outline" size={24} color={Colors.primary} />
+            </TouchableOpacity>
+          </SafeAreaView>
 
-        {/* Search Bar */}
-        <View style={styles.searchSection}>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search-outline" size={20} color={Colors.grey} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search transactions..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor={Colors.grey}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color={Colors.grey} />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            {/* Summary Cards */}
+            <View style={styles.summarySection}>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryLabel}>Total Transactions</Text>
+                <Text style={styles.summaryValue}>{filteredTransactions.length}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryLabel}>Total Amount</Text>
+                <Text style={styles.summaryValue}>KES {totalAmount.toLocaleString()}</Text>
+              </View>
+            </View>
 
-        {/* Filter Buttons */}
-        <View style={styles.filterSection}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-            {filterOptions.map(renderFilterButton)}
+            {/* Search Bar */}
+            <View style={styles.searchSection}>
+              <View style={styles.searchContainer}>
+                <Ionicons name="search-outline" size={20} color={Colors.grey} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search transactions..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholderTextColor={Colors.grey}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <Ionicons name="close-circle" size={20} color={Colors.grey} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            {/* Filter Buttons */}
+            <View style={styles.filterSection}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+                {filterOptions.map(renderFilterButton)}
+              </ScrollView>
+            </View>
+
+            {/* Transactions List */}
+            <View style={styles.transactionsSection}>
+              {isLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={Colors.primary} />
+                  <Text style={styles.loadingText}>Loading transactions...</Text>
+                </View>
+              ) : fetchError ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="alert-circle-outline" size={64} color="#F44336" />
+                  <Text style={styles.emptyTitle}>Failed to Load Transactions</Text>
+                  <Text style={styles.emptySubtitle}>
+                    Please check your connection and try again
+                  </Text>
+                  <TouchableOpacity style={styles.emptyButton} onPress={() => refetch()}>
+                    <Text style={styles.emptyButtonText}>Retry</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : filteredTransactions.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="receipt-outline" size={64} color={Colors.grey} />
+                  <Text style={styles.emptyTitle}>No Transactions Found</Text>
+                  <Text style={styles.emptySubtitle}>
+                    {searchQuery ? 'Try adjusting your search terms' : 'No transactions match your current filter'}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.transactionsContainer}>
+                  {filteredTransactions
+                    .filter((t) => t && t.id) // Filter out invalid transactions
+                    .map(renderTransaction)
+                    .filter(Boolean)}
+                </View>
+              )}
+            </View>
+
+            {/* Bottom padding for better scrolling */}
+            <View style={styles.bottomPadding} />
           </ScrollView>
-        </View>
 
-        {/* Transactions List */}
-        <View style={styles.transactionsSection}>
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-              <Text style={styles.loadingText}>Loading transactions...</Text>
-            </View>
-          ) : fetchError ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="alert-circle-outline" size={64} color="#F44336" />
-              <Text style={styles.emptyTitle}>Failed to Load Transactions</Text>
-              <Text style={styles.emptySubtitle}>Please check your connection and try again</Text>
-              <TouchableOpacity style={styles.emptyButton} onPress={() => refetch()}>
-                <Text style={styles.emptyButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : filteredTransactions.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="receipt-outline" size={64} color={Colors.grey} />
-              <Text style={styles.emptyTitle}>No Transactions Found</Text>
-              <Text style={styles.emptySubtitle}>
-                {searchQuery ? 'Try adjusting your search terms' : 'No transactions match your current filter'}
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.transactionsContainer}>
-              {filteredTransactions
-                .filter(t => t && t.id) // Filter out invalid transactions
-                .map(renderTransaction)
-                .filter(Boolean)} {/* Filter out null renders */}
-            </View>
-          )}
+          {/* Custom Alert Component */}
+          <AlertComponent />
         </View>
-
-        {/* Bottom padding for better scrolling */}
-        <View style={styles.bottomPadding} />
-      </ScrollView>
-      
-      {/* Custom Alert Component */}
-      <AlertComponent />
-    </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 

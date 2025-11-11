@@ -8,8 +8,39 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+interface ListingImage {
+  id: string;
+  uri: string;
+  isNew?: boolean;
+}
+
+interface EditListingData {
+  title: string;
+  description: string;
+  price: string;
+  location: string;
+  category_id: number | null;
+  condition: string;
+  features: string[];
+}
 
 interface ListingImage {
   id: string;
@@ -34,7 +65,11 @@ const EditListing = () => {
   const { success, error } = createAlertHelpers(showAlert);
 
   // API hooks
-  const { data: listing, isLoading: listingLoading, error: listingError } = useListing(params.listingId as string);
+  const {
+    data: listing,
+    isLoading: listingLoading,
+    error: listingError,
+  } = useListing(params.listingId as string);
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const updateListingMutation = useUpdateListing();
 
@@ -111,20 +146,16 @@ const EditListing = () => {
       return;
     }
 
-    Alert.alert(
-      'Add Image',
-      'Choose an image source',
-      [
-        { text: 'Camera', onPress: () => pickImageFromCamera() },
-        { text: 'Gallery', onPress: () => pickImageFromGallery() },
-        { text: 'Cancel', style: 'cancel' }
-      ]
-    );
+    Alert.alert('Add Image', 'Choose an image source', [
+      { text: 'Camera', onPress: () => pickImageFromCamera() },
+      { text: 'Gallery', onPress: () => pickImageFromGallery() },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const pickImageFromCamera = async () => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    
+
     if (permissionResult.granted === false) {
       error('Permission Required', 'Permission to access camera is required!');
       return;
@@ -141,20 +172,24 @@ const EditListing = () => {
       const newImage: ListingImage = {
         id: Date.now().toString(),
         uri: result.assets[0].uri,
-        isNew: true
+        isNew: true,
       };
-      setImages(prev => [...prev, newImage]);
-      
+      setImages((prev) => [...prev, newImage]);
+
       // Process and upload the image
       await handleImageUpload([result.assets[0].uri]);
     }
   };
 
   const pickImageFromGallery = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
     if (permissionResult.granted === false) {
-      error('Permission Required', 'Permission to access photo library is required!');
+      error(
+        'Permission Required',
+        'Permission to access photo library is required!'
+      );
       return;
     }
 
@@ -166,22 +201,22 @@ const EditListing = () => {
     });
 
     if (!result.canceled && result.assets) {
-      const newImages: ListingImage[] = result.assets.map(asset => ({
+      const newImages: ListingImage[] = result.assets.map((asset) => ({
         id: Date.now().toString() + Math.random(),
         uri: asset.uri,
-        isNew: true
+        isNew: true,
       }));
-      
+
       // Check if adding these images would exceed the limit
       if (images.length + newImages.length > 10) {
         error('Error', 'You can only add up to 10 images total');
         return;
       }
-      
-      setImages(prev => [...prev, ...newImages]);
-      
+
+      setImages((prev) => [...prev, ...newImages]);
+
       // Process and upload the images
-      const imageUris = result.assets.map(asset => asset.uri);
+      const imageUris = result.assets.map((asset) => asset.uri);
       await handleImageUpload(imageUris);
     }
   };
@@ -201,7 +236,7 @@ const EditListing = () => {
           text: 'Remove',
           style: 'destructive',
           onPress: () => {
-            setImages(prev => prev.filter(img => img.id !== imageId));
+            setImages((prev) => prev.filter((img) => img.id !== imageId));
             success('Success', 'Image removed successfully');
           },
         },
@@ -220,7 +255,7 @@ const EditListing = () => {
   // };
 
   const handleSetMainImage = (imageId: string) => {
-    const imageIndex = images.findIndex(img => img.id === imageId);
+    const imageIndex = images.findIndex((img) => img.id === imageId);
     if (imageIndex !== -1) {
       const newImages = [...images];
       const [mainImage] = newImages.splice(imageIndex, 1);
@@ -234,15 +269,18 @@ const EditListing = () => {
   const handleImageUpload = async (imageUris: string[]) => {
     try {
       const results = await processAndUploadImages(imageUris);
-      
+
       if (results && results.successCount > 0) {
         const uploadedUrls = results.results
-          .filter(result => result.success)
-          .map(result => result.url);
-        
-        setUploadedImageUrls(prev => [...prev, ...uploadedUrls]);
-        success('Success', `${results.successCount} image(s) uploaded successfully`);
-        
+          .filter((result) => result.success)
+          .map((result) => result.url);
+
+        setUploadedImageUrls((prev) => [...prev, ...uploadedUrls]);
+        success(
+          'Success',
+          `${results.successCount} image(s) uploaded successfully`
+        );
+
         if (results.errorCount > 0) {
           error('Warning', `${results.errorCount} image(s) failed to upload`);
         }
@@ -255,7 +293,7 @@ const EditListing = () => {
   };
 
   const handleInputChange = (field: keyof EditListingData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleAddFeature = () => {
@@ -269,9 +307,9 @@ const EditListing = () => {
           style: 'default',
           onPress: () => {
             const newFeature = 'New Feature'; // In real app, this would come from input
-            setFormData(prev => ({
+            setFormData((prev) => ({
               ...prev,
-              features: [...prev.features, newFeature]
+              features: [...prev.features, newFeature],
             }));
             success('Success', 'Feature added successfully');
           },
@@ -283,9 +321,9 @@ const EditListing = () => {
   };
 
   const handleRemoveFeature = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      features: prev.features.filter((_, i) => i !== index)
+      features: prev.features.filter((_, i) => i !== index),
     }));
   };
 
@@ -319,7 +357,10 @@ const EditListing = () => {
         location: formData.location.trim(),
         category_id: formData.category_id || undefined,
         condition: formData.condition.trim(),
-        images: uploadedImageUrls.length > 0 ? uploadedImageUrls : images.map(img => img.uri),
+        images:
+          uploadedImageUrls.length > 0
+            ? uploadedImageUrls
+            : images.map((img) => img.uri),
       };
 
       // Update listing via API
@@ -327,7 +368,7 @@ const EditListing = () => {
         id: params.listingId as string,
         data: listingData,
       });
-      
+
       success('Success', 'Listing updated successfully!');
       resetState(); // Reset upload state
       router.back();
@@ -339,14 +380,24 @@ const EditListing = () => {
     }
   };
 
-  const renderImageItem = ({ item, index }: { item: ListingImage; index: number }) => (
+  const renderImageItem = ({
+    item,
+    index,
+  }: {
+    item: ListingImage;
+    index: number;
+  }) => (
     <View style={styles.imageItem}>
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={() => handleSetMainImage(item.id)}
         style={styles.thumbnailContainer}
         activeOpacity={0.7}
       >
-        <Image source={{ uri: item.uri }} style={styles.thumbnailImage} resizeMode="cover" />
+        <Image
+          source={{ uri: item.uri }}
+          style={styles.thumbnailImage}
+          resizeMode='cover'
+        />
         {index === 0 && (
           <View style={styles.mainImageBadge}>
             <Text style={styles.mainImageText}>Main</Text>
@@ -354,7 +405,7 @@ const EditListing = () => {
         )}
         {index !== 0 && (
           <View style={styles.setMainOverlay}>
-            <Ionicons name="star" size={16} color={Colors.white} />
+            <Ionicons name='star' size={16} color={Colors.white} />
             <Text style={styles.setMainText}>Set as main</Text>
           </View>
         )}
@@ -363,7 +414,7 @@ const EditListing = () => {
         style={styles.removeImageButton}
         onPress={() => handleRemoveImage(item.id)}
       >
-        <Ionicons name="close-circle" size={20} color="#F44336" />
+        <Ionicons name='close-circle' size={20} color='#F44336' />
       </TouchableOpacity>
     </View>
   );
@@ -375,208 +426,277 @@ const EditListing = () => {
         style={styles.removeFeatureButton}
         onPress={() => handleRemoveFeature(index)}
       >
-        <Ionicons name="close" size={16} color="#F44336" />
+        <Ionicons name='close' size={16} color='#F44336' />
       </TouchableOpacity>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      
-      {/* Header */}
-      <SafeAreaView style={styles.header} edges={['top']}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Ionicons name="chevron-back" size={24} color={Colors.black} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Listing</Text>
-        <TouchableOpacity 
-          style={styles.saveButton} 
-          onPress={handleSaveListing}
-          disabled={isLoading}
-        >
-          <Text style={[styles.saveButtonText, isLoading && styles.saveButtonDisabled]}>
-            {isLoading ? 'Saving...' : 'Save'}
-          </Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          <StatusBar style='dark' />
 
-      {/* Loading State */}
-      {listingLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading listing...</Text>
-        </View>
-      )}
+          {/* Header */}
+          <SafeAreaView style={styles.header} edges={['top']}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <Ionicons name='chevron-back' size={24} color={Colors.black} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Edit Listing</Text>
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={handleSaveListing}
+              disabled={isLoading}
+            >
+              <Text
+                style={[
+                  styles.saveButtonText,
+                  isLoading && styles.saveButtonDisabled,
+                ]}
+              >
+                {isLoading ? 'Saving...' : 'Save'}
+              </Text>
+            </TouchableOpacity>
+          </SafeAreaView>
 
-      {/* Error State */}
-      {listingError && (
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors.red} />
-          <Text style={styles.errorTitle}>Failed to Load Listing</Text>
-          <Text style={styles.errorText}>
-            {listingError instanceof Error ? listingError.message : 'Something went wrong'}
-          </Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
-            <Text style={styles.retryButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+          {/* Loading State */}
+          {listingLoading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size='large' color={Colors.primary} />
+              <Text style={styles.loadingText}>Loading listing...</Text>
+            </View>
+          )}
 
-      {/* Main Content */}
-      {!listingLoading && !listingError && (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Images Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Images ({images.length}/10)</Text>
-            {(isProcessing || isUploading) && (
-              <View style={styles.uploadStatus}>
-                <Text style={styles.uploadStatusText}>
-                  {isProcessing ? 'Processing...' : isUploading ? 'Uploading...' : ''}
-                </Text>
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: `${progress}%` }]} />
+          {/* Error State */}
+          {listingError && (
+            <View style={styles.errorContainer}>
+              <Ionicons
+                name='alert-circle-outline'
+                size={48}
+                color={Colors.red}
+              />
+              <Text style={styles.errorTitle}>Failed to Load Listing</Text>
+              <Text style={styles.errorText}>
+                {listingError instanceof Error
+                  ? listingError.message
+                  : 'Something went wrong'}
+              </Text>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={() => router.back()}
+              >
+                <Text style={styles.retryButtonText}>Go Back</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Main Content */}
+          {!listingLoading && !listingError && (
+            <ScrollView
+              style={styles.content}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Images Section */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>
+                    Images ({images.length}/10)
+                  </Text>
+                  {(isProcessing || isUploading) && (
+                    <View style={styles.uploadStatus}>
+                      <Text style={styles.uploadStatusText}>
+                        {isProcessing
+                          ? 'Processing...'
+                          : isUploading
+                          ? 'Uploading...'
+                          : ''}
+                      </Text>
+                      <View style={styles.progressBar}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            { width: `${progress}%` },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                  )}
+                </View>
+
+                {/* Main Image */}
+                <View style={styles.mainImageContainer}>
+                  <Image
+                    source={{ uri: images[currentImageIndex]?.uri }}
+                    style={styles.mainImage}
+                    resizeMode='cover'
+                  />
+                  <View style={styles.imageOverlay}>
+                    <TouchableOpacity
+                      style={styles.overlayButton}
+                      onPress={handleAddImage}
+                    >
+                      <Ionicons name='camera' size={24} color={Colors.white} />
+                      <Text style={styles.overlayButtonText}>Add Photo</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Image Thumbnails */}
+                <FlatList
+                  data={images}
+                  renderItem={renderImageItem}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.thumbnailsList}
+                  contentContainerStyle={styles.thumbnailsContent}
+                />
+              </View>
+
+              {/* Basic Information */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Basic Information</Text>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Title *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={formData.title}
+                    onChangeText={(text) => handleInputChange('title', text)}
+                    placeholder='Enter listing title'
+                    maxLength={100}
+                  />
+                  <Text style={styles.characterCount}>
+                    {formData.title.length}/100
+                  </Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Description *</Text>
+                  <TextInput
+                    style={[styles.textInput, styles.textArea]}
+                    value={formData.description}
+                    onChangeText={(text) =>
+                      handleInputChange('description', text)
+                    }
+                    placeholder='Describe your item in detail'
+                    multiline
+                    numberOfLines={4}
+                    maxLength={1000}
+                    textAlignVertical='top'
+                  />
+                  <Text style={styles.characterCount}>
+                    {formData.description.length}/1000
+                  </Text>
+                </View>
+
+                <View style={styles.rowInputs}>
+                  <View
+                    style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}
+                  >
+                    <Text style={styles.inputLabel}>Price *</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      value={formData.price}
+                      onChangeText={(text) => handleInputChange('price', text)}
+                      placeholder='KES 0'
+                      keyboardType='numeric'
+                    />
+                  </View>
+                  <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
+                    <Text style={styles.inputLabel}>Condition</Text>
+                    <TouchableOpacity style={styles.pickerButton}>
+                      <Text style={styles.pickerButtonText}>
+                        {categoriesLoading
+                          ? 'Loading categories...'
+                          : formData.category_id
+                          ? categories?.find(
+                              (c) => c.id === formData.category_id
+                            )?.name || 'Select Category'
+                          : 'Select Category'}
+                      </Text>
+                      <Ionicons
+                        name='chevron-down'
+                        size={16}
+                        color={Colors.grey}
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            )}
-          </View>
-          
-          {/* Main Image */}
-          <View style={styles.mainImageContainer}>
-            <Image 
-              source={{ uri: images[currentImageIndex]?.uri }} 
-              style={styles.mainImage}
-              resizeMode="cover"
-            />
-            <View style={styles.imageOverlay}>
-              <TouchableOpacity style={styles.overlayButton} onPress={handleAddImage}>
-                <Ionicons name="camera" size={24} color={Colors.white} />
-                <Text style={styles.overlayButtonText}>Add Photo</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
 
-          {/* Image Thumbnails */}
-          <FlatList
-            data={images}
-            renderItem={renderImageItem}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.thumbnailsList}
-            contentContainerStyle={styles.thumbnailsContent}
-          />
+              {/* Location & Category */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Location & Category</Text>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Location *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={formData.location}
+                    onChangeText={(text) => handleInputChange('location', text)}
+                    placeholder='Enter location'
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Category</Text>
+                  <TouchableOpacity style={styles.pickerButton}>
+                    <Text style={styles.pickerButtonText}>
+                      {categoriesLoading
+                        ? 'Loading categories...'
+                        : formData.category_id
+                        ? categories?.find((c) => c.id === formData.category_id)
+                            ?.name || 'Select Category'
+                        : 'Select Category'}
+                    </Text>
+                    <Ionicons
+                      name='chevron-down'
+                      size={16}
+                      color={Colors.grey}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Features */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Features</Text>
+                  <TouchableOpacity
+                    style={styles.addFeatureButton}
+                    onPress={handleAddFeature}
+                  >
+                    <Ionicons name='add' size={20} color={Colors.primary} />
+                    <Text style={styles.addFeatureText}>Add Feature</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.featuresContainer}>
+                  {formData.features.map((feature, index) =>
+                    renderFeatureItem(feature, index)
+                  )}
+                  {formData.features.length === 0 && (
+                    <Text style={styles.noFeaturesText}>
+                      No features added yet
+                    </Text>
+                  )}
+                </View>
+              </View>
+
+              {/* Bottom padding for better scrolling */}
+              <View style={styles.bottomPadding} />
+            </ScrollView>
+          )}
+
+          {/* Custom Alert Component */}
+          <AlertComponent />
         </View>
-
-        {/* Basic Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Basic Information</Text>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Title *</Text>
-            <TextInput
-              style={styles.textInput}
-              value={formData.title}
-              onChangeText={(text) => handleInputChange('title', text)}
-              placeholder="Enter listing title"
-              maxLength={100}
-            />
-            <Text style={styles.characterCount}>{formData.title.length}/100</Text>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Description *</Text>
-            <TextInput
-              style={[styles.textInput, styles.textArea]}
-              value={formData.description}
-              onChangeText={(text) => handleInputChange('description', text)}
-              placeholder="Describe your item in detail"
-              multiline
-              numberOfLines={4}
-              maxLength={1000}
-              textAlignVertical="top"
-            />
-            <Text style={styles.characterCount}>{formData.description.length}/1000</Text>
-          </View>
-
-          <View style={styles.rowInputs}>
-            <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-              <Text style={styles.inputLabel}>Price *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={formData.price}
-                onChangeText={(text) => handleInputChange('price', text)}
-                placeholder="KES 0"
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-              <Text style={styles.inputLabel}>Condition</Text>
-              <TouchableOpacity style={styles.pickerButton}>
-                <Text style={styles.pickerButtonText}>{formData.condition}</Text>
-                <Ionicons name="chevron-down" size={16} color={Colors.grey} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Location & Category */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Location & Category</Text>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Location *</Text>
-            <TextInput
-              style={styles.textInput}
-              value={formData.location}
-              onChangeText={(text) => handleInputChange('location', text)}
-              placeholder="Enter location"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Category</Text>
-            <TouchableOpacity style={styles.pickerButton}>
-              <Text style={styles.pickerButtonText}>
-                {categoriesLoading 
-                  ? 'Loading categories...'
-                  : formData.category_id 
-                    ? categories?.find(c => c.id === formData.category_id)?.name || 'Select Category'
-                    : 'Select Category'
-                }
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={Colors.grey} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Features */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Features</Text>
-            <TouchableOpacity style={styles.addFeatureButton} onPress={handleAddFeature}>
-              <Ionicons name="add" size={20} color={Colors.primary} />
-              <Text style={styles.addFeatureText}>Add Feature</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.featuresContainer}>
-            {formData.features.map((feature, index) => renderFeatureItem(feature, index))}
-            {formData.features.length === 0 && (
-              <Text style={styles.noFeaturesText}>No features added yet</Text>
-            )}
-          </View>
-        </View>
-
-        {/* Bottom padding for better scrolling */}
-        <View style={styles.bottomPadding} />
-      </ScrollView>
-      )}
-      
-      {/* Custom Alert Component */}
-      <AlertComponent />
-    </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 

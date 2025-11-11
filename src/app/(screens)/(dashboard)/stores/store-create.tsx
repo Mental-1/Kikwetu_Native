@@ -13,15 +13,35 @@ import {
   Alert,
   Dimensions,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+interface StoreFormData {
+  name: string;
+  description: string;
+  categoryId: number | null;
+  website: string;
+  instagram: string;
+  facebook: string;
+  twitter: string;
+  tiktok: string;
+}
 
 interface StoreFormData {
   name: string;
@@ -46,7 +66,11 @@ const StoreCreate = () => {
   const [alertConfig, setAlertConfig] = useState<{
     title: string;
     message: string;
-    buttons: { text: string; onPress?: () => void; style?: 'default' | 'destructive' | 'cancel' }[];
+    buttons: {
+      text: string;
+      onPress?: () => void;
+      style?: 'default' | 'destructive' | 'cancel';
+    }[];
   }>({
     title: '',
     message: '',
@@ -86,15 +110,21 @@ const StoreCreate = () => {
       pickerTranslateY.value = withTiming(0, { duration: 300 });
     } else {
       overlayOpacity.value = withDelay(100, withTiming(0, { duration: 300 }));
-      pickerTranslateY.value = withDelay(100, withTiming(screenHeight, { duration: 300 }));
+      pickerTranslateY.value = withDelay(
+        100,
+        withTiming(screenHeight, { duration: 300 })
+      );
     }
   }, [showCategoryPicker, overlayOpacity, pickerTranslateY, screenHeight]);
-
 
   const showCustomAlert = (
     title: string,
     message: string,
-    buttons: { text: string; onPress?: () => void; style?: 'default' | 'destructive' | 'cancel' }[]
+    buttons: {
+      text: string;
+      onPress?: () => void;
+      style?: 'default' | 'destructive' | 'cancel';
+    }[]
   ) => {
     setAlertConfig({ title, message, buttons });
     setShowAlert(true);
@@ -124,23 +154,27 @@ const StoreCreate = () => {
   };
 
   const hasUnsavedChanges = () => {
-    return formData.name.trim() || 
-           formData.description.trim() || 
-           formData.categoryId ||
-           formData.website.trim() ||
-           formData.instagram.trim() ||
-           formData.facebook.trim() ||
-           formData.twitter.trim() ||
-           formData.tiktok.trim() ||
-           bannerImage || 
-           profileImage;
+    return (
+      formData.name.trim() ||
+      formData.description.trim() ||
+      formData.categoryId ||
+      formData.website.trim() ||
+      formData.instagram.trim() ||
+      formData.facebook.trim() ||
+      formData.twitter.trim() ||
+      formData.tiktok.trim() ||
+      bannerImage ||
+      profileImage
+    );
   };
 
   const handleCreate = async () => {
     if (!user) {
-      showCustomAlert('Authentication Error', 'You must be logged in to create a store.', [
-        { text: 'OK', onPress: () => setShowAlert(false) },
-      ]);
+      showCustomAlert(
+        'Authentication Error',
+        'You must be logged in to create a store.',
+        [{ text: 'OK', onPress: () => setShowAlert(false) }]
+      );
       return;
     }
 
@@ -170,7 +204,8 @@ const StoreCreate = () => {
       const storeData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        category: categories?.find(c => c.id === formData.categoryId)?.name || '',
+        category:
+          categories?.find((c) => c.id === formData.categoryId)?.name || '',
         website: formData.website.trim() || null,
         instagram: formData.instagram.trim() || null,
         facebook: formData.facebook.trim() || null,
@@ -184,11 +219,21 @@ const StoreCreate = () => {
         profile_image: profileImage || undefined,
       };
 
-      const result = await createStoreMutation.mutateAsync({ storeData, images, owner_id: user.id });
-      
+      const result = await createStoreMutation.mutateAsync({
+        storeData,
+        images,
+        owner_id: user.id,
+      });
+
       if (result.success) {
         showCustomAlert('Success', 'Store created successfully!', [
-          { text: 'OK', onPress: () => { setShowAlert(false); router.back(); } },
+          {
+            text: 'OK',
+            onPress: () => {
+              setShowAlert(false);
+              router.back();
+            },
+          },
         ]);
       } else {
         showCustomAlert('Error', result.error || 'Failed to create store', [
@@ -207,12 +252,15 @@ const StoreCreate = () => {
 
   const pickImage = async (type: 'banner' | 'profile') => {
     try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
       if (permissionResult.granted === false) {
-        showCustomAlert('Permission Required', 'Permission to access camera roll is required!', [
-          { text: 'OK', onPress: () => setShowAlert(false) },
-        ]);
+        showCustomAlert(
+          'Permission Required',
+          'Permission to access camera roll is required!',
+          [{ text: 'OK', onPress: () => setShowAlert(false) }]
+        );
         return;
       }
 
@@ -239,12 +287,15 @@ const StoreCreate = () => {
 
   const pickImageFromCamera = async (type: 'banner' | 'profile') => {
     try {
-      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      
+      const permissionResult =
+        await ImagePicker.requestCameraPermissionsAsync();
+
       if (permissionResult.granted === false) {
-        showCustomAlert('Permission Required', 'Permission to access camera is required!', [
-          { text: 'OK', onPress: () => setShowAlert(false) },
-        ]);
+        showCustomAlert(
+          'Permission Required',
+          'Permission to access camera is required!',
+          [{ text: 'OK', onPress: () => setShowAlert(false) }]
+        );
         return;
       }
 
@@ -292,31 +343,45 @@ const StoreCreate = () => {
     );
   };
 
-  const updateFormData = (field: keyof StoreFormData, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const updateFormData = (
+    field: keyof StoreFormData,
+    value: string | number
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const selectCategory = (categoryId: number) => {
-    setFormData(prev => ({ ...prev, categoryId }));
+    setFormData((prev) => ({ ...prev, categoryId }));
     setShowCategoryPicker(false);
   };
 
   const renderImageSection = () => (
     <View style={styles.imageSection}>
       <Text style={styles.sectionTitle}>Store Images</Text>
-      <Text style={styles.sectionSubtitle}>Add images to make your store stand out</Text>
-      
+      <Text style={styles.sectionSubtitle}>
+        Add images to make your store stand out
+      </Text>
+
       {/* Banner Image */}
       <View style={styles.imageContainer}>
         <Text style={styles.imageLabel}>Banner Image</Text>
-        <TouchableOpacity style={styles.imageUpload} onPress={handleBannerImagePress}>
+        <TouchableOpacity
+          style={styles.imageUpload}
+          onPress={handleBannerImagePress}
+        >
           {bannerImage ? (
-            <Image source={{ uri: bannerImage }} style={styles.bannerImage} resizeMode="cover" />
+            <Image
+              source={{ uri: bannerImage }}
+              style={styles.bannerImage}
+              resizeMode='cover'
+            />
           ) : (
             <View style={styles.imagePlaceholder}>
-              <Ionicons name="camera-outline" size={32} color={Colors.grey} />
+              <Ionicons name='camera-outline' size={32} color={Colors.grey} />
               <Text style={styles.placeholderText}>Tap to add banner</Text>
-              <Text style={styles.placeholderSubtext}>Recommended: 800x300px</Text>
+              <Text style={styles.placeholderSubtext}>
+                Recommended: 800x300px
+              </Text>
             </View>
           )}
         </TouchableOpacity>
@@ -325,16 +390,21 @@ const StoreCreate = () => {
       {/* Profile Image */}
       <View style={styles.imageContainer}>
         <Text style={styles.imageLabel}>Profile Image</Text>
-        <TouchableOpacity style={styles.profileImageUpload} onPress={handleProfileImagePress}>
+        <TouchableOpacity
+          style={styles.profileImageUpload}
+          onPress={handleProfileImagePress}
+        >
           {profileImage ? (
             <Image source={{ uri: profileImage }} style={styles.profileImage} />
           ) : (
             <View style={styles.profileImagePlaceholder}>
-              <Ionicons name="camera-outline" size={24} color={Colors.white} />
+              <Ionicons name='camera-outline' size={24} color={Colors.white} />
             </View>
           )}
         </TouchableOpacity>
-        <Text style={styles.profileImageHelpText}>Square image recommended</Text>
+        <Text style={styles.profileImageHelpText}>
+          Square image recommended
+        </Text>
       </View>
     </View>
   );
@@ -342,15 +412,17 @@ const StoreCreate = () => {
   const renderBasicInfoSection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Basic Information</Text>
-      <Text style={styles.sectionSubtitle}>Tell customers about your store</Text>
-      
+      <Text style={styles.sectionSubtitle}>
+        Tell customers about your store
+      </Text>
+
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>Store Name *</Text>
         <TextInput
           style={styles.textInput}
           value={formData.name}
           onChangeText={(value) => updateFormData('name', value)}
-          placeholder="Enter your store name"
+          placeholder='Enter your store name'
           placeholderTextColor={Colors.grey}
         />
       </View>
@@ -361,35 +433,36 @@ const StoreCreate = () => {
           style={[styles.textInput, styles.textArea]}
           value={formData.description}
           onChangeText={(value) => updateFormData('description', value)}
-          placeholder="Describe your store and what you sell"
+          placeholder='Describe your store and what you sell'
           placeholderTextColor={Colors.grey}
           multiline
           numberOfLines={4}
-          textAlignVertical="top"
+          textAlignVertical='top'
         />
       </View>
 
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>Category *</Text>
-        <TouchableOpacity 
-          style={styles.categorySelector} 
+        <TouchableOpacity
+          style={styles.categorySelector}
           onPress={() => setShowCategoryPicker(true)}
         >
-          <Text style={[
-            styles.categoryText, 
-            !formData.categoryId && styles.placeholderText
-          ]}>
-            {formData.categoryId 
-              ? categories?.find(c => c.id === formData.categoryId)?.name 
-              : 'Select a category'
-            }
+          <Text
+            style={[
+              styles.categoryText,
+              !formData.categoryId && styles.placeholderText,
+            ]}
+          >
+            {formData.categoryId
+              ? categories?.find((c) => c.id === formData.categoryId)?.name
+              : 'Select a category'}
           </Text>
-          <Ionicons name="chevron-down" size={20} color={Colors.grey} />
+          <Ionicons name='chevron-down' size={20} color={Colors.grey} />
         </TouchableOpacity>
-        
+
         {showCategoryPicker && (
           <View style={styles.dropdownList}>
-            <ScrollView 
+            <ScrollView
               style={styles.dropdownScroll}
               showsVerticalScrollIndicator={true}
               nestedScrollEnabled={true}
@@ -417,18 +490,20 @@ const StoreCreate = () => {
   const renderSocialLinksSection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Social Links</Text>
-      <Text style={styles.sectionSubtitle}>Connect your social media accounts (optional)</Text>
-      
+      <Text style={styles.sectionSubtitle}>
+        Connect your social media accounts (optional)
+      </Text>
+
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>Website</Text>
         <TextInput
           style={styles.textInput}
           value={formData.website}
           onChangeText={(value) => updateFormData('website', value)}
-          placeholder="https://your-website.com"
+          placeholder='https://your-website.com'
           placeholderTextColor={Colors.grey}
-          keyboardType="url"
-          autoCapitalize="none"
+          keyboardType='url'
+          autoCapitalize='none'
         />
       </View>
 
@@ -438,9 +513,9 @@ const StoreCreate = () => {
           style={styles.textInput}
           value={formData.instagram}
           onChangeText={(value) => updateFormData('instagram', value)}
-          placeholder="@your-instagram"
+          placeholder='@your-instagram'
           placeholderTextColor={Colors.grey}
-          autoCapitalize="none"
+          autoCapitalize='none'
         />
       </View>
 
@@ -450,7 +525,7 @@ const StoreCreate = () => {
           style={styles.textInput}
           value={formData.facebook}
           onChangeText={(value) => updateFormData('facebook', value)}
-          placeholder="Your Facebook page name"
+          placeholder='Your Facebook page name'
           placeholderTextColor={Colors.grey}
         />
       </View>
@@ -461,9 +536,9 @@ const StoreCreate = () => {
           style={styles.textInput}
           value={formData.twitter}
           onChangeText={(value) => updateFormData('twitter', value)}
-          placeholder="@your-twitter"
+          placeholder='@your-twitter'
           placeholderTextColor={Colors.grey}
-          autoCapitalize="none"
+          autoCapitalize='none'
         />
       </View>
 
@@ -473,9 +548,9 @@ const StoreCreate = () => {
           style={styles.textInput}
           value={formData.tiktok}
           onChangeText={(value) => updateFormData('tiktok', value)}
-          placeholder="@your-tiktok"
+          placeholder='@your-tiktok'
           placeholderTextColor={Colors.grey}
-          autoCapitalize="none"
+          autoCapitalize='none'
         />
       </View>
     </View>
@@ -492,7 +567,7 @@ const StoreCreate = () => {
         <View style={styles.categoryPickerHeader}>
           <Text style={styles.categoryPickerTitle}>Select Category</Text>
           <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
-            <Ionicons name="close" size={24} color={Colors.black} />
+            <Ionicons name='close' size={24} color={Colors.black} />
           </TouchableOpacity>
         </View>
         <ScrollView style={styles.categoryList}>
@@ -504,18 +579,22 @@ const StoreCreate = () => {
                 key={category.id}
                 style={[
                   styles.categoryItem,
-                  formData.categoryId === category.id && styles.selectedCategoryItem
+                  formData.categoryId === category.id &&
+                    styles.selectedCategoryItem,
                 ]}
                 onPress={() => selectCategory(category.id)}
               >
-                <Text style={[
-                  styles.categoryItemText,
-                  formData.categoryId === category.id && styles.selectedCategoryItemText
-                ]}>
+                <Text
+                  style={[
+                    styles.categoryItemText,
+                    formData.categoryId === category.id &&
+                      styles.selectedCategoryItemText,
+                  ]}
+                >
                   {category.name}
                 </Text>
                 {formData.categoryId === category.id && (
-                  <Ionicons name="checkmark" size={20} color={Colors.primary} />
+                  <Ionicons name='checkmark' size={20} color={Colors.primary} />
                 )}
               </TouchableOpacity>
             ))
@@ -526,51 +605,61 @@ const StoreCreate = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      
-      {/* Header */}
-      <SafeAreaView style={styles.header} edges={['top']}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Ionicons name="chevron-back" size={24} color={Colors.black} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Create Store</Text>
-          <TouchableOpacity 
-            style={[styles.createButton, saving && styles.disabledButton]} 
-            onPress={handleCreate}
-            disabled={saving}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          <StatusBar style='dark' />
+
+          {/* Header */}
+          <SafeAreaView style={styles.header} edges={['top']}>
+            <View style={styles.headerContent}>
+              <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+                <Ionicons name='chevron-back' size={24} color={Colors.black} />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Create Store</Text>
+              <TouchableOpacity
+                style={[styles.createButton, saving && styles.disabledButton]}
+                onPress={handleCreate}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size='small' color={Colors.white} />
+                ) : (
+                  <Text style={styles.createButtonText}>Create</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
           >
-            {saving ? (
-              <ActivityIndicator size="small" color={Colors.white} />
-            ) : (
-              <Text style={styles.createButtonText}>Create</Text>
-            )}
-          </TouchableOpacity>
+            {renderImageSection()}
+            {renderBasicInfoSection()}
+            {renderSocialLinksSection()}
+
+            {/* Bottom padding for scroll */}
+            <View style={styles.bottomPadding} />
+          </ScrollView>
+
+          {showCategoryPicker && renderCategoryPicker()}
+
+          {/* Custom Alert */}
+          <CustomAlert
+            visible={showAlert}
+            title={alertConfig.title}
+            message={alertConfig.message}
+            buttons={alertConfig.buttons}
+            icon='information-circle-outline'
+            iconColor={Colors.primary}
+          />
         </View>
-      </SafeAreaView>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {renderImageSection()}
-        {renderBasicInfoSection()}
-        {renderSocialLinksSection()}
-        
-        {/* Bottom padding for scroll */}
-        <View style={styles.bottomPadding} />
-      </ScrollView>
-
-      {showCategoryPicker && renderCategoryPicker()}
-      
-      {/* Custom Alert */}
-      <CustomAlert
-        visible={showAlert}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        buttons={alertConfig.buttons}
-        icon="information-circle-outline"
-        iconColor={Colors.primary}
-      />
-    </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 

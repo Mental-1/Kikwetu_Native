@@ -330,36 +330,38 @@ export default function Step3() {
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity 
-          style={[styles.draftButton, isSavingDraft && styles.disabledButton]} 
-          onPress={handleSaveDraft}
-          disabled={isSavingDraft || isPublishing}
-        >
-          <Text style={[styles.draftButtonText, isSavingDraft && styles.disabledButtonText]}>
-            {isSavingDraft ? 'Saving...' : 'Save Draft'}
-          </Text>
-          <Ionicons 
-            name={isSavingDraft ? "hourglass-outline" : "bookmark-outline"} 
-            size={20} 
-            color={isSavingDraft ? Colors.grey : Colors.grey} 
-          />
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.publishButton, (isPublishing || isSavingDraft) && styles.disabledButton]} 
-          onPress={handlePublish}
-          disabled={isPublishing || isSavingDraft}
-        >
-          <Text style={[styles.publishButtonText, isPublishing && styles.disabledButtonText]}>
-            {isPublishing ? `Publishing... ${Math.round(uploadProgress)}%` : 'Publish Ad'}
-          </Text>
-          <Ionicons 
-            name={isPublishing ? "hourglass-outline" : "checkmark"} 
-            size={20} 
-            color={isPublishing ? Colors.white : Colors.white} 
-          />
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView edges={['bottom']}>
+        <View style={styles.footer}>
+          <TouchableOpacity 
+            style={[styles.draftButton, isSavingDraft && styles.disabledButton]} 
+            onPress={handleSaveDraft}
+            disabled={isSavingDraft || isPublishing}
+          >
+            <Text style={[styles.draftButtonText, isSavingDraft && styles.disabledButtonText]}>
+              {isSavingDraft ? 'Saving...' : 'Save Draft'}
+            </Text>
+            <Ionicons 
+              name={isSavingDraft ? "hourglass-outline" : "bookmark-outline"} 
+              size={20} 
+              color={isSavingDraft ? Colors.grey : Colors.grey} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.publishButton, (isPublishing || isSavingDraft) && styles.disabledButton]} 
+            onPress={handlePublish}
+            disabled={isPublishing || isSavingDraft}
+          >
+            <Text style={[styles.publishButtonText, isPublishing && styles.disabledButtonText]}>
+              {isPublishing ? `Publishing... ${Math.round(uploadProgress)}%` : 'Publish Ad'}
+            </Text>
+            <Ionicons 
+              name={isPublishing ? "hourglass-outline" : "checkmark"} 
+              size={20} 
+              color={isPublishing ? Colors.white : Colors.white} 
+            />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }

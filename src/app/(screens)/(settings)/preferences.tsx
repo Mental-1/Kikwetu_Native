@@ -1,39 +1,52 @@
+import SelectionModal from '@/components/ui/SelectionModal';
 import { Colors } from '@/src/constants/constant';
-import { useProfile, useUpdateProfile } from '@/src/hooks/useProfile';
+import { useUpdateProfile } from '@/src/hooks/useProfile';
 import { useUser } from '@/src/hooks/useUser';
+import usePreferencesStore from '@/stores/usePreferencesStore';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Preferences = () => {
   const router = useRouter();
   const { showAlert, AlertComponent } = useCustomAlert();
-  const { success, error } = createAlertHelpers(showAlert);
-  
-  const { data: profile, isLoading: profileLoading } = useProfile();
+  const { error, success } = createAlertHelpers(showAlert);
+
   const updateProfileMutation = useUpdateProfile();
-  
-  const { preferences, updatePreferences, loading: preferencesLoading } = useUser();
-  
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(false);
-  const [marketingEmails, setMarketingEmails] = useState(false);
-  const [priceAlerts, setPriceAlerts] = useState(true);
-  const [messageNotifications, setMessageNotifications] = useState(true);
-  
-  const [darkMode, setDarkMode] = useState(false);
-  const [autoSave, setAutoSave] = useState(true);
-  const [locationServices, setLocationServices] = useState(true);
-  const [analytics, setAnalytics] = useState(true);
-  
-  const [selectedLanguage, setSelectedLanguage] = useState('English');
-  const [selectedCurrency, setSelectedCurrency] = useState('KES');
-  const [selectedRegion, setSelectedRegion] = useState('Kenya');
-  
+  const { updatePreferences } = useUser();
+
+  const {
+    pushNotifications,
+    emailNotifications,
+    marketingEmails,
+    priceAlerts,
+    messageNotifications,
+    darkMode,
+    autoSave,
+    locationServices,
+    analytics,
+    language,
+    currency,
+    region,
+    setPushNotifications,
+    setEmailNotifications,
+    setMarketingEmails,
+    setPriceAlerts,
+    setMessageNotifications,
+    setDarkMode,
+    setAutoSave,
+    setLocationServices,
+    setAnalytics,
+    setLanguage,
+    setCurrency,
+    setRegion,
+    resetPreferences,
+  } = usePreferencesStore();
+
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
@@ -59,69 +72,64 @@ const Preferences = () => {
     { code: 'RW', name: 'Rwanda', flag: '🇷🇼' },
   ];
 
-  useEffect(() => {
-    if (profile) {
-      setPushNotifications(profile.push_notifications);
-      setEmailNotifications(profile.email_notifications);
-      setMarketingEmails(profile.marketing_emails);
-      setPriceAlerts(profile.price_alerts);
-      setMessageNotifications(profile.new_messages);
-      setDarkMode(profile.theme === 'dark');
-      setSelectedLanguage(profile.language || 'English');
-      setSelectedCurrency(profile.currency || 'KES');
-    }
-    
-    if (preferences) {
-      setDarkMode(preferences.theme === 'dark');
-      setSelectedLanguage(preferences.language || 'English');
-      setSelectedCurrency(preferences.currency || 'KES');
-    }
-  }, [profile, preferences]);
-
-  const isLoading = useMemo(() => 
-    profileLoading || preferencesLoading,
-    [profileLoading, preferencesLoading]
-  );
-
   const handleBack = () => {
     router.back();
   };
 
-  const updatePreference = useCallback(async (field: string, value: any) => {
-    try {
-      if (['push_notifications', 'email_notifications', 'marketing_emails', 'price_alerts', 'new_messages'].includes(field)) {
-        await updateProfileMutation.mutateAsync({
-          [field]: value,
-        });
-      } else {
-        await updatePreferences({
-          [field]: value,
-        });
+  const updatePreference = useCallback(
+    async (field: string, value: any) => {
+      try {
+        if (
+          ['push_notifications', 'email_notifications', 'marketing_emails', 'price_alerts', 'new_messages'].includes(
+            field
+          )
+        ) {
+          await updateProfileMutation.mutateAsync({
+            [field]: value,
+          });
+        } else {
+          await updatePreferences({
+            [field]: value,
+          });
+        }
+      } catch (err) {
+        console.error('Error updating preference:', err);
+        error('Error', 'Failed to update preference. Please try again.');
       }
-    } catch (err) {
-      console.error('Error updating preference:', err);
-      error('Error', 'Failed to update preference. Please try again.');
-    }
-  }, [updateProfileMutation, updatePreferences, error]);
+    },
+    [updateProfileMutation, updatePreferences, error]
+  );
 
-  const handleNotificationToggle = useCallback(async (field: string, value: boolean) => {
-    await updatePreference(field, value);
-  }, [updatePreference]);
+  const handleNotificationToggle = useCallback(
+    async (field: string, value: boolean) => {
+      await updatePreference(field, value);
+    },
+    [updatePreference]
+  );
 
-  const handleThemeToggle = useCallback(async (value: boolean) => {
-    setDarkMode(value);
-    await updatePreference('theme', value ? 'dark' : 'light');
-  }, [updatePreference]);
+  const handleThemeToggle = useCallback(
+    async (value: boolean) => {
+      setDarkMode(value);
+      await updatePreference('theme', value ? 'dark' : 'light');
+    },
+    [updatePreference, setDarkMode]
+  );
 
-  const handleLanguageChange = useCallback(async (language: string) => {
-    setSelectedLanguage(language);
-    await updatePreference('language', language);
-  }, [updatePreference]);
+  const handleLanguageChange = useCallback(
+    async (language: string) => {
+      setLanguage(language);
+      await updatePreference('language', language);
+    },
+    [updatePreference, setLanguage]
+  );
 
-  const handleCurrencyChange = useCallback(async (currency: string) => {
-    setSelectedCurrency(currency);
-    await updatePreference('currency', currency);
-  }, [updatePreference]);
+  const handleCurrencyChange = useCallback(
+    async (currency: string) => {
+      setCurrency(currency);
+      await updatePreference('currency', currency);
+    },
+    [updatePreference, setCurrency]
+  );
 
   const handleLanguageSelect = useCallback(() => {
     setShowLanguageModal(true);
@@ -135,63 +143,59 @@ const Preferences = () => {
     setShowRegionModal(true);
   }, []);
 
-  const handleLanguageConfirm = useCallback(async (language: string) => {
-    setShowLanguageModal(false);
-    await handleLanguageChange(language);
-  }, [handleLanguageChange]);
+  const handleLanguageConfirm = useCallback(
+    async (language: string) => {
+      setShowLanguageModal(false);
+      await handleLanguageChange(language);
+    },
+    [handleLanguageChange]
+  );
 
-  const handleCurrencyConfirm = useCallback(async (currency: string) => {
-    setShowCurrencyModal(false);
-    await handleCurrencyChange(currency);
-  }, [handleCurrencyChange]);
+  const handleCurrencyConfirm = useCallback(
+    async (currency: string) => {
+      setShowCurrencyModal(false);
+      await handleCurrencyChange(currency);
+    },
+    [handleCurrencyChange]
+  );
 
-  const handleRegionConfirm = useCallback(async (region: string) => {
-    setShowRegionModal(false);
-    setSelectedRegion(region);
-    // TODO: Implement region preference update
-    success('Success', 'Region updated successfully');
-  }, [success]);
-
+  const handleRegionConfirm = useCallback(
+    async (region: string) => {
+      setShowRegionModal(false);
+      setRegion(region);
+      // TODO: Implement region preference update
+      success('Success', 'Region updated successfully');
+    },
+    [success, setRegion]
+  );
 
   const handleResetPreferences = useCallback(() => {
     showAlert({
       title: 'Reset Preferences',
       message: 'Are you sure you want to reset all preferences to default values?',
-      buttons: [{
-        text: 'Reset',
-        style: 'destructive',
-        color: '#FF9800',
-        onPress: async () => {
-          try {
-            setPushNotifications(true);
-            setEmailNotifications(false);
-            setMarketingEmails(false);
-            setPriceAlerts(true);
-            setMessageNotifications(true);
-            setDarkMode(false);
-            setAutoSave(true);
-            setLocationServices(true);
-            setAnalytics(true);
-            setSelectedLanguage('English');
-            setSelectedCurrency('KES');
-            setSelectedRegion('Kenya');
-            
-            await updatePreferences({
-              theme: 'light',
-              language: 'English',
-              currency: 'KES',
-            });
-            
-            success('Success', 'All preferences have been reset to defaults');
-          } catch (err) {
-            error('Error', 'Failed to reset preferences. Please try again.');
-          }
+      buttons: [
+        {
+          text: 'Reset',
+          style: 'destructive',
+          color: '#FF9800',
+          onPress: async () => {
+            try {
+              resetPreferences();
+              await updatePreferences({
+                theme: 'light',
+                language: 'English',
+                currency: 'KES',
+              });
+            } catch (err) {
+              error('Error', 'Failed to reset preferences. Please try again.');
+            }
+          },
         },
-      }],
+      ],
       icon: 'refresh-outline',
       iconColor: '#FF9800',
     });
-  }, [showAlert, updatePreferences, success, error]);
+  }, [showAlert, resetPreferences, updatePreferences, error]);
 
   const preferenceSections = [
     {
@@ -290,7 +294,7 @@ const Preferences = () => {
       items: [
         {
           title: 'Language',
-          subtitle: selectedLanguage,
+          subtitle: language,
           value: null,
           onPress: handleLanguageSelect,
           type: 'navigation',
@@ -298,7 +302,7 @@ const Preferences = () => {
         },
         {
           title: 'Currency',
-          subtitle: selectedCurrency,
+          subtitle: currency,
           value: null,
           onPress: handleCurrencySelect,
           type: 'navigation',
@@ -306,15 +310,15 @@ const Preferences = () => {
         },
         {
           title: 'Region',
-          subtitle: selectedRegion,
+          subtitle: region,
           value: null,
           onPress: handleRegionSelect,
           type: 'navigation',
           icon: 'chevron-forward',
-            },
-          ],
         },
-      ];
+      ],
+    },
+  ];
 
   const renderPreferenceItem = (item: any, index: number, isLast: boolean) => {
     return (
@@ -328,7 +332,7 @@ const Preferences = () => {
           <Text style={styles.itemTitle}>{item.title}</Text>
           <Text style={styles.itemSubtitle}>{item.subtitle}</Text>
         </View>
-        
+
         {item.type === 'switch' && (
           <Switch
             value={item.value}
@@ -338,38 +342,16 @@ const Preferences = () => {
             ios_backgroundColor={Colors.lightgrey}
           />
         )}
-        
-        {item.type === 'navigation' && (
-          <Ionicons name={item.icon} size={20} color={Colors.grey} />
-        )}
+
+        {item.type === 'navigation' && <Ionicons name={item.icon} size={20} color={Colors.grey} />}
       </TouchableOpacity>
     );
   };
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <StatusBar style="dark" />
-        <SafeAreaView style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Ionicons name="chevron-back" size={24} color={Colors.black} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Preferences</Text>
-          <View style={styles.headerRight} />
-        </SafeAreaView>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading preferences...</Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-      
+
       {/* Header */}
       <SafeAreaView style={styles.header} edges={['top']}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -386,122 +368,64 @@ const Preferences = () => {
           <View key={sectionIndex} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
             <View style={styles.sectionList}>
-              {section.items.map((item, itemIndex) => 
+              {section.items.map((item, itemIndex) =>
                 renderPreferenceItem(item, itemIndex, itemIndex === section.items.length - 1)
               )}
             </View>
           </View>
         ))}
 
-                {/* Reset Section */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Advanced</Text>
-                  <View style={styles.sectionList}>
-                    <TouchableOpacity
-                      style={styles.preferenceItem}
-                      onPress={() => error('Not Implemented', 'Export preferences functionality will be implemented')}
-                    >
-                      <View style={styles.itemIcon}>
-                        <Ionicons name="download-outline" size={24} color={Colors.primary} />
-                      </View>
-                      <View style={styles.itemContent}>
-                        <Text style={styles.itemTitle}>Export Preferences</Text>
-                        <Text style={styles.itemSubtitle}>Download your preference settings</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
+        {/* Reset Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Advanced</Text>
+          <View style={styles.sectionList}>
+            <TouchableOpacity
+              style={styles.preferenceItem}
+              onPress={() => error('Not Implemented', 'Export preferences functionality will be implemented')}
+            >
+              <View style={styles.itemIcon}>
+                <Ionicons name="download-outline" size={24} color={Colors.primary} />
+              </View>
+              <View style={styles.itemContent}>
+                <Text style={styles.itemTitle}>Export Preferences</Text>
+                <Text style={styles.itemSubtitle}>Download your preference settings</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
-
-                {/* Bottom padding for better scrolling */}
-                <View style={styles.bottomPadding} />
+        {/* Bottom padding for better scrolling */}
+        <View style={styles.bottomPadding} />
       </ScrollView>
-      
-      {/* Language Selection Modal */}
-      {showLanguageModal && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Language</Text>
-            {languages.map((lang) => (
-              <TouchableOpacity
-                key={lang.code}
-                style={styles.modalOption}
-                onPress={() => handleLanguageConfirm(lang.name)}
-              >
-                <Text style={styles.modalOptionFlag}>{lang.flag}</Text>
-                <Text style={styles.modalOptionText}>{lang.name}</Text>
-                {selectedLanguage === lang.name && (
-                  <Ionicons name="checkmark" size={20} color={Colors.primary} />
-                )}
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={styles.modalCancel}
-              onPress={() => setShowLanguageModal(false)}
-            >
-              <Text style={styles.modalCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
 
-      {/* Currency Selection Modal */}
-      {showCurrencyModal && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Currency</Text>
-            {currencies.map((currency) => (
-              <TouchableOpacity
-                key={currency.code}
-                style={styles.modalOption}
-                onPress={() => handleCurrencyConfirm(currency.code)}
-              >
-                <Text style={styles.modalOptionSymbol}>{currency.symbol}</Text>
-                <Text style={styles.modalOptionText}>{currency.name}</Text>
-                {selectedCurrency === currency.code && (
-                  <Ionicons name="checkmark" size={20} color={Colors.primary} />
-                )}
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={styles.modalCancel}
-              onPress={() => setShowCurrencyModal(false)}
-            >
-              <Text style={styles.modalCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+      <SelectionModal
+        visible={showLanguageModal}
+        title="Select Language"
+        options={languages}
+        selectedValue={language}
+        onSelect={handleLanguageConfirm}
+        onClose={() => setShowLanguageModal(false)}
+      />
 
-      {/* Region Selection Modal */}
-      {showRegionModal && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Region</Text>
-            {regions.map((region) => (
-              <TouchableOpacity
-                key={region.code}
-                style={styles.modalOption}
-                onPress={() => handleRegionConfirm(region.name)}
-              >
-                <Text style={styles.modalOptionFlag}>{region.flag}</Text>
-                <Text style={styles.modalOptionText}>{region.name}</Text>
-                {selectedRegion === region.name && (
-                  <Ionicons name="checkmark" size={20} color={Colors.primary} />
-                )}
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={styles.modalCancel}
-              onPress={() => setShowRegionModal(false)}
-            >
-              <Text style={styles.modalCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-      
+      <SelectionModal
+        visible={showCurrencyModal}
+        title="Select Currency"
+        options={currencies}
+        selectedValue={currency}
+        onSelect={handleCurrencyConfirm}
+        onClose={() => setShowCurrencyModal(false)}
+      />
+
+      <SelectionModal
+        visible={showRegionModal}
+        title="Select Region"
+        options={regions}
+        selectedValue={region}
+        onSelect={handleRegionConfirm}
+        onClose={() => setShowRegionModal(false)}
+      />
+
       {/* Custom Alert Component */}
       <AlertComponent />
     </View>

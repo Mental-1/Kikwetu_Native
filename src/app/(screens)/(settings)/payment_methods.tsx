@@ -267,6 +267,7 @@ const PaymentMethods = () => {
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment Methods</Text>
+        <View style={styles.headerRightPlaceholder} />
       </SafeAreaView>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -511,6 +512,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: Colors.black,
+  },
+  headerRightPlaceholder: {
+    width: 32,
   },
   addButton: {
     padding: 4,

@@ -1,13 +1,32 @@
 import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
-import { useDeleteListing, useUpdateListingStatus, useUserListings } from '@/src/hooks/useApiListings';
+import {
+  useDeleteListing,
+  useUpdateListingStatus,
+  useUserListings,
+} from '@/src/hooks/useApiListings';
 import { ApiListing } from '@/src/types/api.types';
 import { useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const MyListings = () => {
@@ -20,7 +39,12 @@ const MyListings = () => {
   const [showContextMenu, setShowContextMenu] = useState<string | null>(null);
 
   // Fetch user's listings from API
-  const { data: listingsData, isLoading, error: fetchError, refetch } = useUserListings(
+  const {
+    data: listingsData,
+    isLoading,
+    error: fetchError,
+    refetch,
+  } = useUserListings(
     user?.id || '',
     selectedFilter === 'all' ? undefined : selectedFilter
   );
@@ -30,16 +54,47 @@ const MyListings = () => {
 
   const listings = useMemo(() => listingsData || [], [listingsData]);
 
-  const filterOptions = useMemo(() => [
-    { id: 'all', label: 'All', count: listings.length },
-    { id: 'active', label: 'Active', count: listings.filter(l => l.status === 'active').length },
-    { id: 'pending', label: 'Pending', count: listings.filter(l => l.status === 'pending').length },
-    { id: 'under_review', label: 'Under Review', count: listings.filter(l => l.status === 'under_review').length },
-    { id: 'rejected', label: 'Rejected', count: listings.filter(l => l.status === 'rejected').length },
-    { id: 'sold', label: 'Sold', count: listings.filter(l => l.status === 'sold').length },
-    { id: 'draft', label: 'Draft', count: listings.filter(l => l.status === 'draft').length },
-    { id: 'expired', label: 'Expired', count: listings.filter(l => l.status === 'expired').length },
-  ], [listings]);
+  const filterOptions = useMemo(
+    () => [
+      { id: 'all', label: 'All', count: listings.length },
+      {
+        id: 'active',
+        label: 'Active',
+        count: listings.filter((l) => l.status === 'active').length,
+      },
+      {
+        id: 'pending',
+        label: 'Pending',
+        count: listings.filter((l) => l.status === 'pending').length,
+      },
+      {
+        id: 'under_review',
+        label: 'Under Review',
+        count: listings.filter((l) => l.status === 'under_review').length,
+      },
+      {
+        id: 'rejected',
+        label: 'Rejected',
+        count: listings.filter((l) => l.status === 'rejected').length,
+      },
+      {
+        id: 'sold',
+        label: 'Sold',
+        count: listings.filter((l) => l.status === 'sold').length,
+      },
+      {
+        id: 'draft',
+        label: 'Draft',
+        count: listings.filter((l) => l.status === 'draft').length,
+      },
+      {
+        id: 'expired',
+        label: 'Expired',
+        count: listings.filter((l) => l.status === 'expired').length,
+      },
+    ],
+    [listings]
+  );
 
   const handleBack = () => {
     router.back();
@@ -50,7 +105,7 @@ const MyListings = () => {
   };
 
   const handleEditListing = (listingId: string) => {
-    const listing = listings.find(l => l.id === listingId);
+    const listing = listings.find((l) => l.id === listingId);
     if (!listing) return;
 
     router.push({
@@ -62,15 +117,16 @@ const MyListings = () => {
         price: listing.price.toString(),
         location: listing.location,
         category: listing.category_id.toString(),
-        status: listing.status
-      }
+        status: listing.status,
+      },
     });
   };
 
   const handleDeleteListing = (listingId: string) => {
     showAlert({
       title: 'Delete Listing',
-      message: 'Are you sure you want to delete this listing? This action cannot be undone.',
+      message:
+        'Are you sure you want to delete this listing? This action cannot be undone.',
       buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -93,7 +149,8 @@ const MyListings = () => {
   const handleMarkAsSold = (listingId: string) => {
     showAlert({
       title: 'Mark as Sold',
-      message: 'This listing will be marked as sold and moved to your sold listings.',
+      message:
+        'This listing will be marked as sold and moved to your sold listings.',
       buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -116,7 +173,8 @@ const MyListings = () => {
   const handleRequestReReview = (listingId: string) => {
     showAlert({
       title: 'Request Re-review',
-      message: 'Your listing will be submitted for re-review. Please ensure all issues have been addressed.',
+      message:
+        'Your listing will be submitted for re-review. Please ensure all issues have been addressed.',
       buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -124,7 +182,10 @@ const MyListings = () => {
           style: 'default',
           onPress: async () => {
             try {
-              await updateStatus.mutateAsync({ id: listingId, status: 'pending' });
+              await updateStatus.mutateAsync({
+                id: listingId,
+                status: 'pending',
+              });
             } catch {
               // Error toast shown by mutation
             }
@@ -139,7 +200,8 @@ const MyListings = () => {
   const handleRenewListing = (listingId: string) => {
     showAlert({
       title: 'Renew Listing',
-      message: 'Your listing will be renewed and made active again. This will extend the listing duration.',
+      message:
+        'Your listing will be renewed and made active again. This will extend the listing duration.',
       buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -147,7 +209,10 @@ const MyListings = () => {
           style: 'default',
           onPress: async () => {
             try {
-              await updateStatus.mutateAsync({ id: listingId, status: 'active' });
+              await updateStatus.mutateAsync({
+                id: listingId,
+                status: 'active',
+              });
             } catch {
               // Error toast shown by mutation
             }
@@ -165,48 +230,74 @@ const MyListings = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return '#4CAF50';
-      case 'pending': return '#FF9800';
-      case 'under-review': return '#2196F3';
-      case 'rejected': return '#F44336';
-      case 'sold': return '#9C27B0';
-      case 'draft': return '#6B7280';
-      case 'expired': return '#FF5722';
-      default: return Colors.grey;
+      case 'active':
+        return '#4CAF50';
+      case 'pending':
+        return '#FF9800';
+      case 'under-review':
+        return '#2196F3';
+      case 'rejected':
+        return '#F44336';
+      case 'sold':
+        return '#9C27B0';
+      case 'draft':
+        return '#6B7280';
+      case 'expired':
+        return '#FF5722';
+      default:
+        return Colors.grey;
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'active': return 'checkmark-circle';
-      case 'pending': return 'time-outline';
-      case 'under-review': return 'search-outline';
-      case 'rejected': return 'close-circle';
-      case 'sold': return 'trophy-outline';
-      case 'draft': return 'document-text-outline';
-      case 'expired': return 'time-outline';
-      default: return 'help-circle';
+      case 'active':
+        return 'checkmark-circle';
+      case 'pending':
+        return 'time-outline';
+      case 'under-review':
+        return 'search-outline';
+      case 'rejected':
+        return 'close-circle';
+      case 'sold':
+        return 'trophy-outline';
+      case 'draft':
+        return 'document-text-outline';
+      case 'expired':
+        return 'time-outline';
+      default:
+        return 'help-circle';
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'active': return 'Active';
-      case 'pending': return 'Pending';
-      case 'under-review': return 'Under Review';
-      case 'rejected': return 'Rejected';
-      case 'sold': return 'Sold';
-      case 'draft': return 'Draft';
-      case 'expired': return 'Expired';
-      default: return status;
+      case 'active':
+        return 'Active';
+      case 'pending':
+        return 'Pending';
+      case 'under-review':
+        return 'Under Review';
+      case 'rejected':
+        return 'Rejected';
+      case 'sold':
+        return 'Sold';
+      case 'draft':
+        return 'Draft';
+      case 'expired':
+        return 'Expired';
+      default:
+        return status;
     }
   };
 
   const filteredListings = useMemo(() => {
-    return listings.filter(listing => {
-      const matchesFilter = selectedFilter === 'all' || listing.status === selectedFilter;
-      const matchesSearch = listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           listing.location.toLowerCase().includes(searchQuery.toLowerCase());
+    return listings.filter((listing) => {
+      const matchesFilter =
+        selectedFilter === 'all' || listing.status === selectedFilter;
+      const matchesSearch =
+        listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        listing.location.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesFilter && matchesSearch;
     });
   }, [listings, selectedFilter, searchQuery]);
@@ -216,21 +307,23 @@ const MyListings = () => {
       key={filter.id}
       style={[
         styles.filterButton,
-        selectedFilter === filter.id && styles.selectedFilter
+        selectedFilter === filter.id && styles.selectedFilter,
       ]}
       onPress={() => setSelectedFilter(filter.id)}
     >
-      <Text style={[
-        styles.filterText,
-        selectedFilter === filter.id && styles.selectedFilterText
-      ]}>
+      <Text
+        style={[
+          styles.filterText,
+          selectedFilter === filter.id && styles.selectedFilterText,
+        ]}
+      >
         {filter.label} ({filter.count})
       </Text>
     </TouchableOpacity>
   );
 
   const renderContextMenu = (listingId: string) => {
-    const listing = listings.find(l => l.id === listingId);
+    const listing = listings.find((l) => l.id === listingId);
     if (!listing) return null;
 
     return (
@@ -243,7 +336,7 @@ const MyListings = () => {
               setShowContextMenu(null);
             }}
           >
-            <Ionicons name="create-outline" size={20} color={Colors.primary} />
+            <Ionicons name='create-outline' size={20} color={Colors.primary} />
             <Text style={styles.contextMenuText}>Edit</Text>
           </TouchableOpacity>
         )}
@@ -256,8 +349,14 @@ const MyListings = () => {
               setShowContextMenu(null);
             }}
           >
-            <Ionicons name="checkmark-circle-outline" size={20} color="#4CAF50" />
-            <Text style={[styles.contextMenuText, { color: '#4CAF50' }]}>Mark as Sold</Text>
+            <Ionicons
+              name='checkmark-circle-outline'
+              size={20}
+              color='#4CAF50'
+            />
+            <Text style={[styles.contextMenuText, { color: '#4CAF50' }]}>
+              Mark as Sold
+            </Text>
           </TouchableOpacity>
         )}
 
@@ -269,8 +368,10 @@ const MyListings = () => {
               setShowContextMenu(null);
             }}
           >
-            <Ionicons name="refresh-outline" size={20} color="#FF9800" />
-            <Text style={[styles.contextMenuText, { color: '#FF9800' }]}>Request Re-review</Text>
+            <Ionicons name='refresh-outline' size={20} color='#FF9800' />
+            <Text style={[styles.contextMenuText, { color: '#FF9800' }]}>
+              Request Re-review
+            </Text>
           </TouchableOpacity>
         )}
 
@@ -282,8 +383,10 @@ const MyListings = () => {
               setShowContextMenu(null);
             }}
           >
-            <Ionicons name="refresh-circle-outline" size={20} color="#4CAF50" />
-            <Text style={[styles.contextMenuText, { color: '#4CAF50' }]}>Renew Listing</Text>
+            <Ionicons name='refresh-circle-outline' size={20} color='#4CAF50' />
+            <Text style={[styles.contextMenuText, { color: '#4CAF50' }]}>
+              Renew Listing
+            </Text>
           </TouchableOpacity>
         )}
 
@@ -295,8 +398,10 @@ const MyListings = () => {
               setShowContextMenu(null);
             }}
           >
-            <Ionicons name="trash-outline" size={20} color="#F44336" />
-            <Text style={[styles.contextMenuText, { color: '#F44336' }]}>Delete</Text>
+            <Ionicons name='trash-outline' size={20} color='#F44336' />
+            <Text style={[styles.contextMenuText, { color: '#F44336' }]}>
+              Delete
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -307,26 +412,30 @@ const MyListings = () => {
   const cardWidth = (screenWidth - 48) / 2; // Account for padding and gap
 
   const renderListing = ({ item: listing }: { item: ApiListing }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.listingCard, { width: cardWidth }]}
       onPress={() => handleViewListing(listing.id)}
       activeOpacity={0.8}
     >
       <View style={styles.listingImageContainer}>
-        <Image 
-          source={{ uri: listing.images?.[0] || 'https://via.placeholder.com/300x200' }} 
+        <Image
+          source={{
+            uri: listing.images?.[0] || 'https://via.placeholder.com/300x200',
+          }}
           style={styles.listingImage}
-          resizeMode="cover"
+          resizeMode='cover'
         />
         <View style={styles.imageOverlay}>
           <TouchableOpacity
             style={styles.moreButton}
             onPress={(e) => {
               e.stopPropagation();
-              setShowContextMenu(showContextMenu === listing.id ? null : listing.id);
+              setShowContextMenu(
+                showContextMenu === listing.id ? null : listing.id
+              );
             }}
           >
-            <Ionicons name="ellipsis-vertical" size={16} color={Colors.white} />
+            <Ionicons name='ellipsis-vertical' size={16} color={Colors.white} />
           </TouchableOpacity>
         </View>
       </View>
@@ -336,14 +445,26 @@ const MyListings = () => {
           {listing.title}
         </Text>
         <View style={styles.priceRow}>
-          <Text style={styles.listingPrice}>KES {listing.price.toLocaleString()}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(listing.status) + '20' }]}>
-            <Ionicons 
-              name={getStatusIcon(listing.status)} 
-              size={10} 
-              color={getStatusColor(listing.status)} 
+          <Text style={styles.listingPrice}>
+            KES {listing.price.toLocaleString()}
+          </Text>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(listing.status) + '20' },
+            ]}
+          >
+            <Ionicons
+              name={getStatusIcon(listing.status)}
+              size={10}
+              color={getStatusColor(listing.status)}
             />
-            <Text style={[styles.statusText, { color: getStatusColor(listing.status), fontSize: 9 }]}>
+            <Text
+              style={[
+                styles.statusText,
+                { color: getStatusColor(listing.status), fontSize: 9 },
+              ]}
+            >
               {getStatusLabel(listing.status)}
             </Text>
           </View>
@@ -352,16 +473,18 @@ const MyListings = () => {
           {listing.location}
         </Text>
         <View style={styles.listingStats}>
-          <Ionicons name="eye-outline" size={12} color={Colors.grey} />
+          <Ionicons name='eye-outline' size={12} color={Colors.grey} />
           <Text style={styles.statsText}>{listing.views}</Text>
           <Text style={styles.statsSeparator}>•</Text>
-          <Text style={styles.statsText}>{new Date(listing.created_at).toLocaleDateString()}</Text>
+          <Text style={styles.statsText}>
+            {new Date(listing.created_at).toLocaleDateString()}
+          </Text>
         </View>
       </View>
 
       {listing.rejectionReason && (
         <View style={styles.rejectionReason}>
-          <Ionicons name="warning-outline" size={12} color="#F44336" />
+          <Ionicons name='warning-outline' size={12} color='#F44336' />
           <Text style={styles.rejectionText} numberOfLines={2}>
             {listing.rejectionReason}
           </Text>
@@ -373,95 +496,131 @@ const MyListings = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      
-      {/* Header */}
-      <SafeAreaView style={styles.header} edges={['top']}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Ionicons name="chevron-back" size={24} color={Colors.black} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Listings</Text>
-        <TouchableOpacity style={styles.createButton} onPress={handleCreateListing}>
-          <Ionicons name="add" size={24} color={Colors.primary} />
-        </TouchableOpacity>
-      </SafeAreaView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          <StatusBar style='dark' />
 
-      <View style={styles.content}>
-        {/* Search Bar */}
-        <View style={styles.searchSection}>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search-outline" size={20} color={Colors.grey} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search your listings..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor={Colors.grey}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color={Colors.grey} />
-              </TouchableOpacity>
-            )}
+          {/* Header */}
+          <SafeAreaView style={styles.header} edges={['top']}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <Ionicons name='chevron-back' size={24} color={Colors.black} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>My Listings</Text>
+            <TouchableOpacity
+              style={styles.createButton}
+              onPress={handleCreateListing}
+            >
+              <Ionicons name='add' size={24} color={Colors.primary} />
+            </TouchableOpacity>
+          </SafeAreaView>
+
+          <View style={styles.content}>
+            {/* Search Bar */}
+            <View style={styles.searchSection}>
+              <View style={styles.searchContainer}>
+                <Ionicons name='search-outline' size={20} color={Colors.grey} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder='Search your listings...'
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholderTextColor={Colors.grey}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <Ionicons
+                      name='close-circle'
+                      size={20}
+                      color={Colors.grey}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            {/* Filter Buttons */}
+            <View style={styles.filterSection}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.filterScroll}
+              >
+                {filterOptions.map(renderFilterButton)}
+              </ScrollView>
+            </View>
+
+            {/* Listings Grid */}
+            <TouchableOpacity
+              style={styles.listingsSection}
+              activeOpacity={1}
+              onPress={() => setShowContextMenu(null)}
+            >
+              {isLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size='large' color={Colors.primary} />
+                  <Text style={styles.loadingText}>
+                    Loading your listings...
+                  </Text>
+                </View>
+              ) : fetchError ? (
+                <View style={styles.emptyState}>
+                  <Ionicons
+                    name='alert-circle-outline'
+                    size={64}
+                    color='#F44336'
+                  />
+                  <Text style={styles.emptyTitle}>Failed to Load Listings</Text>
+                  <Text style={styles.emptySubtitle}>
+                    Please check your connection and try again
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.emptyButton}
+                    onPress={() => refetch()}
+                  >
+                    <Text style={styles.emptyButtonText}>Retry</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : filteredListings.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name='list-outline' size={64} color={Colors.grey} />
+                  <Text style={styles.emptyTitle}>No Listings Found</Text>
+                  <Text style={styles.emptySubtitle}>
+                    {searchQuery
+                      ? 'Try adjusting your search terms'
+                      : 'No listings match your current filter'}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.emptyButton}
+                    onPress={handleCreateListing}
+                  >
+                    <Text style={styles.emptyButtonText}>
+                      Create Your First Listing
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <FlatList
+                  data={filteredListings}
+                  renderItem={renderListing}
+                  keyExtractor={(item) => item.id}
+                  numColumns={2}
+                  columnWrapperStyle={styles.row}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.listingsContainer}
+                />
+              )}
+            </TouchableOpacity>
           </View>
-        </View>
 
-        {/* Filter Buttons */}
-        <View style={styles.filterSection}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-            {filterOptions.map(renderFilterButton)}
-          </ScrollView>
+          {/* Custom Alert Component */}
+          <AlertComponent />
         </View>
-
-        {/* Listings Grid */}
-        <TouchableOpacity 
-          style={styles.listingsSection}
-          activeOpacity={1}
-          onPress={() => setShowContextMenu(null)}
-        >
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-              <Text style={styles.loadingText}>Loading your listings...</Text>
-            </View>
-          ) : fetchError ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="alert-circle-outline" size={64} color="#F44336" />
-              <Text style={styles.emptyTitle}>Failed to Load Listings</Text>
-              <Text style={styles.emptySubtitle}>Please check your connection and try again</Text>
-              <TouchableOpacity style={styles.emptyButton} onPress={() => refetch()}>
-                <Text style={styles.emptyButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : filteredListings.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="list-outline" size={64} color={Colors.grey} />
-              <Text style={styles.emptyTitle}>No Listings Found</Text>
-              <Text style={styles.emptySubtitle}>
-                {searchQuery ? 'Try adjusting your search terms' : 'No listings match your current filter'}
-              </Text>
-              <TouchableOpacity style={styles.emptyButton} onPress={handleCreateListing}>
-                <Text style={styles.emptyButtonText}>Create Your First Listing</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <FlatList
-              data={filteredListings}
-              renderItem={renderListing}
-              keyExtractor={(item) => item.id}
-              numColumns={2}
-              columnWrapperStyle={styles.row}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listingsContainer}
-            />
-          )}
-        </TouchableOpacity>
-      </View>
-      
-      {/* Custom Alert Component */}
-      <AlertComponent />
-    </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 

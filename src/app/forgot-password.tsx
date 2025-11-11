@@ -7,13 +7,24 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
+
 const forgotPasswordSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: z.email('Please enter a valid email address'),
 });
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
@@ -60,83 +71,90 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          <StatusBar style="dark" />
 
-      {/* Header */}
-      <SafeAreaView style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color={Colors.black} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Forgot Password</Text>
-        <View style={styles.headerRight} />
-      </SafeAreaView>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.formSection}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="lock-closed-outline" size={64} color={Colors.primary} />
-          </View>
-
-          <Text style={styles.title}>Reset Your Password</Text>
-          <Text style={styles.description}>
-            Enter your email address and we&apos;ll send you a link to reset your password.
-          </Text>
-
-          <View style={styles.formContainer}>
-            {/* Email */}
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  label="Email"
-                  value={value}
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  error={!!errors.email}
-                  mode="outlined"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  style={styles.textInput}
-                  textColor={Colors.black}
-                  outlineColor={Colors.lightgrey}
-                  activeOutlineColor={Colors.lightgrey}
-                  theme={{
-                    colors: {
-                      primary: Colors.primary,
-                      placeholder: Colors.black,
-                      text: Colors.black,
-                      outline: Colors.lightgrey,
-                    },
-                  }}
-                  left={<TextInput.Icon icon="email" />}
-                />
-              )}
-            />
-            {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
-
-            {/* Submit Button */}
-            <Button
-              mode="contained"
-              onPress={handleSubmit(onSubmit)}
-              loading={isLoading}
-              disabled={isLoading}
-              style={styles.submitButton}
-              labelStyle={styles.buttonLabel}
-            >
-              Send Reset Link
-            </Button>
-
-            {/* Back to Sign In */}
-            <TouchableOpacity style={styles.backToSignIn} onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={16} color={Colors.primary} />
-              <Text style={styles.backToSignInText}>Back to Sign In</Text>
+          {/* Header */}
+          <SafeAreaView style={styles.header}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={24} color={Colors.black} />
             </TouchableOpacity>
-          </View>
+            <Text style={styles.headerTitle}>Forgot Password</Text>
+            <View style={styles.headerRight} />
+          </SafeAreaView>
+
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <View style={styles.formSection}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="lock-closed-outline" size={64} color={Colors.primary} />
+              </View>
+
+              <Text style={styles.title}>Reset Your Password</Text>
+              <Text style={styles.description}>
+                Enter your email address and we&apos;ll send you a link to reset your password.
+              </Text>
+
+              <View style={styles.formContainer}>
+                {/* Email */}
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      label="Email"
+                      value={value}
+                      onBlur={onBlur}
+                      onChangeText={onChange}
+                      error={!!errors.email}
+                      mode="outlined"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      style={styles.textInput}
+                      textColor={Colors.black}
+                      outlineColor={Colors.lightgrey}
+                      activeOutlineColor={Colors.lightgrey}
+                      theme={{
+                        colors: {
+                          primary: Colors.primary,
+                          placeholder: Colors.black,
+                          text: Colors.black,
+                          outline: Colors.lightgrey,
+                        },
+                      }}
+                      left={<TextInput.Icon icon="email" />}
+                    />
+                  )}
+                />
+                {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
+
+                {/* Submit Button */}
+                <Button
+                  mode="contained"
+                  onPress={handleSubmit(onSubmit)}
+                  loading={isLoading}
+                  disabled={isLoading}
+                  style={styles.submitButton}
+                  labelStyle={styles.buttonLabel}
+                >
+                  Send Reset Link
+                </Button>
+
+                {/* Back to Sign In */}
+                <TouchableOpacity style={styles.backToSignIn} onPress={() => router.back()}>
+                  <Ionicons name="arrow-back" size={16} color={Colors.primary} />
+                  <Text style={styles.backToSignInText}>Back to Sign In</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
         </View>
-      </ScrollView>
-    </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 

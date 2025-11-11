@@ -1,7 +1,7 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View, LayoutChangeEvent } from 'react-native';
 
 interface ListingCardProps {
     id: string;
@@ -16,10 +16,11 @@ interface ListingCardProps {
     viewMode?: 'grid' | 'list';
     onPress?: (id: string) => void;
     onFavoritePress?: (id: string) => void;
+    onLayout?: (event: LayoutChangeEvent) => void;
 }
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width - 48) / 2; // 2 cards per row with 16px padding on each side
+const cardWidth = (width - 48) / 2;
 
 const ListingCard: React.FC<ListingCardProps> = ({
     id,
@@ -34,6 +35,7 @@ const ListingCard: React.FC<ListingCardProps> = ({
     viewMode = 'grid',
     onPress,
     onFavoritePress,
+    onLayout
 }) => {
     const handlePress = () => {
         onPress?.(id);
