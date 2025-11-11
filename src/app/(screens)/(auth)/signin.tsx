@@ -1,13 +1,13 @@
 import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
 import { showErrorToast, showSuccessToast } from '@/utils/toast';
-import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, TouchableWithoutFeedback } from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
 import { z } from 'zod';
+import GoogleIcon from '@/components/ui/GoogleIcon';
 
 // Form validation schema
 const signInSchema = z.object({
@@ -81,7 +81,7 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                                     keyboardShouldPersistTaps="handled"
                                     keyboardDismissMode="on-drag"
                                 >
-                                    <Text style={styles.subtitle}>Sign in to continue</Text>
+                                    <Text style={styles.subtitle}>Sign in to your account</Text>
                                     
                                     <View style={styles.formContainer}>
                                         {/* Email */}
@@ -100,16 +100,17 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                                                     autoCapitalize="none"
                                                     style={styles.textInput}
                                                     textColor={Colors.black}
-                                                    outlineColor={Colors.primary}
-                                                    activeOutlineColor={Colors.primary}
+                                                    outlineColor={Colors.lightgrey}
+                                                    activeOutlineColor={Colors.lightgrey}
                                                     theme={{
                                                         colors: {
                                                             primary: Colors.primary,
                                                             placeholder: Colors.black,
                                                             text: Colors.black,
-                                                            outline: Colors.primary,
+                                                            outline: Colors.lightgrey,
                                                         }
                                                     }}
+                                                    left={<TextInput.Icon icon="email" />}
                                                 />
                                             )}
                                         />
@@ -130,14 +131,14 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                                                     secureTextEntry={!showPassword}
                                                     style={styles.textInput}
                                                     textColor={Colors.black}
-                                                    outlineColor={Colors.primary}
-                                                    activeOutlineColor={Colors.primary}
+                                                    outlineColor={Colors.lightgrey}
+                                                    activeOutlineColor={Colors.lightgrey}
                                                     theme={{
                                                         colors: {
                                                             primary: Colors.primary,
                                                             placeholder: Colors.black,
                                                             text: Colors.black,
-                                                            outline: Colors.primary,
+                                                            outline: Colors.lightgrey,
                                                         }
                                                     }}
                                                     right={
@@ -150,6 +151,10 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                                             )}
                                         />
                                         {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
+                                        
+                                        <TouchableOpacity onPress={() => console.log('Navigate to Forgot Password')} style={styles.forgotPasswordButton}>
+                                            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                                        </TouchableOpacity>
                                     </View>
                                     
                                     <Button
@@ -159,12 +164,22 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                                         labelStyle={styles.submitButtonText}
                                         loading={isLoading}
                                         disabled={isLoading}
+                                        icon="email-outline"
+                                        contentStyle={styles.submitButtonContent}
                                     >
                                         {isLoading ? 'Signing In...' : 'Sign In with Email'}
                                     </Button>
                                     
+                                    <View style={styles.dividerContainer}>
+                                        <View style={styles.dividerLine} />
+                                        <Text style={styles.dividerText}>or continue with</Text>
+                                        <View style={styles.dividerLine} />
+                                    </View>
+                                    
                                     <TouchableOpacity style={styles.authButton} onPress={() => {}}>
-                                        <Ionicons name="logo-google" size={24} color={Colors.white} />
+                                        <View style={styles.authButtonIconContainer}>
+                                            <GoogleIcon size={24} />
+                                        </View>
                                         <Text style={styles.authButtonText}>Sign In with Google</Text>
                                     </TouchableOpacity>
                                     
@@ -173,6 +188,16 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                                             Don&apos;t have an account? <Text style={styles.switchAuthLink}>Sign Up</Text>
                                         </Text>
                                     </TouchableOpacity>
+
+                                    <View style={styles.legalLinksContainer}>
+                                        <TouchableOpacity onPress={() => console.log('Navigate to Terms of Service')}>
+                                            <Text style={styles.legalLink}>Terms</Text>
+                                        </TouchableOpacity>
+                                        <Text style={styles.legalDivider}>|</Text>
+                                        <TouchableOpacity onPress={() => console.log('Navigate to Privacy Policy')}>
+                                            <Text style={styles.legalLink}>Privacy Policy</Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 </ScrollView>
                             </View>
                         </View>
@@ -253,7 +278,6 @@ const styles = StyleSheet.create({
     submitButton: {
         marginTop: 20,
         marginBottom: 8,
-        backgroundColor: Colors.primary,
         borderRadius: 12,
     },
     submitButtonText: {
@@ -262,16 +286,24 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         color: Colors.white,
     },
+    submitButtonContent: {
+        flexDirection: 'row-reverse',
+        justifyContent: 'center',
+        paddingLeft: 16,
+    },
     authButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'green',
         paddingVertical: 16,
         paddingHorizontal: 24,
         borderRadius: 12,
         marginBottom: 16, 
-        gap: 10,
+        position: 'relative',
+    },
+    authButtonIconContainer: {
+        position: 'absolute',
+        left: 16,
     },
     authButtonText: {
         color: Colors.white,
@@ -289,6 +321,49 @@ const styles = StyleSheet.create({
     switchAuthLink: {
         color: Colors.primary,
         fontWeight: '600',
+    },
+    forgotPasswordButton: {
+        alignSelf: 'flex-end',
+        marginTop: -5,
+        marginBottom: 10,
+    },
+    forgotPasswordText: {
+        color: Colors.primary,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    legalLinksContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 20,
+        paddingBottom: 10,
+    },
+    legalLink: {
+        fontSize: 12,
+        color: Colors.grey,
+        textDecorationLine: 'underline',
+    },
+    legalDivider: {
+        fontSize: 12,
+        color: Colors.grey,
+        marginHorizontal: 8,
+    },
+    dividerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 20,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: Colors.lightgrey,
+    },
+    dividerText: {
+        width: 130,
+        textAlign: 'center',
+        fontSize: 12,
+        color: Colors.grey,
     },
 });
 

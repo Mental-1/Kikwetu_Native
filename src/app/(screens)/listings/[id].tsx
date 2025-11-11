@@ -94,10 +94,9 @@ export default function ListingDetails() {
       showAlert({
         title: 'Share Unavailable',
         message: 'Listing details are not available for sharing.',
-        buttonText: 'OK',
+        buttons: [{ text: 'OK', color: '#F44336' }],
         icon: 'alert-circle-outline',
         iconColor: '#F44336',
-        buttonColor: '#F44336',
       });
       return;
     }
@@ -115,10 +114,9 @@ export default function ListingDetails() {
       showAlert({
         title: 'Share Failed',
         message: 'Unable to share this listing. Please try again.',
-        buttonText: 'OK',
+        buttons: [{ text: 'OK', color: '#F44336' }],
         icon: 'alert-circle-outline',
         iconColor: '#F44336',
-        buttonColor: '#F44336',
       });
     }
   }, [listing, showAlert]);
@@ -538,7 +536,7 @@ export default function ListingDetails() {
                 showAlert({
                   title: 'Unable to Open Directions',
                   message: error instanceof Error ? error.message : 'Please check your location permissions.',
-                  buttonText: 'OK',
+                  buttons: [{ text: 'OK', color: '#FF9800' }],
                   icon: 'alert-circle-outline',
                   iconColor: '#FF9800',
                 });

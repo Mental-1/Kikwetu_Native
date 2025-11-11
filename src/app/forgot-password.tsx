@@ -100,16 +100,17 @@ export default function ForgotPasswordScreen() {
                   autoCapitalize="none"
                   style={styles.textInput}
                   textColor={Colors.black}
-                  outlineColor={Colors.primary}
-                  activeOutlineColor={Colors.primary}
+                  outlineColor={Colors.lightgrey}
+                  activeOutlineColor={Colors.lightgrey}
                   theme={{
                     colors: {
                       primary: Colors.primary,
                       placeholder: Colors.black,
                       text: Colors.black,
-                      outline: Colors.primary,
+                      outline: Colors.lightgrey,
                     },
                   }}
+                  left={<TextInput.Icon icon="email" />}
                 />
               )}
             />
@@ -122,8 +123,6 @@ export default function ForgotPasswordScreen() {
               loading={isLoading}
               disabled={isLoading}
               style={styles.submitButton}
-              buttonColor={Colors.primary}
-              textColor={Colors.white}
               labelStyle={styles.buttonLabel}
             >
               Send Reset Link

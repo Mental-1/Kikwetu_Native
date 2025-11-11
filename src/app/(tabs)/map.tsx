@@ -1,4 +1,5 @@
 import MapViewComponent from '@/components/MapView';
+import ListingCard from '@/components/ListingCard';
 import { Colors } from '@/src/constants/constant';
 import { getLocationWithAddress, LocationData } from '@/utils/locationUtils';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,13 +8,16 @@ import { StatusBar } from 'expo-status-bar';
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { 
   ActivityIndicator, 
-  Alert, 
   StyleSheet, 
   Text, 
   TouchableOpacity, 
-  View 
+  View,
+  Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import BottomSheet, { BottomSheetFlashList, BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { FlashList } from '@shopify/flash-list';
 
 const MapLoading = () => (
   <View style={styles.loadingContainer}>
@@ -22,8 +26,20 @@ const MapLoading = () => (
   </View>
 );
 
+interface MockListing {
+  id: string;
+  title: string;
+  price: string;
+  coordinate: {
+    latitude: number;
+    longitude: number;
+  };
+  description: string;
+  category: string;
+}
+
 // Stable mockListings outside component to prevent recreation
-const mockListings = [
+const mockListings: MockListing[] = [
   {
     id: '1',
     title: 'iPhone 14 Pro',
@@ -83,10 +99,23 @@ const mockListings = [
 
 const MapScreenContent = () => {
   const router = useRouter();
-  const [, setUserLocation] = useState<LocationData | null>(null);
+  const [userLocation, setUserLocation] = useState<LocationData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasLoadedInitialLocation = useRef(false);
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ['25%', Dimensions.get('window').height - 80], []);
+  const [currentLocationText, setCurrentLocationText] = useState('Loading location...');
+
+  useEffect(() => {
+    if (userLocation?.city && userLocation?.country) {
+      setCurrentLocationText(`${userLocation.city}, ${userLocation.country}`);
+    } else if (userLocation?.city) {
+      setCurrentLocationText(userLocation.city);
+    } else {
+      setCurrentLocationText('Unknown location');
+    }
+  }, [userLocation]);
 
   const loadUserLocation = useCallback(async () => {
     try {
@@ -98,6 +127,7 @@ const MapScreenContent = () => {
       console.error('Error loading location:', error);
       const errorMessage = error instanceof Error ? error.message : 'Could not load your location';
       setError(errorMessage);
+      setCurrentLocationText('Location unavailable');
       console.log('Location load failed:', errorMessage);
     } finally {
       setLoading(false);
@@ -112,24 +142,10 @@ const MapScreenContent = () => {
   }, [loadUserLocation]);
 
   const handleMarkerPress = useCallback((marker: any) => {
-    Alert.alert(
-      marker.title,
-      `${marker.description}\n${marker.price}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'View Details', 
-          onPress: () => {
-            try {
-              router.push(`/(screens)/listings/${marker.id}` as any);
-            } catch (error) {
-              console.error('Navigation error:', error);
-              Alert.alert('Error', 'Could not navigate to listing details');
-            }
-          }
-        },
-      ]
-    );
+    // Instead of Alert, we could potentially show details in the bottom sheet
+    // For now, we'll just log and keep the bottom sheet for general listings
+    console.log('Marker pressed:', marker.title);
+    router.push(`/(screens)/listings/${marker.id}` as any);
   }, [router]);
 
   const handleBackPress = useCallback(() => {
@@ -148,6 +164,10 @@ const MapScreenContent = () => {
     loadUserLocation();
   }, [loadUserLocation]);
 
+  const handleOpenBottomSheet = useCallback(() => {
+    bottomSheetRef.current?.expand();
+  }, []);
+
   // Memoize markers array to prevent recreation on every render
   const markers = useMemo(() => 
     mockListings.map(listing => ({
@@ -156,7 +176,7 @@ const MapScreenContent = () => {
       title: listing.title,
       description: `${listing.description} • ${listing.price}`,
     })),
-    [] // mockListings is stable, so empty deps
+    []
   );
 
   return (
@@ -211,10 +231,11 @@ const MapScreenContent = () => {
       <TouchableOpacity 
         style={styles.listingsButton}
         activeOpacity={0.8}
+        onPress={handleOpenBottomSheet}
       >
         <Ionicons name="list" size={14} color={Colors.white} />
         <Text style={styles.listingsButtonText}>
-          {mockListings.length} {mockListings.length === 1 ? 'listing' : 'listings'}
+          Listings in: {currentLocationText}
         </Text>
       </TouchableOpacity>
 
@@ -239,6 +260,39 @@ const MapScreenContent = () => {
           <Ionicons name="layers" size={20} color={Colors.primary} />
         </TouchableOpacity>
       </View>
+
+      {/* Bottom Sheet for Listings */}
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={-1}
+        snapPoints={snapPoints}
+        enablePanDownToClose={true}
+        backgroundStyle={styles.bottomSheetBackground}
+        handleIndicatorStyle={styles.bottomSheetHandle}
+      >
+        <View style={styles.bottomSheetContent}>
+          <Text style={styles.bottomSheetTitle}>Listings in: {currentLocationText}</Text>
+          <BottomSheetFlashList
+            data={mockListings}
+            keyExtractor={(item: MockListing) => item.id}
+            renderItem={({ item }: { item: MockListing }) => (
+              <ListingCard
+                id={item.id}
+                title={item.title}
+                price={item.price}
+                condition="Used"
+                location="Nairobi"
+                image="https://via.placeholder.com/150"
+                description={item.description}
+                views={100}
+                onPress={(listingId) => router.push(`/(screens)/listings/${listingId}` as any)}
+              />
+            )}
+            estimatedItemSize={150}
+            contentContainerStyle={styles.bottomSheetListContainer}
+          />
+        </View>
+      </BottomSheet>
     </View>
   );
 };
@@ -323,7 +377,8 @@ const styles = StyleSheet.create({
   listingsButton: {
     position: 'absolute',
     bottom: 20,
-    left: 16,
+    left: '50%',
+    transform: [{ translateX: -100 }],
     backgroundColor: Colors.primary,
     borderRadius: 20,
     paddingHorizontal: 12,
@@ -367,12 +422,36 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
+  bottomSheetBackground: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+  },
+  bottomSheetHandle: {
+    backgroundColor: Colors.lightgrey,
+    width: 40,
+  },
+  bottomSheetContent: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  bottomSheetTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.black,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  bottomSheetListContainer: {
+    paddingBottom: 20,
+  },
 });
 
 const MapScreen = () => (
-  <Suspense fallback={<MapLoading />}>
-    <MapScreenContent />
-  </Suspense>
+  <GestureHandlerRootView style={{ flex: 1 }}>
+    <Suspense fallback={<MapLoading />}>
+      <MapScreenContent />
+    </Suspense>
+  </GestureHandlerRootView>
 );
 
 export default MapScreen;

@@ -211,13 +211,15 @@ const StoresScreen = () => {
             <Ionicons name="chevron-back" size={24} color={Colors.black} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>My Stores</Text>
-          <TouchableOpacity style={styles.addButton} onPress={handleCreateStore}>
-            <Ionicons name="add" size={24} color={Colors.black} />
-          </TouchableOpacity>
+          <View style={styles.placeholder} />
         </View>
       </SafeAreaView>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={stores.length === 0 && !loading && !error ? { flexGrow: 1 } : {}}
+      >
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary} />
@@ -283,7 +285,7 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 16,
   },
   backButton: {
@@ -293,11 +295,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: Colors.black,
-    flex: 1,
-    textAlign: 'center',
   },
-  addButton: {
-    padding: 8,
+  placeholder: {
+    width: 40, // (padding 8 * 2) + (icon size 24) = 40
   },
   content: {
     flex: 1,
@@ -342,9 +342,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   emptyContainer: {
-    paddingVertical: 60,
-    paddingHorizontal: 32,
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 32,
+    transform: [{ translateY: 50 }], // Adjust as needed for comfortable thumb reach
   },
   emptyIconContainer: {
     width: 120,

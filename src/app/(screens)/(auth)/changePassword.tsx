@@ -49,28 +49,28 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
   const handleChangePassword = async () => {
     // Validation
     if (!currentPassword.trim()) {
-      showAlert({ title: 'Error', message: 'Please enter your current password.' });
+      showAlert({ title: 'Error', message: 'Please enter your current password.', buttons: [{ text: 'OK' }] });
       return;
     }
 
     if (!newPassword.trim()) {
-      showAlert({ title: 'Error', message: 'Please enter a new password.' });
+      showAlert({ title: 'Error', message: 'Please enter a new password.', buttons: [{ text: 'OK' }] });
       return;
     }
 
     const passwordValidation = validatePassword(newPassword);
     if (!passwordValidation.isValid) {
-      showAlert({ title: 'Weak Password', message: passwordValidation.message });
+      showAlert({ title: 'Weak Password', message: passwordValidation.message, buttons: [{ text: 'OK' }] });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      showAlert({ title: 'Error', message: 'New password and confirmation do not match.' });
+      showAlert({ title: 'Error', message: 'New password and confirmation do not match.', buttons: [{ text: 'OK' }] });
       return;
     }
 
     if (currentPassword === newPassword) {
-      showAlert({ title: 'Error', message: 'New password must be different from your current password.' });
+      showAlert({ title: 'Error', message: 'New password must be different from your current password.', buttons: [{ text: 'OK' }] });
       return;
     }
 
@@ -84,16 +84,19 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
       showAlert({
         title: 'Password Changed',
         message: 'Your password has been successfully changed.',
-        onPress: () => {
-          setCurrentPassword('');
-          setNewPassword('');
-          setConfirmPassword('');
-          onClose();
-        },
+        buttons: [{
+          text: 'OK',
+          onPress: () => {
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+            onClose();
+          },
+        }],
       });
     } catch (error: any) {
       console.error('Error changing password:', error);
-      showAlert({ title: 'Error', message: error.message || 'Failed to change password. Please check your current password and try again.' });
+      showAlert({ title: 'Error', message: error.message || 'Failed to change password. Please check your current password and try again.', buttons: [{ text: 'OK' }] });
     } finally {
       setIsLoading(false);
     }

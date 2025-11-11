@@ -1,7 +1,7 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Modal, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Animated, Dimensions, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface AvatarDropdownProps {
   visible: boolean;
@@ -21,21 +21,18 @@ const AvatarDropdown: React.FC<AvatarDropdownProps> = ({
   userEmail,
 }) => {
   const screenWidth = Dimensions.get('window').width;
-  // Start from off-screen right (screenWidth means fully to the right of screen)
   const slideAnim = useRef(new Animated.Value(screenWidth)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
-      // Reset animation values when opening - start from off-screen right
       slideAnim.setValue(screenWidth);
       opacityAnim.setValue(0);
       
-      // Use requestAnimationFrame to ensure layout is measured before animating
       requestAnimationFrame(() => {
         Animated.parallel([
           Animated.timing(slideAnim, {
-            toValue: 0, // Animate to final position (translateX: 0 means no translation from right: 0)
+            toValue: 0,
             duration: 300,
             useNativeDriver: true,
           }),
@@ -49,7 +46,7 @@ const AvatarDropdown: React.FC<AvatarDropdownProps> = ({
     } else {
       Animated.parallel([
         Animated.timing(slideAnim, {
-          toValue: screenWidth, // Animate back off-screen right
+          toValue: screenWidth,
           duration: 250,
           useNativeDriver: true,
         }),
@@ -69,13 +66,9 @@ const AvatarDropdown: React.FC<AvatarDropdownProps> = ({
       animationType="none"
       onRequestClose={onClose}
     >
-      <TouchableOpacity 
-        style={styles.overlayContainer}
-        activeOpacity={1}
-        onPress={onClose}
-      >
+      <Pressable style={styles.overlayContainer} onPress={onClose}>
         <Animated.View style={[styles.overlay, { opacity: opacityAnim }]} />
-        <TouchableWithoutFeedback>
+        <Pressable>
           <Animated.View
             style={[
               styles.dropdown,
@@ -101,27 +94,27 @@ const AvatarDropdown: React.FC<AvatarDropdownProps> = ({
 
             {/* Menu Options */}
             <View style={styles.menuOptions}>
-              <TouchableOpacity style={styles.menuItem} onPress={onDashboard}>
+              <Pressable style={styles.menuItem} onPress={onDashboard}>
                 <View style={styles.menuIconContainer}>
                   <Ionicons name="grid-outline" size={20} color={Colors.primary} />
                 </View>
                 <Text style={styles.menuText}>Dashboard</Text>
                 <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
-              </TouchableOpacity>
+              </Pressable>
 
               <View style={styles.divider} />
 
-              <TouchableOpacity style={styles.menuItem} onPress={onSignOut}>
+              <Pressable style={styles.menuItem} onPress={onSignOut}>
                 <View style={styles.menuIconContainer}>
                   <Ionicons name="log-out-outline" size={20} color={Colors.red} />
                 </View>
                 <Text style={[styles.menuText, { color: Colors.red }]}>Sign Out</Text>
                 <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </Animated.View>
-        </TouchableWithoutFeedback>
-      </TouchableOpacity>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 };

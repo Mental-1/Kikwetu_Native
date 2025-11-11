@@ -90,13 +90,18 @@ const EditListing = () => {
     showAlert({
       title: 'Discard Changes?',
       message: 'You have unsaved changes. Are you sure you want to go back?',
-      buttonText: 'Discard',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Discard',
+          style: 'destructive',
+          onPress: () => {
+            router.back();
+          },
+        },
+      ],
       icon: 'warning-outline',
       iconColor: '#FF9800',
-      buttonColor: '#FF9800',
-      onPress: () => {
-        router.back();
-      }
     });
   };
 
@@ -190,14 +195,19 @@ const EditListing = () => {
     showAlert({
       title: 'Remove Image',
       message: 'Are you sure you want to remove this image?',
-      buttonText: 'Remove',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            setImages(prev => prev.filter(img => img.id !== imageId));
+            success('Success', 'Image removed successfully');
+          },
+        },
+      ],
       icon: 'trash-outline',
       iconColor: '#F44336',
-      buttonColor: '#F44336',
-      onPress: () => {
-        setImages(prev => prev.filter(img => img.id !== imageId));
-        success('Success', 'Image removed successfully');
-      }
     });
   };
 
@@ -252,18 +262,23 @@ const EditListing = () => {
     showAlert({
       title: 'Add Feature',
       message: 'Enter a feature for your listing',
-      buttonText: 'Add',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Add',
+          style: 'default',
+          onPress: () => {
+            const newFeature = 'New Feature'; // In real app, this would come from input
+            setFormData(prev => ({
+              ...prev,
+              features: [...prev.features, newFeature]
+            }));
+            success('Success', 'Feature added successfully');
+          },
+        },
+      ],
       icon: 'add-circle-outline',
       iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        const newFeature = 'New Feature'; // In real app, this would come from input
-        setFormData(prev => ({
-          ...prev,
-          features: [...prev.features, newFeature]
-        }));
-        success('Success', 'Feature added successfully');
-      }
     });
   };
 

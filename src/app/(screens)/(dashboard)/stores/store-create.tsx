@@ -1,3 +1,4 @@
+import { useAuth } from '@/contexts/authContext';
 import CustomAlert from '@/components/ui/CustomAlert';
 import { useCategories } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
@@ -6,10 +7,11 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   ScrollView,
   StyleSheet,
@@ -18,6 +20,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface StoreFormData {
@@ -32,6 +35,7 @@ interface StoreFormData {
 }
 
 const StoreCreate = () => {
+  const { user } = useAuth();
   const router = useRouter();
   const createStoreMutation = useCreateStore();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -39,11 +43,14 @@ const StoreCreate = () => {
 
   // Alert state
   const [showAlert, setShowAlert] = useState(false);
-  const [alertConfig, setAlertConfig] = useState({
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    message: string;
+    buttons: { text: string; onPress?: () => void; style?: 'default' | 'destructive' | 'cancel' }[];
+  }>({
     title: '',
     message: '',
-    buttonText: 'OK',
-    onPress: () => setShowAlert(false),
+    buttons: [],
   });
 
   const [formData, setFormData] = useState<StoreFormData>({
@@ -61,14 +68,35 @@ const StoreCreate = () => {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
-  // Helper function to show alerts
-  const showCustomAlert = (title: string, message: string, buttonText = 'OK', onPress?: () => void) => {
-    setAlertConfig({
-      title,
-      message,
-      buttonText,
-      onPress: onPress || (() => setShowAlert(false)),
-    });
+  const screenHeight = Dimensions.get('window').height;
+  const overlayOpacity = useSharedValue(0);
+  const pickerTranslateY = useSharedValue(screenHeight);
+
+  const overlayStyle = useAnimatedStyle(() => ({
+    opacity: overlayOpacity.value,
+  }));
+
+  const pickerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: pickerTranslateY.value }],
+  }));
+
+  useEffect(() => {
+    if (showCategoryPicker) {
+      overlayOpacity.value = withTiming(1, { duration: 300 });
+      pickerTranslateY.value = withTiming(0, { duration: 300 });
+    } else {
+      overlayOpacity.value = withDelay(100, withTiming(0, { duration: 300 }));
+      pickerTranslateY.value = withDelay(100, withTiming(screenHeight, { duration: 300 }));
+    }
+  }, [showCategoryPicker, overlayOpacity, pickerTranslateY, screenHeight]);
+
+
+  const showCustomAlert = (
+    title: string,
+    message: string,
+    buttons: { text: string; onPress?: () => void; style?: 'default' | 'destructive' | 'cancel' }[]
+  ) => {
+    setAlertConfig({ title, message, buttons });
     setShowAlert(true);
   };
 
@@ -77,11 +105,19 @@ const StoreCreate = () => {
       showCustomAlert(
         'Unsaved Changes',
         'You have unsaved changes. Are you sure you want to leave?',
-        'Stay',
-        () => setShowAlert(false)
+        [
+          {
+            text: 'Leave',
+            style: 'destructive',
+            onPress: () => router.back(),
+          },
+          {
+            text: 'Stay',
+            style: 'cancel',
+            onPress: () => setShowAlert(false),
+          },
+        ]
       );
-      // Note: In a real implementation, you'd show a custom dialog with Stay/Leave options
-      // For now, we'll just show the alert and let user decide
     } else {
       router.back();
     }
@@ -101,18 +137,31 @@ const StoreCreate = () => {
   };
 
   const handleCreate = async () => {
+    if (!user) {
+      showCustomAlert('Authentication Error', 'You must be logged in to create a store.', [
+        { text: 'OK', onPress: () => setShowAlert(false) },
+      ]);
+      return;
+    }
+
     if (!formData.name.trim()) {
-      showCustomAlert('Error', 'Store name is required');
+      showCustomAlert('Error', 'Store name is required', [
+        { text: 'OK', onPress: () => setShowAlert(false) },
+      ]);
       return;
     }
 
     if (!formData.description.trim()) {
-      showCustomAlert('Error', 'Store description is required');
+      showCustomAlert('Error', 'Store description is required', [
+        { text: 'OK', onPress: () => setShowAlert(false) },
+      ]);
       return;
     }
 
     if (!formData.categoryId) {
-      showCustomAlert('Error', 'Please select a category');
+      showCustomAlert('Error', 'Please select a category', [
+        { text: 'OK', onPress: () => setShowAlert(false) },
+      ]);
       return;
     }
 
@@ -135,19 +184,22 @@ const StoreCreate = () => {
         profile_image: profileImage || undefined,
       };
 
-      const result = await createStoreMutation.mutateAsync({ storeData, images });
+      const result = await createStoreMutation.mutateAsync({ storeData, images, owner_id: user.id });
       
       if (result.success) {
-        showCustomAlert('Success', 'Store created successfully!', 'OK', () => {
-          setShowAlert(false);
-          router.back();
-        });
+        showCustomAlert('Success', 'Store created successfully!', [
+          { text: 'OK', onPress: () => { setShowAlert(false); router.back(); } },
+        ]);
       } else {
-        showCustomAlert('Error', result.error || 'Failed to create store');
+        showCustomAlert('Error', result.error || 'Failed to create store', [
+          { text: 'OK', onPress: () => setShowAlert(false) },
+        ]);
       }
     } catch (error) {
       console.error('Create store error:', error);
-      showCustomAlert('Error', 'Failed to create store. Please try again.');
+      showCustomAlert('Error', 'Failed to create store. Please try again.', [
+        { text: 'OK', onPress: () => setShowAlert(false) },
+      ]);
     } finally {
       setSaving(false);
     }
@@ -158,7 +210,9 @@ const StoreCreate = () => {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        showCustomAlert('Permission Required', 'Permission to access camera roll is required!');
+        showCustomAlert('Permission Required', 'Permission to access camera roll is required!', [
+          { text: 'OK', onPress: () => setShowAlert(false) },
+        ]);
         return;
       }
 
@@ -177,7 +231,9 @@ const StoreCreate = () => {
         }
       }
     } catch {
-      showCustomAlert('Error', 'Failed to pick image. Please try again.');
+      showCustomAlert('Error', 'Failed to pick image. Please try again.', [
+        { text: 'OK', onPress: () => setShowAlert(false) },
+      ]);
     }
   };
 
@@ -186,7 +242,9 @@ const StoreCreate = () => {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        showCustomAlert('Permission Required', 'Permission to access camera is required!');
+        showCustomAlert('Permission Required', 'Permission to access camera is required!', [
+          { text: 'OK', onPress: () => setShowAlert(false) },
+        ]);
         return;
       }
 
@@ -204,7 +262,9 @@ const StoreCreate = () => {
         }
       }
     } catch {
-      showCustomAlert('Error', 'Failed to take photo. Please try again.');
+      showCustomAlert('Error', 'Failed to take photo. Please try again.', [
+        { text: 'OK', onPress: () => setShowAlert(false) },
+      ]);
     }
   };
 
@@ -422,8 +482,13 @@ const StoreCreate = () => {
   );
 
   const renderCategoryPicker = () => (
-    <View style={styles.categoryPickerOverlay}>
-      <View style={styles.categoryPicker}>
+    <Animated.View style={[styles.categoryPickerOverlay, overlayStyle]}>
+      <TouchableOpacity
+        style={StyleSheet.absoluteFill}
+        onPress={() => setShowCategoryPicker(false)}
+        activeOpacity={1}
+      />
+      <Animated.View style={[styles.categoryPicker, pickerStyle]}>
         <View style={styles.categoryPickerHeader}>
           <Text style={styles.categoryPickerTitle}>Select Category</Text>
           <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
@@ -456,8 +521,8 @@ const StoreCreate = () => {
             ))
           )}
         </ScrollView>
-      </View>
-    </View>
+      </Animated.View>
+    </Animated.View>
   );
 
   return (
@@ -501,8 +566,7 @@ const StoreCreate = () => {
         visible={showAlert}
         title={alertConfig.title}
         message={alertConfig.message}
-        buttonText={alertConfig.buttonText}
-        onPress={alertConfig.onPress}
+        buttons={alertConfig.buttons}
         icon="information-circle-outline"
         iconColor={Colors.primary}
       />
@@ -713,8 +777,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightgrey,
+    fontWeight: 'bold',
   },
   selectedCategoryItem: {
     backgroundColor: Colors.background,

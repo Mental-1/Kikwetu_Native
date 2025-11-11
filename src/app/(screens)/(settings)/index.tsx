@@ -54,13 +54,15 @@ const Settings = () => {
     showAlert({
       title: 'Open Source Licenses',
       message: 'Open source licenses will be displayed here',
-      buttonText: 'OK',
+      buttons: [{
+        text: 'OK',
+        color: Colors.primary,
+        onPress: () => {
+          success('Success', 'Open source licenses functionality will be added');
+        }
+      }],
       icon: 'document-text-outline',
       iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Open source licenses functionality will be added');
-      }
     });
   };
 
@@ -68,13 +70,15 @@ const Settings = () => {
     showAlert({
       title: 'Contact Support',
       message: 'Support contact options will be available here',
-      buttonText: 'OK',
+      buttons: [{
+        text: 'OK',
+        color: Colors.primary,
+        onPress: () => {
+          success('Success', 'Support contact functionality will be added');
+        }
+      }],
       icon: 'help-circle-outline',
       iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Support contact functionality will be added');
-      }
     });
   };
 
@@ -154,7 +158,7 @@ const Settings = () => {
       <StatusBar style="dark" />
       
       {/* Header */}
-      <SafeAreaView style={styles.header}>
+      <SafeAreaView style={styles.header} edges={['top']}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>

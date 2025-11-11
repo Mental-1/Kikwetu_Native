@@ -207,12 +207,11 @@ export async function getStoreById(storeId: string): Promise<Store | null> {
  */
 export async function createStore(
   storeData: CreateStoreData,
+  owner_id: string,
   images?: StoreImageData
 ): Promise<StoreResponse> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
+    if (!owner_id) {
       return {
         success: false,
         error: 'User not authenticated'
@@ -263,7 +262,7 @@ export async function createStore(
       ...storeData,
       ...imageUrls,
       slug,
-      owner_id: user.id,
+      owner_id: owner_id,
       is_active: storeData.is_active ?? true,
       follower_count: 0,
       total_products: 0,

@@ -22,8 +22,8 @@ export function useCreateStore() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ storeData, images }: { storeData: CreateStoreData; images?: StoreImageData }) =>
-      storesService.createStore(storeData, images),
+    mutationFn: ({ storeData, images, owner_id }: { storeData: CreateStoreData; images?: StoreImageData, owner_id: string }) =>
+      storesService.createStore(storeData, owner_id, images),
     onSuccess: () => {
       // Invalidate and refetch stores
       queryClient.invalidateQueries({ queryKey: ['stores'] });

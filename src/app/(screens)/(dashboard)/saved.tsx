@@ -155,17 +155,22 @@ const Saved = () => {
     showAlert({
       title: 'Remove from Saved',
       message: 'Are you sure you want to remove this listing from your saved items?',
-      buttonText: 'Remove',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await unsave.mutateAsync(listingId);
+            } catch {
+              // Error toast shown by mutation
+            }
+          },
+        },
+      ],
       icon: 'heart-dislike-outline',
       iconColor: '#F44336',
-      buttonColor: '#F44336',
-      onPress: async () => {
-        try {
-          await unsave.mutateAsync(listingId);
-        } catch {
-          // Error toast shown by mutation
-        }
-      }
     });
   }, [showAlert, unsave]);
 
@@ -173,17 +178,22 @@ const Saved = () => {
     showAlert({
       title: 'Clear All Saved Items',
       message: 'Are you sure you want to remove all saved listings? This action cannot be undone.',
-      buttonText: 'Clear All',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await clearAll.mutateAsync();
+            } catch {
+              // Error toast shown by mutation
+            }
+          },
+        },
+      ],
       icon: 'trash-outline',
       iconColor: '#F44336',
-      buttonColor: '#F44336',
-      onPress: async () => {
-        try {
-          await clearAll.mutateAsync();
-        } catch {
-          // Error toast shown by mutation
-        }
-      }
     });
   }, [showAlert, clearAll]);
 
@@ -204,10 +214,9 @@ const Saved = () => {
       showAlert({
         title: 'Share Failed',
         message: 'Unable to share this listing. Please try again.',
-        buttonText: 'OK',
+        buttons: [{ text: 'OK' }],
         icon: 'alert-circle-outline',
         iconColor: '#F44336',
-        buttonColor: '#F44336',
       });
     }
   }, [savedListings, showAlert]);
@@ -217,7 +226,7 @@ const Saved = () => {
     if (!listing) return;
 
     router.push({
-      pathname: '/messages',
+      pathname: '/conversations',
       params: {
         recipientId: listing.sellerId,
         listingId: listing.listing_id,

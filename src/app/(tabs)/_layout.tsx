@@ -4,7 +4,13 @@ import { Colors } from '@/src/constants/constant';
 
 export default function TabLayout() {
     return (
-        <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: Colors.primary }}>
+        <Tabs screenOptions={{ 
+            headerShown: false, 
+            tabBarActiveTintColor: Colors.primary,
+            tabBarStyle: {
+                height: 70,
+            },
+        }}>
             <Tabs.Screen
                 name="home"
                 options={{

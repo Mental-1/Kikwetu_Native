@@ -228,7 +228,7 @@ function ListingsContent() {
       <StatusBar style="dark" />
       
       {/* Header */}
-      <SafeAreaView style={styles.header}>
+      <SafeAreaView style={styles.header} edges={['top']}>
         <View style={styles.headerContent}>
           {/* Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>

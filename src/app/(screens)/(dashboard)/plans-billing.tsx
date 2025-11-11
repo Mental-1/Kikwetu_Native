@@ -100,13 +100,15 @@ const PlansBilling = () => {
       showAlert({
         title: 'Enterprise Plan',
         message: 'Contact our sales team for custom pricing and features.',
-        buttonText: 'Contact Sales',
+        buttons: [{
+          text: 'Contact Sales',
+          color: Colors.primary,
+          onPress: () => {
+            success('Success', 'Our sales team will contact you within 24 hours');
+          },
+        }],
         icon: 'business-outline',
         iconColor: Colors.primary,
-        buttonColor: Colors.primary,
-        onPress: () => {
-          success('Success', 'Our sales team will contact you within 24 hours');
-        }
       });
     } else if (plan?.id === 'free') {
       success('Free Plan', 'You are already on the free plan!');
@@ -114,23 +116,28 @@ const PlansBilling = () => {
       showAlert({
         title: 'Proceed to Payment',
         message: `You've selected the ${plan?.name} plan (${billingCycle}). Proceed to complete your payment?`,
-        buttonText: 'Continue',
+        buttons: [{
+          text: 'Cancel',
+          style: 'cancel',
+        }, {
+          text: 'Continue',
+          color: Colors.primary,
+          onPress: () => {
+            if (!plan) return;
+            router.push({
+              pathname: '/(screens)/(dashboard)/payment',
+              params: {
+                planId: plan.id,
+                planName: plan.name,
+                price: billingCycle === 'monthly' ? plan.price : plan.annualPrice,
+                period: billingCycle === 'monthly' ? 'month' : 'year',
+                billingCycle: billingCycle
+              }
+            });
+          },
+        }],
         icon: 'card-outline',
         iconColor: Colors.primary,
-        buttonColor: Colors.primary,
-        onPress: () => {
-          if (!plan) return;
-          router.push({
-            pathname: '/(screens)/(dashboard)/payment',
-            params: {
-              planId: plan.id,
-              planName: plan.name,
-              price: billingCycle === 'monthly' ? plan.price : plan.annualPrice,
-              period: billingCycle === 'monthly' ? 'month' : 'year',
-              billingCycle: billingCycle
-            }
-          });
-        }
       });
     }
   };
@@ -143,27 +150,31 @@ const PlansBilling = () => {
     showAlert({
       title: 'Cancel Subscription',
       message: `Are you sure you want to cancel your ${planName} subscription? You'll lose access to premium features at the end of your billing period.`,
-      buttonText: 'Cancel Subscription',
+      buttons: [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Cancel Subscription',
+          style: 'destructive',
+          onPress: () => {
+            cancelSubscriptionMutation.mutate(currentSubscription.id, {
+              onSuccess: () => {
+                success('Subscription Cancelled', 'Your subscription has been cancelled. You can reactivate it anytime.');
+              },
+              onError: (error: Error) => {
+                showAlert({
+                  title: 'Cancellation Failed',
+                  message: error.message || 'Failed to cancel subscription. Please try again.',
+                  buttons: [{ text: 'OK' }],
+                  icon: 'close-circle',
+                  iconColor: '#F44336',
+                });
+              }
+            });
+          },
+        },
+      ],
       icon: 'warning-outline',
       iconColor: '#F44336',
-      buttonColor: '#F44336',
-      onPress: () => {
-        cancelSubscriptionMutation.mutate(currentSubscription.id, {
-          onSuccess: () => {
-            success('Subscription Cancelled', 'Your subscription has been cancelled. You can reactivate it anytime.');
-          },
-          onError: (error: Error) => {
-            showAlert({
-              title: 'Cancellation Failed',
-              message: error.message || 'Failed to cancel subscription. Please try again.',
-              buttonText: 'OK',
-              icon: 'close-circle',
-              iconColor: '#F44336',
-              buttonColor: '#F44336',
-            });
-          }
-        });
-      }
     });
   };
 
@@ -173,10 +184,9 @@ const PlansBilling = () => {
     showAlert({
       title: 'Reactivate Subscription',
       message: `To reactivate your subscription, please select a new plan below.`,
-      buttonText: 'OK',
+      buttons: [{ text: 'OK', color: Colors.primary }],
       icon: 'refresh-outline',
       iconColor: Colors.primary,
-      buttonColor: Colors.primary,
     });
   };
 
@@ -184,13 +194,15 @@ const PlansBilling = () => {
     showAlert({
       title: 'View All Transactions',
       message: 'Full transaction history will be displayed here',
-      buttonText: 'OK',
+      buttons: [{
+        text: 'OK',
+        color: Colors.primary,
+        onPress: () => {
+          success('Success', 'Full transaction history will be implemented');
+        },
+      }],
       icon: 'list-outline',
       iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Full transaction history will be implemented');
-      }
     });
   };
 
@@ -200,22 +212,23 @@ const PlansBilling = () => {
       showAlert({
         title: 'Download Invoice',
         message: 'Opening invoice in your browser...',
-        buttonText: 'OK',
+        buttons: [{
+          text: 'OK',
+          color: Colors.primary,
+          onPress: () => {
+            success('Success', 'Invoice opened in browser');
+          },
+        }],
         icon: 'download-outline',
         iconColor: Colors.primary,
-        buttonColor: Colors.primary,
-        onPress: () => {
-          success('Success', 'Invoice opened in browser');
-        }
       });
     } else {
       showAlert({
         title: 'Invoice Not Available',
         message: 'Invoice generation is not yet available for this transaction.',
-        buttonText: 'OK',
+        buttons: [{ text: 'OK', color: Colors.grey }],
         icon: 'information-circle-outline',
         iconColor: Colors.grey,
-        buttonColor: Colors.grey,
       });
     }
   };

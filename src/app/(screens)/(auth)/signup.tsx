@@ -1,18 +1,16 @@
 import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
 import { showErrorToast, showSuccessToast } from '@/utils/toast';
-import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, TouchableWithoutFeedback } from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
 import { z } from 'zod';
+import GoogleIcon from '@/components/ui/GoogleIcon';
 
-// Form validation schema
 const signUpSchema = z.object({
     fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-    username: z.string().min(3, 'Username must be at least 3 characters').regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers and underscores'),
     email: z.string().email('Please enter a valid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
@@ -42,7 +40,6 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
         resolver: zodResolver(signUpSchema),
         defaultValues: {
             fullName: '',
-            username: '',
             email: '',
             password: '',
             confirmPassword: '',
@@ -53,7 +50,7 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
     const onSubmitSignUp = async (data: SignUpFormData) => {
         try {
             setIsLoading(true);
-            const { error } = await signUp(data.email, data.password, data.username, data.fullName, data.phoneNumber);
+            const { error } = await signUp(data.email, data.password, data.fullName, data.phoneNumber);
             
             if (error) {
                 showErrorToast(error.message || 'Failed to create account', 'Sign Up Error');
@@ -92,7 +89,6 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                                     contentContainerStyle={styles.authFormContent}
                                     showsVerticalScrollIndicator={false}
                                 >
-                                    <Text style={styles.welcomeText}>Join Kikwetu!</Text>
                                     <Text style={styles.subtitle}>Create your account</Text>
                                     
                                     <View style={styles.formContainer}>
@@ -110,50 +106,20 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                                                     mode="outlined"
                                                     style={styles.textInput}
                                                     textColor={Colors.black}
-                                                    outlineColor={Colors.primary}
-                                                    activeOutlineColor={Colors.primary}
+                                                    outlineColor={Colors.lightgrey}
+                                                    activeOutlineColor={Colors.lightgrey}
                                                     theme={{
                                                         colors: {
                                                             primary: Colors.primary,
                                                             placeholder: Colors.black,
                                                             text: Colors.black,
-                                                            outline: Colors.primary,
+                                                            outline: Colors.lightgrey,
                                                         }
                                                     }}
                                                 />
                                             )}
                                         />
                                         {errors.fullName && <Text style={styles.errorText}>{errors.fullName.message}</Text>}
-                                        
-                                        {/* Username */}
-                                        <Controller
-                                            control={control}
-                                            name="username"
-                                            render={({ field: { onChange, onBlur, value } }) => (
-                                                <TextInput
-                                                    label="Username"
-                                                    value={value}
-                                                    onBlur={onBlur}
-                                                    onChangeText={onChange}
-                                                    error={!!errors.username}
-                                                    mode="outlined"
-                                                    autoCapitalize="none"
-                                                    style={styles.textInput}
-                                                    textColor={Colors.black}
-                                                    outlineColor={Colors.primary}
-                                                    activeOutlineColor={Colors.primary}
-                                                    theme={{
-                                                        colors: {
-                                                            primary: Colors.primary,
-                                                            placeholder: Colors.black,
-                                                            text: Colors.black,
-                                                            outline: Colors.primary,
-                                                        }
-                                                    }}
-                                                />
-                                            )}
-                                        />
-                                        {errors.username && <Text style={styles.errorText}>{errors.username.message}</Text>}
                                         
                                         {/* Email */}
                                         <Controller
@@ -171,16 +137,17 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                                                     autoCapitalize="none"
                                                     style={styles.textInput}
                                                     textColor={Colors.black}
-                                                    outlineColor={Colors.primary}
-                                                    activeOutlineColor={Colors.primary}
+                                                    outlineColor={Colors.lightgrey}
+                                                    activeOutlineColor={Colors.lightgrey}
                                                     theme={{
                                                         colors: {
                                                             primary: Colors.primary,
                                                             placeholder: Colors.black,
                                                             text: Colors.black,
-                                                            outline: Colors.primary,
+                                                            outline: Colors.lightgrey,
                                                         }
                                                     }}
+                                                    left={<TextInput.Icon icon="email" />}
                                                 />
                                             )}
                                         />
@@ -201,14 +168,14 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                                                     keyboardType="phone-pad"
                                                     style={styles.textInput}
                                                     textColor={Colors.black}
-                                                    outlineColor={Colors.primary}
-                                                    activeOutlineColor={Colors.primary}
+                                                    outlineColor={Colors.lightgrey}
+                                                    activeOutlineColor={Colors.lightgrey}
                                                     theme={{
                                                         colors: {
                                                             primary: Colors.primary,
                                                             placeholder: Colors.black,
                                                             text: Colors.black,
-                                                            outline: Colors.primary,
+                                                            outline: Colors.lightgrey,
                                                         }
                                                     }}
                                                 />
@@ -231,14 +198,14 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                                                     secureTextEntry={!showPassword}
                                                     style={styles.textInput}
                                                     textColor={Colors.black}
-                                                    outlineColor={Colors.primary}
-                                                    activeOutlineColor={Colors.primary}
+                                                    outlineColor={Colors.lightgrey}
+                                                    activeOutlineColor={Colors.lightgrey}
                                                     theme={{
                                                         colors: {
                                                             primary: Colors.primary,
                                                             placeholder: Colors.black,
                                                             text: Colors.black,
-                                                            outline: Colors.primary,
+                                                            outline: Colors.lightgrey,
                                                         }
                                                     }}
                                                     right={
@@ -267,14 +234,14 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                                                     secureTextEntry={!showConfirmPassword}
                                                     style={styles.textInput}
                                                     textColor={Colors.black}
-                                                    outlineColor={Colors.primary}
-                                                    activeOutlineColor={Colors.primary}
+                                                    outlineColor={Colors.lightgrey}
+                                                    activeOutlineColor={Colors.lightgrey}
                                                     theme={{
                                                         colors: {
                                                             primary: Colors.primary,
                                                             placeholder: Colors.black,
                                                             text: Colors.black,
-                                                            outline: Colors.primary,
+                                                            outline: Colors.lightgrey,
                                                         }
                                                     }}
                                                     right={
@@ -296,11 +263,15 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                                         labelStyle={styles.submitButtonText}
                                         loading={isLoading}
                                         disabled={isLoading}
+                                        icon="email-outline"
+                                        contentStyle={styles.submitButtonContent}
                                     >
                                         {isLoading ? 'Creating Account...' : 'Create Account'}
                                     </Button>
                                     <TouchableOpacity style={styles.authButton} onPress={() => {}}>
-                                        <Ionicons name="logo-google" size={24} color={Colors.white} />
+                                        <View style={styles.authButtonIconContainer}>
+                                            <GoogleIcon size={24} />
+                                        </View>
                                         <Text style={styles.authButtonText}>Continue with Google</Text>
                                     </TouchableOpacity>
                                     
@@ -309,6 +280,16 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                                             Already have an account? <Text style={styles.switchAuthLink}>Sign In</Text>
                                         </Text>
                                     </TouchableOpacity>
+
+                                    <View style={styles.legalLinksContainer}>
+                                        <TouchableOpacity onPress={() => console.log('Navigate to Terms of Service')}>
+                                            <Text style={styles.legalLink}>Terms</Text>
+                                        </TouchableOpacity>
+                                        <Text style={styles.legalDivider}>|</Text>
+                                        <TouchableOpacity onPress={() => console.log('Navigate to Privacy Policy')}>
+                                            <Text style={styles.legalLink}>Privacy Policy</Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 </ScrollView>
                             </View>
                         </View>
@@ -396,12 +377,17 @@ const styles = StyleSheet.create({
         marginTop: 10,
         marginBottom: 8,
         borderRadius: 12,
-        backgroundColor: Colors.primary    },
+    },
     submitButtonText: {
         fontSize: 16,
         fontWeight: '600',
         paddingVertical: 8,
         color: Colors.white,
+    },
+    submitButtonContent: {
+        flexDirection: 'row-reverse',
+        justifyContent: 'center',
+        paddingLeft: 16,
     },
     switchAuthButton: {
         marginTop: 8,
@@ -419,12 +405,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: Colors.green,
         paddingVertical: 16,
         paddingHorizontal: 24,
         borderRadius: 12,
         marginBottom: 16, 
-        gap: 10,
+        position: 'relative',
+    },
+    authButtonIconContainer: {
+        position: 'absolute',
+        left: 16,
     },
     authButtonText: {
         color: Colors.white,
@@ -434,6 +423,23 @@ const styles = StyleSheet.create({
     divider: {
         marginTop: 5,
         marginBottom: 10,
+    },
+    legalLinksContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 20,
+        paddingBottom: 10,
+    },
+    legalLink: {
+        fontSize: 12,
+        color: Colors.grey,
+        textDecorationLine: 'underline',
+    },
+    legalDivider: {
+        fontSize: 12,
+        color: Colors.grey,
+        marginHorizontal: 8,
     },
 });
 

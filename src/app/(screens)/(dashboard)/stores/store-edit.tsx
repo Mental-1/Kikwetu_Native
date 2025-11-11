@@ -44,11 +44,14 @@ const StoreEdit = () => {
 
   // Alert state
   const [showAlert, setShowAlert] = useState(false);
-  const [alertConfig, setAlertConfig] = useState({
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    message: string;
+    buttons: { text: string; onPress?: () => void; style?: 'default' | 'destructive' | 'cancel' }[];
+  }>({
     title: '',
     message: '',
-    buttonText: 'OK',
-    onPress: () => setShowAlert(false),
+    buttons: [],
   });
 
   const [formData, setFormData] = useState<StoreFormData>({
@@ -68,13 +71,12 @@ const StoreEdit = () => {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
   // Helper function to show alerts
-  const showCustomAlert = (title: string, message: string, buttonText = 'OK', onPress?: () => void) => {
-    setAlertConfig({
-      title,
-      message,
-      buttonText,
-      onPress: onPress || (() => setShowAlert(false)),
-    });
+  const showCustomAlert = (
+    title: string,
+    message: string,
+    buttons: { text: string; onPress?: () => void; style?: 'default' | 'destructive' | 'cancel' }[]
+  ) => {
+    setAlertConfig({ title, message, buttons });
     setShowAlert(true);
   };
 
@@ -85,12 +87,12 @@ const StoreEdit = () => {
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      showCustomAlert('Error', 'Store name is required');
+      showCustomAlert('Error', 'Store name is required', [{ text: 'OK' }]);
       return;
     }
 
     if (!formData.description.trim()) {
-      showCustomAlert('Error', 'Store description is required');
+      showCustomAlert('Error', 'Store description is required', [{ text: 'OK' }]);
       return;
     }
 
@@ -120,16 +122,15 @@ const StoreEdit = () => {
       });
       
       if (result.success) {
-        showCustomAlert('Success', 'Store updated successfully!', 'OK', () => {
-          setShowAlert(false);
-          router.back();
-        });
+        showCustomAlert('Success', 'Store updated successfully!', [
+          { text: 'OK', onPress: () => { setShowAlert(false); router.back(); } },
+        ]);
       } else {
-        showCustomAlert('Error', result.error || 'Failed to update store');
+        showCustomAlert('Error', result.error || 'Failed to update store', [{ text: 'OK' }]);
       }
     } catch (error) {
       console.error('Update store error:', error);
-      showCustomAlert('Error', 'Failed to update store. Please try again.');
+      showCustomAlert('Error', 'Failed to update store. Please try again.', [{ text: 'OK' }]);
     } finally {
       setSaving(false);
     }
@@ -140,7 +141,7 @@ const StoreEdit = () => {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        showCustomAlert('Permission Required', 'Permission to access camera roll is required!');
+        showCustomAlert('Permission Required', 'Permission to access camera roll is required!', [{ text: 'OK' }]);
         return;
       }
 
@@ -159,7 +160,7 @@ const StoreEdit = () => {
         }
       }
     } catch {
-      showCustomAlert('Error', 'Failed to pick image. Please try again.');
+      showCustomAlert('Error', 'Failed to pick image. Please try again.', [{ text: 'OK' }]);
     }
   };
 
@@ -192,7 +193,7 @@ const StoreEdit = () => {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        showCustomAlert('Permission Required', 'Permission to access camera is required!');
+        showCustomAlert('Permission Required', 'Permission to access camera is required!', [{ text: 'OK' }]);
         return;
       }
 
@@ -210,7 +211,7 @@ const StoreEdit = () => {
         }
       }
     } catch {
-      showCustomAlert('Error', 'Failed to take photo. Please try again.');
+      showCustomAlert('Error', 'Failed to take photo. Please try again.', [{ text: 'OK' }]);
     }
   };
 
@@ -475,8 +476,7 @@ const StoreEdit = () => {
         visible={showAlert}
         title={alertConfig.title}
         message={alertConfig.message}
-        buttonText={alertConfig.buttonText}
-        onPress={alertConfig.onPress}
+        buttons={alertConfig.buttons}
         icon="information-circle-outline"
         iconColor={Colors.primary}
       />

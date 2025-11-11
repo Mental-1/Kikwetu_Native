@@ -84,13 +84,15 @@ const Transactions = () => {
     showAlert({
       title: 'Transaction Details',
       message: `${transaction.description}\n\nAmount: ${transaction.amount}\nDate: ${transaction.date}\nStatus: ${transaction.status}\nReference: ${transaction.reference}\nPayment Method: ${transaction.paymentMethod}`,
-      buttonText: 'OK',
+      buttons: [{
+        text: 'OK',
+        color: Colors.primary,
+        onPress: () => {
+          success('Success', 'Transaction details displayed');
+        },
+      }],
       icon: 'receipt-outline',
       iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: () => {
-        success('Success', 'Transaction details displayed');
-      }
     });
   };
 
@@ -106,17 +108,19 @@ const Transactions = () => {
     showAlert({
       title: 'Export Transactions',
       message: 'Choose export format',
-      buttonText: 'CSV',
+      buttons: [{
+        text: 'CSV',
+        color: Colors.primary,
+        onPress: async () => {
+          try {
+            await exportTransactions.mutateAsync('csv');
+          } catch {
+            // Error toast shown by mutation
+          }
+        },
+      }],
       icon: 'document-outline',
       iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: async () => {
-        try {
-          await exportTransactions.mutateAsync('csv');
-        } catch {
-          // Error toast shown by mutation
-        }
-      }
     });
   };
 

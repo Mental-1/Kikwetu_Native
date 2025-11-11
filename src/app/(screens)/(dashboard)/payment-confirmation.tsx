@@ -54,10 +54,9 @@ const PaymentConfirmation = () => {
     showAlert({
       title: 'Receipt',
       message: `Transaction ID: ${confirmationData.transactionId}\nAmount: ${confirmationData.amount}\nPlan: ${confirmationData.planName}\nPayment Method: ${confirmationData.paymentMethod}`,
-      buttonText: 'OK',
+      buttons: [{ text: 'OK', color: Colors.primary }],
       icon: 'receipt-outline',
       iconColor: Colors.primary,
-      buttonColor: Colors.primary,
     });
   };
 

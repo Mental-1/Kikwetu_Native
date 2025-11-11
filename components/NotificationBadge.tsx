@@ -1,7 +1,7 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState} from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 interface NotificationBadgeProps {
     onPress?: () => void;
@@ -45,14 +45,14 @@ const NotificationDropdown = ({
             animationType="fade"
             onRequestClose={onClose}
         >
-            <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1}>
+            <Pressable style={styles.modalBackdrop} onPress={onClose}>
                 <View style={styles.dropdownContainer}>
                     <View style={styles.dropdown}>
                 <View style={styles.dropdownHeader}>
                     <Text style={styles.dropdownTitle}>Notifications</Text>
-                    <TouchableOpacity onPress={onMarkAllAsRead} style={styles.markAllButton}>
+                    <Pressable onPress={onMarkAllAsRead} style={styles.markAllButton}>
                         <Text style={styles.markAllText}>Mark all as read</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
                 
                 <ScrollView style={styles.notificationsList} nestedScrollEnabled={true}>
@@ -82,18 +82,18 @@ const NotificationDropdown = ({
                 )}
                     </View>
                 </View>
-            </TouchableOpacity>
+            </Pressable>
         </Modal>
     );
 };
 
-const NotificationBadge = ({
+const NotificationBadge = React.memo(({
     notifications = [], 
     onPress, 
     onMarkAllAsRead 
 }: NotificationBadgeProps) => {
     const [showDropdown, setShowDropdown] = useState(false);
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+    const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
 
     const handlePress = () => {
         setShowDropdown(!showDropdown);
@@ -111,14 +111,16 @@ const NotificationBadge = ({
 
     return (
         <View style={styles.container}>
-            <TouchableOpacity 
-                style={styles.iconButton} 
+            <Pressable 
+                style={({ pressed }) => [
+                    styles.iconButton,
+                    pressed && styles.iconButtonPressed,
+                ]}
                 onPress={handlePress}
-                activeOpacity={1}
             >
                 <Ionicons name="notifications-outline" size={24} color={Colors.white} />
                 {unreadCount > 0 && <View style={styles.badge} />}
-            </TouchableOpacity>
+            </Pressable>
             
             <NotificationDropdown
                 visible={showDropdown}
@@ -128,7 +130,7 @@ const NotificationBadge = ({
             />
         </View>
     );
-};
+});
 const styles = StyleSheet.create({
     container: {
         position: 'relative',

@@ -71,17 +71,22 @@ const MyListings = () => {
     showAlert({
       title: 'Delete Listing',
       message: 'Are you sure you want to delete this listing? This action cannot be undone.',
-      buttonText: 'Delete',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteListing.mutateAsync(listingId);
+            } catch {
+              // Error toast shown by mutation
+            }
+          },
+        },
+      ],
       icon: 'trash-outline',
       iconColor: '#F44336',
-      buttonColor: '#F44336',
-      onPress: async () => {
-        try {
-          await deleteListing.mutateAsync(listingId);
-        } catch {
-          // Error toast shown by mutation
-        }
-      }
     });
   };
 
@@ -89,17 +94,22 @@ const MyListings = () => {
     showAlert({
       title: 'Mark as Sold',
       message: 'This listing will be marked as sold and moved to your sold listings.',
-      buttonText: 'Mark as Sold',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Mark as Sold',
+          style: 'default',
+          onPress: async () => {
+            try {
+              await updateStatus.mutateAsync({ id: listingId, status: 'sold' });
+            } catch {
+              // Error toast shown by mutation
+            }
+          },
+        },
+      ],
       icon: 'checkmark-circle-outline',
       iconColor: '#4CAF50',
-      buttonColor: '#4CAF50',
-      onPress: async () => {
-        try {
-          await updateStatus.mutateAsync({ id: listingId, status: 'sold' });
-        } catch {
-          // Error toast shown by mutation
-        }
-      }
     });
   };
 
@@ -107,17 +117,22 @@ const MyListings = () => {
     showAlert({
       title: 'Request Re-review',
       message: 'Your listing will be submitted for re-review. Please ensure all issues have been addressed.',
-      buttonText: 'Submit',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Submit',
+          style: 'default',
+          onPress: async () => {
+            try {
+              await updateStatus.mutateAsync({ id: listingId, status: 'pending' });
+            } catch {
+              // Error toast shown by mutation
+            }
+          },
+        },
+      ],
       icon: 'refresh-outline',
       iconColor: Colors.primary,
-      buttonColor: Colors.primary,
-      onPress: async () => {
-        try {
-          await updateStatus.mutateAsync({ id: listingId, status: 'pending' });
-        } catch {
-          // Error toast shown by mutation
-        }
-      }
     });
   };
 
@@ -125,17 +140,22 @@ const MyListings = () => {
     showAlert({
       title: 'Renew Listing',
       message: 'Your listing will be renewed and made active again. This will extend the listing duration.',
-      buttonText: 'Renew Now',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Renew Now',
+          style: 'default',
+          onPress: async () => {
+            try {
+              await updateStatus.mutateAsync({ id: listingId, status: 'active' });
+            } catch {
+              // Error toast shown by mutation
+            }
+          },
+        },
+      ],
       icon: 'refresh-circle-outline',
       iconColor: '#4CAF50',
-      buttonColor: '#4CAF50',
-      onPress: async () => {
-        try {
-          await updateStatus.mutateAsync({ id: listingId, status: 'active' });
-        } catch {
-          // Error toast shown by mutation
-        }
-      }
     });
   };
 
@@ -357,7 +377,7 @@ const MyListings = () => {
       <StatusBar style="dark" />
       
       {/* Header */}
-      <SafeAreaView style={styles.header}>
+      <SafeAreaView style={styles.header} edges={['top']}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>

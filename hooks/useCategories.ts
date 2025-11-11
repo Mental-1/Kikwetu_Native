@@ -52,22 +52,8 @@ export const useCategories = () => {
     return useQuery({
         queryKey: ["categories"],
         queryFn: fetchCategories,
-        staleTime: 1000 * 60 * 60 * 24, // 24 hours - categories rarely change
-        gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days
-        retry: 2, // Reduce retries
-        retryDelay: 1000, // Fixed delay
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false, // Disable auto-refetch
-        refetchOnMount: false, // Use cached data if available
-    });
-};
-
-export const useSubcategories = () => {
-    return useQuery({
-        queryKey: ["subcategories"],
-        queryFn: fetchSubcategories,
-        staleTime: 1000 * 60 * 60 * 24, // 24 hours
-        gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days
+        staleTime: 1000 * 60 * 60 * 24,
+        gcTime: 1000 * 60 * 60 * 24 * 7,
         retry: 2,
         retryDelay: 1000,
         refetchOnWindowFocus: false,
@@ -76,7 +62,20 @@ export const useSubcategories = () => {
     });
 };
 
-// Derived hooks for filtered data
+export const useSubcategories = () => {
+    return useQuery({
+        queryKey: ["subcategories"],
+        queryFn: fetchSubcategories,
+        staleTime: 1000 * 60 * 60 * 24,
+        gcTime: 1000 * 60 * 60 * 24 * 7,
+        retry: 2,
+        retryDelay: 1000,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        refetchOnMount: false,
+    });
+};
+
 export const useSubcategoriesByCategory = (categoryId: number | null) => {
     const {
         data: allSubcategories,
@@ -98,7 +97,6 @@ export const useSubcategoriesByCategory = (categoryId: number | null) => {
     };
 };
 
-// Get specific category by ID
 export const useCategory = (categoryId: number | null) => {
     const { data: categories, isLoading, error, ...rest } = useCategories();
 
@@ -115,7 +113,6 @@ export const useCategory = (categoryId: number | null) => {
     };
 };
 
-// Get specific subcategory by ID
 export const useSubcategory = (subcategoryId: number | null) => {
     const { data: subcategories, isLoading, error, ...rest } = useSubcategories();
 
@@ -132,7 +129,6 @@ export const useSubcategory = (subcategoryId: number | null) => {
     };
 };
 
-// Utility hooks for cache management
 export const useCategoryMutations = () => {
     const queryClient = useQueryClient();
 

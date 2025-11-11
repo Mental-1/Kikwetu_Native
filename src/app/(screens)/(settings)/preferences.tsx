@@ -157,36 +157,39 @@ const Preferences = () => {
     showAlert({
       title: 'Reset Preferences',
       message: 'Are you sure you want to reset all preferences to default values?',
-      buttonText: 'Reset',
+      buttons: [{
+        text: 'Reset',
+        style: 'destructive',
+        color: '#FF9800',
+        onPress: async () => {
+          try {
+            setPushNotifications(true);
+            setEmailNotifications(false);
+            setMarketingEmails(false);
+            setPriceAlerts(true);
+            setMessageNotifications(true);
+            setDarkMode(false);
+            setAutoSave(true);
+            setLocationServices(true);
+            setAnalytics(true);
+            setSelectedLanguage('English');
+            setSelectedCurrency('KES');
+            setSelectedRegion('Kenya');
+            
+            await updatePreferences({
+              theme: 'light',
+              language: 'English',
+              currency: 'KES',
+            });
+            
+            success('Success', 'All preferences have been reset to defaults');
+          } catch (err) {
+            error('Error', 'Failed to reset preferences. Please try again.');
+          }
+        },
+      }],
       icon: 'refresh-outline',
       iconColor: '#FF9800',
-      buttonColor: '#FF9800',
-      onPress: async () => {
-        try {
-          setPushNotifications(true);
-          setEmailNotifications(false);
-          setMarketingEmails(false);
-          setPriceAlerts(true);
-          setMessageNotifications(true);
-          setDarkMode(false);
-          setAutoSave(true);
-          setLocationServices(true);
-          setAnalytics(true);
-          setSelectedLanguage('English');
-          setSelectedCurrency('KES');
-          setSelectedRegion('Kenya');
-          
-          await updatePreferences({
-            theme: 'light',
-            language: 'English',
-            currency: 'KES',
-          });
-          
-          success('Success', 'All preferences have been reset to defaults');
-        } catch (err) {
-          error('Error', 'Failed to reset preferences. Please try again.');
-        }
-      }
     });
   }, [showAlert, updatePreferences, success, error]);
 
@@ -368,7 +371,7 @@ const Preferences = () => {
       <StatusBar style="dark" />
       
       {/* Header */}
-      <SafeAreaView style={styles.header}>
+      <SafeAreaView style={styles.header} edges={['top']}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>

@@ -2,14 +2,19 @@ import CustomAlert from '@/components/ui/CustomAlert';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 
+interface AlertButton {
+  text: string;
+  onPress?: () => void;
+  style?: 'default' | 'destructive' | 'cancel';
+  color?: string;
+}
+
 interface AlertOptions {
   title: string;
   message?: string;
-  buttonText?: string;
+  buttons?: AlertButton[];
   icon?: string;
   iconColor?: string;
-  buttonColor?: string;
-  onPress?: () => void;
   autoDismiss?: number;
 }
 
@@ -24,12 +29,15 @@ export const useCustomAlert = (): AlertHook => {
   const [options, setOptions] = useState<AlertOptions>({
     title: '',
     message: '',
-    buttonText: 'OK',
+    buttons: [{ text: 'OK' }],
   });
   const autoDismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showAlert = (alertOptions: AlertOptions) => {
-    setOptions(alertOptions);
+    setOptions({
+      ...alertOptions,
+      buttons: alertOptions.buttons || [{ text: 'OK', onPress: () => hideAlert() }],
+    });
     setVisible(true);
     
     // Clear any existing timeout
@@ -62,21 +70,22 @@ export const useCustomAlert = (): AlertHook => {
     };
   }, []);
 
-  const handlePress = React.useCallback(() => {
-    options.onPress?.();
+  const handlePress = React.useCallback((onPress?: () => void) => {
+    onPress?.();
     hideAlert();
-  }, [options.onPress]);
+  }, []);
 
-  const AlertComponent = React.useMemo(() => () => (
+  const AlertComponent: React.FC = React.useCallback(() => (
     <CustomAlert
       visible={visible}
       title={options.title}
       message={options.message}
-      buttonText={options.buttonText}
-      onPress={handlePress}
+      buttons={options.buttons?.map(btn => ({
+        ...btn,
+        onPress: () => handlePress(btn.onPress),
+      })) || [{ text: 'OK', onPress: () => handlePress() }]}
       icon={options.icon as keyof typeof Ionicons.glyphMap}
       iconColor={options.iconColor}
-      buttonColor={options.buttonColor}
     />
   ), [visible, options, handlePress]);
 
@@ -87,7 +96,6 @@ export const useCustomAlert = (): AlertHook => {
   };
 };
 
-// Convenience functions for common alerts
 export const createAlertHelpers = (showAlert: (options: AlertOptions) => void) => ({
   success: (title: string, message?: string) => 
     showAlert({
@@ -95,7 +103,7 @@ export const createAlertHelpers = (showAlert: (options: AlertOptions) => void) =
       message,
       icon: 'checkmark-circle',
       iconColor: '#4CAF50',
-      buttonColor: '#4CAF50',
+      buttons: [{ text: 'OK', color: '#4CAF50' }],
       autoDismiss: 1500,
     }),
   
@@ -105,7 +113,7 @@ export const createAlertHelpers = (showAlert: (options: AlertOptions) => void) =
       message,
       icon: 'alert-circle',
       iconColor: '#F44336',
-      buttonColor: '#F44336',
+      buttons: [{ text: 'OK', color: '#F44336' }],
     }),
   
   warning: (title: string, message?: string) => 
@@ -114,7 +122,7 @@ export const createAlertHelpers = (showAlert: (options: AlertOptions) => void) =
       message,
       icon: 'warning',
       iconColor: '#FF9800',
-      buttonColor: '#FF9800',
+      buttons: [{ text: 'OK', color: '#FF9800' }],
     }),
   
   info: (title: string, message?: string) => 
@@ -123,7 +131,7 @@ export const createAlertHelpers = (showAlert: (options: AlertOptions) => void) =
       message,
       icon: 'information-circle',
       iconColor: '#2196F3',
-      buttonColor: '#2196F3',
+      buttons: [{ text: 'OK', color: '#2196F3' }],
     }),
   
   copy: (message?: string) => 
@@ -132,7 +140,7 @@ export const createAlertHelpers = (showAlert: (options: AlertOptions) => void) =
       message: message || 'Text has been copied to clipboard',
       icon: 'copy',
       iconColor: '#4CAF50',
-      buttonColor: '#4CAF50',
+      buttons: [{ text: 'OK', color: '#4CAF50' }],
     }),
   
   locationSuccess: (message?: string) => 
@@ -141,7 +149,7 @@ export const createAlertHelpers = (showAlert: (options: AlertOptions) => void) =
       message: message || 'Your location has been automatically detected and filled in.',
       icon: 'checkmark-circle',
       iconColor: '#4CAF50',
-      buttonColor: '#4CAF50',
-      autoDismiss: 2000, // Auto-dismiss after 2 seconds
+      buttons: [{ text: 'OK', color: '#4CAF50' }],
+      autoDismiss: 2000, 
     }),
 });

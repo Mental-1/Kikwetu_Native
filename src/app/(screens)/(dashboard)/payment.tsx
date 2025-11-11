@@ -106,10 +106,9 @@ const Payment = () => {
           showAlert({
             title: 'Phone Number Required',
             message: 'Please enter your M-Pesa phone number',
-            buttonText: 'OK',
+            buttons: [{ text: 'OK' }],
             icon: 'alert-circle-outline',
             iconColor: '#FF9800',
-            buttonColor: Colors.primary,
           });
           setIsProcessing(false);
           return;
@@ -128,15 +127,17 @@ const Payment = () => {
         showAlert({
           title: 'Payment Initiated',
           message: result.message || 'Please check your phone and enter your M-Pesa PIN to complete the payment.',
-          buttonText: 'OK',
+          buttons: [{
+            text: 'OK',
+            color: '#4CAF50',
+            onPress: () => {
+              if (!result.transactionId) {
+                router.back();
+              }
+            }
+          }],
           icon: 'checkmark-circle',
           iconColor: '#4CAF50',
-          buttonColor: '#4CAF50',
-          onPress: () => {
-            if (!result.transactionId) {
-              router.back();
-            }
-          }
         });
       } else if (selectedPaymentMethod === 'paystack') {
         // Paystack Payment
@@ -156,29 +157,33 @@ const Payment = () => {
           showAlert({
             title: 'Redirecting to Paystack',
             message: 'Complete your payment on the Paystack page that just opened.',
-            buttonText: 'OK',
+            buttons: [{
+              text: 'OK',
+              color: Colors.primary,
+              onPress: () => {
+                if (!result.transactionId) {
+                  router.back();
+                }
+              }
+            }],
             icon: 'card-outline',
             iconColor: Colors.primary,
-            buttonColor: Colors.primary,
-            onPress: () => {
-              if (!result.transactionId) {
-                router.back();
-              }
-            }
           });
         }
       } else {
         showAlert({
           title: 'Payment Successful!',
           message: `Your ${selectedPlan.name} plan has been activated successfully. You will be charged ${selectedPlan.price}/${selectedPlan.period}.`,
-          buttonText: 'Continue',
+          buttons: [{
+            text: 'Continue',
+            color: '#4CAF50',
+            onPress: () => {
+              success('Success', 'Welcome to your new plan!');
+              router.back();
+            }
+          }],
           icon: 'checkmark-circle',
           iconColor: '#4CAF50',
-          buttonColor: '#4CAF50',
-          onPress: () => {
-            success('Success', 'Welcome to your new plan!');
-            router.back();
-          }
         });
       }
     } catch (error: any) {

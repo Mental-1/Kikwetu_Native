@@ -6,30 +6,42 @@ import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'rea
 
 const { width } = Dimensions.get('window');
 
+interface AlertButton {
+  text: string;
+  onPress?: () => void;
+  style?: 'default' | 'destructive' | 'cancel';
+  color?: string;
+}
+
 interface CustomAlertProps {
   visible: boolean;
   title: string;
   message?: string;
-  buttonText?: string;
-  onPress?: () => void;
+  buttons?: AlertButton[];
   icon?: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
-  buttonColor?: string;
 }
 
 const CustomAlert = React.memo(({
   visible,
   title,
   message,
-  buttonText = 'OK',
-  onPress,
+  buttons = [{ text: 'OK' }],
   icon,
   iconColor = Colors.primary,
-  buttonColor = '#007AFF',
 }: CustomAlertProps) => {
-  const handlePress = React.useCallback(() => {
+  const handleButtonPress = React.useCallback((onPress?: () => void) => {
     onPress?.();
-  }, [onPress]);
+  }, []);
+
+  const handleRequestClose = React.useCallback(() => {
+    const cancelButton = buttons.find(btn => btn.style === 'cancel');
+    if (cancelButton && cancelButton.onPress) {
+      cancelButton.onPress();
+    } else if (buttons.length > 0 && buttons[0].onPress) {
+      buttons[0].onPress();
+    }
+  }, [buttons]);
 
   return (
     <Modal
@@ -37,7 +49,7 @@ const CustomAlert = React.memo(({
       transparent
       animationType="fade"
       statusBarTranslucent
-      onRequestClose={handlePress}
+      onRequestClose={handleRequestClose}
       hardwareAccelerated
     >
       <View style={styles.overlay}>
@@ -67,16 +79,26 @@ const CustomAlert = React.memo(({
             {/* Separator Line */}
             {message ? <View style={styles.separator} /> : null}
             
-            {/* Button */}
-            <TouchableOpacity 
-              style={styles.button} 
-              onPress={handlePress}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.buttonText, { color: buttonColor }]}>
-                {buttonText}
-              </Text>
-            </TouchableOpacity>
+            {/* Buttons */}
+            <View style={styles.buttonsContainer}>
+              {buttons.map((button, index) => (
+                <React.Fragment key={index}>
+                  <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => handleButtonPress(button.onPress)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.buttonText,
+                      { color: button.color || (button.style === 'destructive' ? Colors.red : '#007AFF') }
+                    ]}>
+                      {button.text}
+                    </Text>
+                  </TouchableOpacity>
+                  {index < buttons.length - 1 && <View style={styles.buttonSeparator} />}
+                </React.Fragment>
+              ))}
+            </View>
           </View>
         </View>
       </View>
@@ -141,6 +163,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
+  },
+  buttonsContainer: {
+    width: '100%',
+    flexDirection: 'column',
+  },
+  buttonSeparator: {
+    height: 0.5,
+    backgroundColor: '#E5E5E7',
+    width: '100%',
   },
   buttonText: {
     fontSize: 17,

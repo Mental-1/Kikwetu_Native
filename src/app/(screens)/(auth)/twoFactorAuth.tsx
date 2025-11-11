@@ -55,13 +55,12 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
       setSecretKey(data.totp.secret);
       setQrCodeUrl(data.totp.qr_code);
       
-    } catch (err: any) {
-      console.error('Error generating secret key:', err);
-      error('Error', err.message || 'Failed to generate 2FA setup. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+          } catch (err: any) {
+            console.error('Error generating secret key:', err);
+            showAlert({ title: 'Error', message: err.message || 'Failed to generate 2FA setup. Please try again.', buttons: [{ text: 'OK' }] });
+          } finally {
+            setIsLoading(false);
+          }  };
 
   useEffect(() => {
     if (visible && !profile?.mfa_enabled && !secretKey) {
@@ -72,7 +71,7 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
 
   const handleSetup2FA = () => {
     if (!secretKey) {
-      error('Error', 'Please wait for the setup to complete.');
+      showAlert({ title: 'Error', message: 'Please wait for the setup to complete.', buttons: [{ text: 'OK' }] });
       return;
     }
     setStep('verify');
@@ -80,12 +79,12 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
 
   const handleVerifyAndEnable = async () => {
     if (!verificationCode.trim()) {
-      error('Error', 'Please enter the verification code from your authenticator app.');
+      showAlert({ title: 'Error', message: 'Please enter the verification code from your authenticator app.', buttons: [{ text: 'OK' }] });
       return;
     }
 
     if (verificationCode.length !== 6) {
-      error('Error', 'Verification code must be 6 digits.');
+      showAlert({ title: 'Error', message: 'Verification code must be 6 digits.', buttons: [{ text: 'OK' }] });
       return;
     }
 
@@ -128,18 +127,20 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
       // Enable 2FA in the profile
       await toggleMFAMutation.mutateAsync(true);
       
-      success(
-        '2FA Enabled',
-        'Two-factor authentication has been successfully enabled for your account.'
-      );
-      setVerificationCode('');
-      setSecretKey('');
-      setQrCodeUrl('');
-      setStep('setup');
-      onClose();
+      showAlert({
+        title: '2FA Enabled',
+        message: 'Two-factor authentication has been successfully enabled for your account.',
+        buttons: [{ text: 'OK', onPress: () => {
+          setVerificationCode('');
+          setSecretKey('');
+          setQrCodeUrl('');
+          setStep('setup');
+          onClose();
+        } }],
+      });
     } catch (err: any) {
       console.error('Error enabling 2FA:', err);
-      error('Error', err.message || 'Failed to enable 2FA. Please check your code and try again.');
+      showAlert({ title: 'Error', message: err.message || 'Failed to enable 2FA. Please check your code and try again.', buttons: [{ text: 'OK' }] });
     } finally {
       setIsLoading(false);
     }
@@ -149,30 +150,34 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
     showAlert({
       title: 'Disable 2FA',
       message: 'Are you sure you want to disable two-factor authentication? This will make your account less secure.',
-      buttonText: 'Disable',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Disable',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              const { data: factors } = await supabase.auth.mfa.listFactors();
+              const totpFactors = factors?.totp ?? [];
+              for (const factor of totpFactors) {
+                if (factor.status === 'verified') {
+                  await supabase.auth.mfa.unenroll({ factorId: factor.id });
+                }
+              }
+              await toggleMFAMutation.mutateAsync(false);
+              showAlert({ title: '2FA Disabled', message: 'Two-factor authentication has been disabled.', buttons: [{ text: 'OK', onPress: onClose }] });
+            } catch (err: any) {
+              console.error('Error disabling 2FA:', err);
+              showAlert({ title: 'Error', message: 'Failed to disable 2FA. Please try again.', buttons: [{ text: 'OK' }] });
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ],
       icon: 'warning',
       iconColor: '#FF9800',
-      buttonColor: '#FF9800',
-      onPress: async () => {
-        try {
-          setIsLoading(true);
-          const { data: factors } = await supabase.auth.mfa.listFactors();
-          const totpFactors = factors?.totp ?? [];
-          for (const factor of totpFactors) {
-            if (factor.status === 'verified') {
-              await supabase.auth.mfa.unenroll({ factorId: factor.id });
-            }
-          }
-          await toggleMFAMutation.mutateAsync(false);
-          success('2FA Disabled', 'Two-factor authentication has been disabled.');
-          onClose();
-        } catch (err: any) {
-          console.error('Error disabling 2FA:', err);
-          error('Error', 'Failed to disable 2FA. Please try again.');
-        } finally {
-          setIsLoading(false);
-        }
-      }
     });
   };
 
