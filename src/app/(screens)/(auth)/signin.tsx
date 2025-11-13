@@ -4,10 +4,11 @@ import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, TouchableWithoutFeedback, KeyboardAvoidingView, Platform } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, TouchableWithoutFeedback, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
 import { z } from 'zod';
 import GoogleIcon from '@/components/ui/GoogleIcon';
+import { useRouter } from 'expo-router';
 
 interface SignInProps {
     visible: boolean;
@@ -33,6 +34,7 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
+  const router = useRouter();
 
   const {
     control,
@@ -117,15 +119,18 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                             textColor={Colors.black}
                             outlineColor={Colors.lightgrey}
                             activeOutlineColor={Colors.lightgrey}
+                            autoComplete="off"
+                            textContentType="oneTimeCode"
                             theme={{
+                              roundness: 12,
                               colors: {
                                 primary: Colors.primary,
                                 placeholder: Colors.black,
                                 text: Colors.black,
                                 outline: Colors.lightgrey,
+                                background: Colors.white,
                               },
                             }}
-                            left={<TextInput.Icon icon="email" />}
                           />
                         )}
                       />
@@ -148,12 +153,16 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                             textColor={Colors.black}
                             outlineColor={Colors.lightgrey}
                             activeOutlineColor={Colors.lightgrey}
+                            autoComplete="off"
+                            textContentType="oneTimeCode"
                             theme={{
+                              roundness: 12,
                               colors: {
                                 primary: Colors.primary,
                                 placeholder: Colors.black,
                                 text: Colors.black,
                                 outline: Colors.lightgrey,
+                                background: Colors.white,
                               },
                             }}
                             right={
@@ -167,18 +176,21 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
                       />
                       {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
 
-                      <TouchableOpacity
-                        onPress={() => console.log('Navigate to Forgot Password')}
+                      <Pressable
+                        onPress={() => {
+                          router.push('/forgot-password');
+                          onClose();
+                        }}
                         style={styles.forgotPasswordButton}
                       >
                         <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     </View>
 
                     <Button
                       mode="contained"
                       onPress={handleSubmit(onSubmitSignIn)}
-                      style={styles.submitButton}
+                      style={[styles.submitButton, { backgroundColor: Colors.primary }]}
                       labelStyle={styles.submitButtonText}
                       loading={isLoading}
                       disabled={isLoading}
@@ -306,9 +318,9 @@ const styles = StyleSheet.create({
         color: Colors.white,
     },
     submitButtonContent: {
-        flexDirection: 'row-reverse',
+        flexDirection: 'row',
         justifyContent: 'center',
-        paddingLeft: 16,
+        paddingRight: 16,
     },
     authButton: {
         flexDirection: 'row',
@@ -317,15 +329,17 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         paddingHorizontal: 24,
         borderRadius: 12,
-        marginBottom: 16, 
+        marginBottom: 16,
         position: 'relative',
+        borderWidth: 1,
+        borderColor: Colors.black,
     },
     authButtonIconContainer: {
         position: 'absolute',
         left: 16,
     },
     authButtonText: {
-        color: Colors.white,
+        color: Colors.black,
         fontSize: 16,
         fontWeight: '600',
     },

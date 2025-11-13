@@ -1,9 +1,9 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
+import { FlashList } from '@shopify/flash-list';
 import {
   Dimensions,
-  FlatList,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -140,7 +140,7 @@ export default function WriteReviewModal({
                     <Text style={styles.emptySubtitle}>Be the first one to leave one...</Text>
                   </View>
                 ) : (
-                  <FlatList
+                  <FlashList
                     data={reviews}
                     renderItem={renderReviewItem}
                     keyExtractor={(item) => item.id}

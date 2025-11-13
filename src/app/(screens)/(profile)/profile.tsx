@@ -8,7 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Profile = () => {
@@ -200,13 +201,12 @@ const Profile = () => {
                   <Text style={styles.emptyStateText}>No listings found.</Text>
                 </View>
               ) : (
-                <FlatList
+                <FlashList
                   key="listings-grid"
                   data={userListings?.pages.flatMap(page => page.data) || []}
                   renderItem={renderListingItem}
                   keyExtractor={(item) => item.id}
                   numColumns={2}
-                  columnWrapperStyle={styles.gridRow}
                   contentContainerStyle={styles.gridContainer}
                   showsVerticalScrollIndicator={false}
                 />
@@ -225,7 +225,7 @@ const Profile = () => {
                   <Text style={styles.emptyStateText}>No stores found.</Text>
                 </View>
               ) : (
-                <FlatList
+                <FlashList
                   key="stores-list"
                   data={userStores || []}
                   renderItem={renderStoreItem}

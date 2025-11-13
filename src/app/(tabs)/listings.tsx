@@ -1,3 +1,4 @@
+import { FlashList } from "@shopify/flash-list";
 import FiltersModal from '@/components/FiltersModal';
 import ListingCard from '@/components/ListingCard';
 import ListingsSkeleton from '@/components/ListingsSkeleton';
@@ -13,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -43,15 +44,15 @@ function ListingsContent() {
   const [isGridView, setIsGridView] = useState(true);
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
-  const [showSort, setShowSort] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<any>(null);
+  const [showSort, setShowSort] = useState(false);
   
   const [favoriteStates, setFavoriteStates] = useState<Record<string, boolean>>({});
   const saveListingMutation = useSaveListing();
   const unsaveListingMutation = useUnsaveListing();
   
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<React.ComponentRef<typeof FlashList<ListingItem>>>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -309,7 +310,7 @@ function ListingsContent() {
             </Text>
           </View>
         ) : isGridView ? (
-          <FlatList
+          <FlashList
             ref={flatListRef}
             key="grid"
             data={listings}
@@ -336,7 +337,7 @@ function ListingsContent() {
             }
           />
         ) : (
-          <FlatList
+          <FlashList
             ref={flatListRef}
             key="list"
             data={listings}

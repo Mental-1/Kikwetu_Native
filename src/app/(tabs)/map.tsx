@@ -141,7 +141,7 @@ const MapScreenContent = () => {
   const hasLoadedInitialLocation = useRef(false);
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [dimensions, setDimensions] = useState({ width: INITIAL_SCREEN_HEIGHT, height: INITIAL_SCREEN_HEIGHT });
-  const [itemHeight, setItemHeight] = useState(150); // Dynamic height for FlashList
+  const [itemHeight, setItemHeight] = useState(150);
 
   const snapPoints = useMemo(() => ['25%', dimensions.height - 80], [dimensions.height]);
 
@@ -214,7 +214,7 @@ const MapScreenContent = () => {
   const handleMarkerPress = useCallback((marker: { id: string; title: string }) => {
     if (!marker?.id) return;
     console.log('Marker pressed:', marker.title);
-    router.push(`/listings/${marker.id}`); // Clean path, no 'as any'
+    router.push(`/listings/${marker.id}`);
   }, [router]);
 
   const handleBackPress = useCallback(() => {
@@ -239,7 +239,6 @@ const MapScreenContent = () => {
     }
   }, []);
 
-  // Memoize markers array to prevent recreation on every render
   const markers = useMemo(() => 
     mockListings.map(listing => ({
       id: listing.id,
@@ -293,20 +292,20 @@ const MapScreenContent = () => {
         <SafeAreaView style={styles.floatingHeader} edges={['top']} pointerEvents="box-none">
           <View style={styles.headerContent}>
             <TouchableOpacity 
-              style={styles.backButton} 
+              style={[styles.backButton, { backgroundColor: 'rgba(255, 255, 255, 0.7)' }]} 
               onPress={handleBackPress}
               activeOpacity={0.7}
               accessibilityLabel="Go back to previous screen"
               accessibilityRole="button"
               accessibilityHint="Navigates back"
             >
-              <Ionicons name="chevron-back" size={24} color={Colors.white} />
+              <Ionicons name="chevron-back" size={24} color={Colors.black} />
             </TouchableOpacity>
             <Text style={styles.headerTitle} accessibilityLabel="Map View Screen">
               Map View
             </Text>
             <TouchableOpacity 
-              style={[styles.refreshButton, loading && styles.refreshButtonDisabled]} 
+              style={[styles.refreshButton, { backgroundColor: 'rgba(255, 255, 255, 0.7)' }, loading && styles.refreshButtonDisabled]} 
               onPress={handleRefresh}
               disabled={loading}
               activeOpacity={0.7}
@@ -317,7 +316,7 @@ const MapScreenContent = () => {
               <Ionicons 
                 name="refresh" 
                 size={24} 
-                color={loading ? Colors.grey : Colors.white} 
+                color={loading ? Colors.grey : Colors.black} 
               />
             </TouchableOpacity>
           </View>
@@ -469,7 +468,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   backButton: {
     padding: 8,

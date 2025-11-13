@@ -7,7 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlashList, FlashListProps } from '@shopify/flash-list';
+import { ActivityIndicator, Dimensions, Image, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SavedListing {
@@ -473,23 +474,13 @@ const Saved = () => {
               </TouchableOpacity>
             </View>
           ) : (
-            <FlatList
+            <FlashList
               data={filteredListings}
               renderItem={renderListing}
               keyExtractor={(item) => item.id}
               numColumns={2}
-              columnWrapperStyle={styles.row}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.listingsContainer}
-              removeClippedSubviews={true}
-              maxToRenderPerBatch={10}
-              windowSize={10}
-              initialNumToRender={6}
-              getItemLayout={(data, index) => ({
-                length: 200,
-                offset: 200 * Math.floor(index / 2),
-                index,
-              })}
             />
           )}
         </TouchableOpacity>

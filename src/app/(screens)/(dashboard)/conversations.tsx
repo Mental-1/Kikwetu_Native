@@ -8,8 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useState } from 'react';
+import { FlashList, FlashListProps } from '@shopify/flash-list';
 import {
-  FlatList,
   Image,
   StyleSheet,
   Text,
@@ -209,16 +209,12 @@ const Conversations = () => {
     }
 
     return (
-      <FlatList
+      <FlashList
         data={sortedConversations}
         keyExtractor={(item) => item.id}
         renderItem={renderConversationItem}
         style={styles.conversationsList}
         showsVerticalScrollIndicator={false}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        windowSize={10}
-        initialNumToRender={10}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
@@ -226,11 +222,6 @@ const Conversations = () => {
             colors={[Colors.primary]}
           />
         }
-        getItemLayout={(data, index) => ({
-          length: 80,
-          offset: 80 * index,
-          index,
-        })}
       />
     );
   };

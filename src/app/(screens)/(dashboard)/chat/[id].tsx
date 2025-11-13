@@ -7,8 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { FlashList, FlashListProps } from '@shopify/flash-list';
 import {
-  FlatList,
   Image,
   KeyboardAvoidingView,
   GestureResponderEvent,
@@ -121,7 +121,7 @@ const Chat = () => {
   const [showMessageContextMenu, setShowMessageContextMenu] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<React.ComponentRef<typeof FlashList<Message>>>(null);
   
   const { showAlert, AlertComponent } = useCustomAlert();
   const { copy: showCopyAlert, error: showErrorAlert } = createAlertHelpers(showAlert);
@@ -334,7 +334,7 @@ const Chat = () => {
           {renderHeader()}
 
           {/* Messages List */}
-          <FlatList
+          <FlashList
             ref={flatListRef}
             data={messages}
             keyExtractor={(item) => item.id}

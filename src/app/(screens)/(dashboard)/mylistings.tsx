@@ -11,10 +11,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useMemo, useState } from 'react';
+import { FlashList, FlashListProps } from '@shopify/flash-list';
 import {
   ActivityIndicator,
   Dimensions,
-  FlatList,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -603,12 +603,11 @@ const MyListings = () => {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <FlatList
+                <FlashList
                   data={filteredListings}
                   renderItem={renderListing}
                   keyExtractor={(item) => item.id}
                   numColumns={2}
-                  columnWrapperStyle={styles.row}
                   showsVerticalScrollIndicator={false}
                   contentContainerStyle={styles.listingsContainer}
                 />

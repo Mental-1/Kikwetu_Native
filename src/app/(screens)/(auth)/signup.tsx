@@ -115,12 +115,16 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                             textColor={Colors.black}
                             outlineColor={Colors.lightgrey}
                             activeOutlineColor={Colors.lightgrey}
+                            autoComplete="off"
+                            textContentType="oneTimeCode"
                             theme={{
+                              roundness: 12,
                               colors: {
                                 primary: Colors.primary,
                                 placeholder: Colors.black,
                                 text: Colors.black,
                                 outline: Colors.lightgrey,
+                                background: Colors.white,
                               },
                             }}
                           />
@@ -148,15 +152,18 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                             textColor={Colors.black}
                             outlineColor={Colors.lightgrey}
                             activeOutlineColor={Colors.lightgrey}
+                            autoComplete="off"
+                            textContentType="oneTimeCode"
                             theme={{
+                              roundness: 12,
                               colors: {
                                 primary: Colors.primary,
                                 placeholder: Colors.black,
                                 text: Colors.black,
                                 outline: Colors.lightgrey,
+                                background: Colors.white,
                               },
                             }}
-                            left={<TextInput.Icon icon="email" />}
                           />
                         )}
                       />
@@ -179,12 +186,16 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                             textColor={Colors.black}
                             outlineColor={Colors.lightgrey}
                             activeOutlineColor={Colors.lightgrey}
+                            autoComplete="off"
+                            textContentType="oneTimeCode"
                             theme={{
+                              roundness: 12,
                               colors: {
                                 primary: Colors.primary,
                                 placeholder: Colors.black,
                                 text: Colors.black,
                                 outline: Colors.lightgrey,
+                                background: Colors.white,
                               },
                             }}
                           />
@@ -211,12 +222,16 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                             textColor={Colors.black}
                             outlineColor={Colors.lightgrey}
                             activeOutlineColor={Colors.lightgrey}
+                            autoComplete="off"
+                            textContentType="oneTimeCode"
                             theme={{
+                              roundness: 12,
                               colors: {
                                 primary: Colors.primary,
                                 placeholder: Colors.black,
                                 text: Colors.black,
                                 outline: Colors.lightgrey,
+                                background: Colors.white,
                               },
                             }}
                             right={
@@ -249,12 +264,16 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                             textColor={Colors.black}
                             outlineColor={Colors.lightgrey}
                             activeOutlineColor={Colors.lightgrey}
+                            autoComplete="off"
+                            textContentType="oneTimeCode"
                             theme={{
+                              roundness: 12,
                               colors: {
                                 primary: Colors.primary,
                                 placeholder: Colors.black,
                                 text: Colors.black,
                                 outline: Colors.lightgrey,
+                                background: Colors.white,
                               },
                             }}
                             right={
@@ -274,7 +293,7 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                     <Button
                       mode="contained"
                       onPress={handleSubmit(onSubmitSignUp)}
-                      style={styles.submitButton}
+                      style={[styles.submitButton, { backgroundColor: Colors.primary }]}
                       labelStyle={styles.submitButtonText}
                       loading={isLoading}
                       disabled={isLoading}
@@ -283,6 +302,13 @@ const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
                     >
                       {isLoading ? 'Creating Account...' : 'Create Account'}
                     </Button>
+
+                    <View style={styles.dividerContainer}>
+                      <View style={styles.dividerLine} />
+                      <Text style={styles.dividerText}>or continue with</Text>
+                      <View style={styles.dividerLine} />
+                    </View>
+
                     <TouchableOpacity style={styles.authButton} onPress={() => {}}>
                       <View style={styles.authButtonIconContainer}>
                         <GoogleIcon size={24} />
@@ -403,9 +429,9 @@ const styles = StyleSheet.create({
         color: Colors.white,
     },
     submitButtonContent: {
-        flexDirection: 'row-reverse',
+        flexDirection: 'row',
         justifyContent: 'center',
-        paddingLeft: 16,
+        paddingRight: 16,
     },
     switchAuthButton: {
         marginTop: 8,
@@ -426,15 +452,17 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         paddingHorizontal: 24,
         borderRadius: 12,
-        marginBottom: 16, 
+        marginBottom: 16,
         position: 'relative',
+        borderWidth: 1,
+        borderColor: Colors.black,
     },
     authButtonIconContainer: {
         position: 'absolute',
         left: 16,
     },
     authButtonText: {
-        color: Colors.white,
+        color: Colors.black,
         fontSize: 16,
         fontWeight: '600',
     },
@@ -458,6 +486,22 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: Colors.grey,
         marginHorizontal: 8,
+    },
+    dividerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 20,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: Colors.lightgrey,
+    },
+    dividerText: {
+        width: 130,
+        textAlign: 'center',
+        fontSize: 12,
+        color: Colors.grey,
     },
 });
 
