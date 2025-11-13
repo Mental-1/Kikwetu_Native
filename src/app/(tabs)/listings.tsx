@@ -3,7 +3,7 @@ import FiltersModal from '@/components/FiltersModal';
 import ListingCard from '@/components/ListingCard';
 import ListingsSkeleton from '@/components/ListingsSkeleton';
 import SortModal from '@/components/SortModal';
-import { useCategories, useCategoryMutations, useSubcategories } from '@/hooks/useCategories';
+import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
 import { useListings } from '@/src/hooks/useListings';
@@ -24,7 +24,7 @@ import {
   TextInput,
   View
 } from 'react-native';
-import Animated, { runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -63,10 +63,9 @@ function ListingsContent() {
   const flatListRef = useRef<React.ComponentRef<typeof FlashList<ListingItem>>>(null);
   const filtersModalRef = useRef<BottomSheetModal>(null);
   const scrollY = useSharedValue(0);
-  const [showBackToTop, setShowBackToTop] = useState(false);
+  const showBackToTop = useSharedValue(0);
 
   const { data: categories, isLoading: categoriesLoading } = useCategories();
-  const { isLoading: subcategoriesLoading } = useSubcategories();
   const { prefetchSubcategories } = useCategoryMutations();
   
   const { 
@@ -91,26 +90,29 @@ function ListingsContent() {
     }
   }, [error]);
 
+  useEffect(() => {
+    // Prefetch subcategories as soon as categories are available
+    if (categories && categories.length > 0) {
+        prefetchSubcategories();
+    }
+  }, [categories, prefetchSubcategories]);
+
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollY.value = event.contentOffset.y;
-      runOnJS(setShowBackToTop)(event.contentOffset.y > height * 1.5);
+      showBackToTop.value = event.contentOffset.y > height * 1.5 ? 1 : 0;
     },
   });
 
   const backToTopStyle = useAnimatedStyle(() => {
     return {
-      opacity: withTiming(showBackToTop ? 1 : 0),
-      transform: [{ scale: withTiming(showBackToTop ? 1 : 0.5) }],
+      opacity: withTiming(showBackToTop.value),
+      transform: [{ scale: withTiming(showBackToTop.value) }],
     };
   });
 
   const scrollToTop = useCallback(() => {
-    if (!flatListRef.current) {
-      console.warn('flatListRef.current is null');
-      return;
-    }
-    flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   }, []);
 
   const handleBackPress = () => {
@@ -356,7 +358,7 @@ function ListingsContent() {
         ref={filtersModalRef}
         onApplyFilters={handleApplyFilters}
         categories={categories || []}
-        isLoading={categoriesLoading || subcategoriesLoading}
+        isLoading={categoriesLoading}
       />
 
       {/* Sort Modal */}
@@ -368,20 +370,18 @@ function ListingsContent() {
       />
 
       {/* Back to Top Button */}
-      {showBackToTop && (
-        <Animated.View 
-          style={[styles.backToTopButton, backToTopStyle]}
-          pointerEvents="box-none"
+      <Animated.View 
+        style={[styles.backToTopButton, backToTopStyle]}
+        pointerEvents={showBackToTop.value > 0 ? 'auto' : 'none'}
+      >
+        <Pressable 
+          style={({ pressed }) => [styles.backToTopTouchable, { opacity: pressed ? 0.8 : 1 }]} 
+          onPress={scrollToTop}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Pressable 
-            style={({ pressed }) => [styles.backToTopTouchable, { opacity: pressed ? 0.8 : 1 }]} 
-            onPress={scrollToTop}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="chevron-up" size={24} color={Colors.white} />
-          </Pressable>
-        </Animated.View>
-      )}
+          <Ionicons name="chevron-up" size={24} color={Colors.white} />
+        </Pressable>
+      </Animated.View>
     </View>
   );
 }
