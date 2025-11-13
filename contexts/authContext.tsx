@@ -37,17 +37,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeAuth = async () => {
       try {
         const authenticated = await isAuthenticated();
-        
         if (authenticated) {
           const userData = await getUserData();
           if (userData && isMounted) {
             setUser(userData);
-          } else {
+          } else if (isMounted) {
             await refreshUserSession();
           }
+        } else if (isMounted) {
+          setUser(null);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        if (isMounted) {
+          setUser(null);
+        }
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -96,6 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.success && response.data) {
         setUser(response.data.user);
+        await setUserData(response.data.user);
         return { error: null };
       }
 
@@ -130,6 +135,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.success && response.data) {
         setUser(response.data.user);
+        await setUserData(response.data.user);
         return { error: null };
       }
 

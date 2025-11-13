@@ -1,20 +1,27 @@
 import { useSubcategoriesByCategory } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo, useState, useRef } from 'react';
-import { Dimensions, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import React, { forwardRef, useMemo, useState, useCallback } from 'react';
+import {
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { runOnJS } from 'react-native-worklets';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, runOnJS } from 'react-native-reanimated';
 
-const { height, width } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - 80;
 
 type Category = { id: number; name: string; emoji?: string };
 
 interface FiltersModalProps {
-  visible: boolean;
-  onClose: () => void;
   onApplyFilters: (filters: FilterOptions) => void;
   categories: Category[];
   isLoading: boolean;
@@ -31,13 +38,10 @@ interface FilterOptions {
   distance: number;
 }
 
-const FiltersModal: React.FC<FiltersModalProps> = ({
-  visible,
-  onClose,
-  onApplyFilters,
-  categories,
-  isLoading,
-}) => {
+const FiltersModal = forwardRef<BottomSheetModal, FiltersModalProps>((
+  { onApplyFilters, categories, isLoading },
+  ref
+) => {
   const [filters, setFilters] = useState<FilterOptions>({
     priceRange: { min: 0, max: 1000000 },
     condition: [],
@@ -50,8 +54,6 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
     min: '0',
     max: '1000000',
   });
-
-  const sliderWidth = useRef(0);
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [showAllCategories, setShowAllCategories] = useState(false);
@@ -112,7 +114,6 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
       priceRange: { min: lo, max: hi },
     };
     onApplyFilters(updatedFilters);
-    onClose();
   };
 
   const handleReset = () => {
@@ -134,17 +135,18 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
   const translateX = useSharedValue((filters.distance / 100) * SLIDER_WIDTH);
   const context = useSharedValue({ x: 0 });
 
-  const gesture = Gesture.Pan()
+  const panGesture = Gesture.Pan()
     .onStart(() => {
       context.value = { x: translateX.value };
     })
     .onUpdate((event) => {
       translateX.value = Math.max(0, Math.min(SLIDER_WIDTH, context.value.x + event.translationX));
+      const newDistance = Math.round((translateX.value / SLIDER_WIDTH) * 20) * 5;
+      runOnJS(setFilters)(prev => ({ ...prev, distance: newDistance }));
     })
     .onEnd(() => {
       const newDistance = Math.round((translateX.value / SLIDER_WIDTH) * 20) * 5;
-      runOnJS(setFilters)(prev => ({ ...prev, distance: newDistance }));
-      translateX.value = withSpring((newDistance / 100) * SLIDER_WIDTH);
+      translateX.value = withSpring((newDistance / 100) * SLIDER_WIDTH, { damping: 15, stiffness: 150 });
     });
 
   const animatedThumbStyle = useAnimatedStyle(() => {
@@ -155,7 +157,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
 
   const animatedProgressStyle = useAnimatedStyle(() => {
     return {
-      width: translateX.value,
+      width: translateX.value + 10,
     };
   });
 
@@ -175,39 +177,45 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
     </View>
   );
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity 
-        style={styles.modalOverlay} 
-        activeOpacity={1} 
-        onPress={onClose}
-      >
-        <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-          <View style={styles.modalContainer}>
-            {/* Header */}
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.primary} />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Filters</Text>
-            <TouchableOpacity onPress={handleReset} style={styles.resetButton}>
-              <Text style={styles.resetText}>Reset</Text>
-            </TouchableOpacity>
-          </View>
+  const snapPoints = useMemo(() => ['75%', '90%'], []);
 
-          <ScrollView 
-            style={styles.modalContent} 
-            showsVerticalScrollIndicator={false}
-            scrollEventThrottle={16}
-            removeClippedSubviews={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Category Section */}
+  const handleClose = useCallback(() => {
+    if (ref && typeof ref !== 'function') {
+      ref.current?.dismiss();
+    }
+  }, [ref]);
+
+  return (
+    <BottomSheetModal
+      ref={ref}
+      snapPoints={snapPoints}
+      index={-1}
+      backgroundStyle={styles.modalContainer}
+      handleIndicatorStyle={styles.handleIndicator}
+      onDismiss={handleClose}
+    >
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+      >
+        {/* Header */}
+        <View style={styles.modalHeader}>
+          <Pressable onPress={handleClose} style={({ pressed }) => [styles.closeButton, { opacity: pressed ? 0.7 : 1 }]}>
+            <Ionicons name="close" size={24} color={Colors.primary} />
+          </Pressable>
+          <Text style={styles.modalTitle}>Filters</Text>
+          <Pressable onPress={handleReset} style={({ pressed }) => [styles.resetButton, { opacity: pressed ? 0.7 : 1 }]}>
+            <Text style={styles.resetText}>Reset</Text>
+          </Pressable>
+        </View>
+
+        <BottomSheetScrollView 
+          style={styles.modalContent} 
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Category Section */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Category</Text>
               {isLoading ? (
@@ -216,11 +224,12 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
                 <>
                   <View style={styles.pillsContainer}>
                     {displayedCategories.map((category) => (
-                      <TouchableOpacity
+                      <Pressable
                         key={category.id}
-                        style={[
+                        style={({ pressed }) => [
                           styles.pill,
-                          selectedCategoryId === category.id && styles.selectedPill
+                          selectedCategoryId === category.id && styles.selectedPill,
+                          { opacity: pressed ? 0.7 : 1 },
                         ]}
                         onPress={() => handleCategorySelect(category.id)}
                       >
@@ -230,34 +239,34 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
                         ]}>
                           {category.emoji} {category.name}
                         </Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     ))}
                   </View>
                   
                   {/* See All Button */}
                   {!showAllCategories && categoryOptions.length > 8 && (
-                    <TouchableOpacity 
-                      style={styles.seeAllButton}
+                    <Pressable 
+                      style={({ pressed }) => [styles.seeAllButton, { opacity: pressed ? 0.7 : 1 }]} 
                       onPress={() => setShowAllCategories(true)}
                     >
                       <Text style={styles.seeAllButtonText}>
                         See All ({categoryOptions.length})
                       </Text>
                       <Ionicons name="chevron-down" size={16} color={Colors.primary} />
-                    </TouchableOpacity>
+                    </Pressable>
                   )}
                   
                   {/* Show Less Button */}
                   {showAllCategories && (
-                    <TouchableOpacity 
-                      style={styles.seeAllButton}
+                    <Pressable 
+                      style={({ pressed }) => [styles.seeAllButton, { opacity: pressed ? 0.7 : 1 }]} 
                       onPress={() => setShowAllCategories(false)}
                     >
                       <Text style={styles.seeAllButtonText}>
                         Show Less
                       </Text>
                       <Ionicons name="chevron-up" size={16} color={Colors.primary} />
-                    </TouchableOpacity>
+                    </Pressable>
                   )}
                 </>
               )}
@@ -272,11 +281,12 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
                 ) : (
                   <View style={styles.pillsContainer}>
                     {subcategoryOptions.map((subcategory) => (
-                      <TouchableOpacity
+                      <Pressable
                         key={subcategory.id}
-                        style={[
+                        style={({ pressed }) => [
                           styles.pill,
-                          filters.subcategoryId === subcategory.id && styles.selectedPill
+                          filters.subcategoryId === subcategory.id && styles.selectedPill,
+                          { opacity: pressed ? 0.7 : 1 },
                         ]}
                         onPress={() => setFilters(prev => ({
                           ...prev,
@@ -289,7 +299,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
                         ]}>
                           {subcategory.name}
                         </Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     ))}
                   </View>
                 )}
@@ -301,11 +311,12 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
               <Text style={styles.sectionTitle}>Condition</Text>
               <View style={styles.pillsContainer}>
                 {conditionOptions.map((condition) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={condition}
-                    style={[
+                    style={({ pressed }) => [
                       styles.pill,
-                      filters.condition.includes(condition) && styles.selectedPill
+                      filters.condition.includes(condition) && styles.selectedPill,
+                      { opacity: pressed ? 0.7 : 1 },
                     ]}
                     onPress={() => handleConditionToggle(condition)}
                   >
@@ -315,7 +326,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
                     ]}>
                       {condition}
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             </View>
@@ -349,49 +360,47 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
               </View>
             </View>
 
-            {/* Distance Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Distance: {filters.distance} km</Text>
-              <View style={styles.sliderContainer} onLayout={(e) => sliderWidth.current = e.nativeEvent.layout.width}>
-                <View style={styles.sliderTrack}>
-                  <Animated.View style={[styles.sliderProgress, animatedProgressStyle]} />
-                </View>
-                <GestureDetector gesture={gesture}>
-                  <Animated.View style={[styles.sliderThumb, animatedThumbStyle]} />
+          {/* Distance Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Distance: {filters.distance} km</Text>
+            <View style={styles.sliderContainer}>
+              <View style={styles.sliderTrack} />
+                <Animated.View style={[styles.sliderProgress, animatedProgressStyle]} />
+                <GestureDetector gesture={panGesture}>
+                  <Animated.View 
+                    style={[styles.sliderThumb, animatedThumbStyle]}
+                    hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }} // Increased hit area
+                  />
                 </GestureDetector>
-                <View style={styles.sliderLabels}>
-                  <Text style={styles.sliderLabel}>0 km</Text>
-                  <Text style={styles.sliderLabel}>100 km</Text>
-                </View>
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderLabel}>0 km</Text>
+                <Text style={styles.sliderLabel}>100 km</Text>
               </View>
             </View>
-          </ScrollView>
+          </View>
+        </BottomSheetScrollView>
 
-          {/* Apply Button */}
-          <View style={styles.applyButtonContainer}>
-            <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
-              <Text style={styles.applyButtonText}>Apply Filters</Text>
-            </TouchableOpacity>
-          </View>
-          </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+        {/* Apply Button */}
+        <View style={styles.applyButtonContainer}>
+          <Pressable style={({ pressed }) => [styles.applyButton, { opacity: pressed ? 0.7 : 1 }]} onPress={handleApply}>
+            <Text style={styles.applyButtonText}>Apply Filters</Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </BottomSheetModal>
   );
-};
+});
+
+FiltersModal.displayName = 'FiltersModal';
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
   modalContainer: {
-    height: height * 0.75,
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: 34,
+  },
+  handleIndicator: {
+    backgroundColor: Colors.lightgrey,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -483,36 +492,40 @@ const styles = StyleSheet.create({
     color: Colors.black,
   },
   sliderContainer: {
-    marginTop: 8,
-    height: 40, 
+    height: 50, 
+    justifyContent: 'center',
   },
   sliderTrack: {
     height: 4,
     backgroundColor: Colors.lightgrey,
     borderRadius: 2,
-    position: 'relative',
-    marginBottom: 8,
-    top: 18,
+    width: '100%',
   },
   sliderProgress: {
     height: 4,
     backgroundColor: Colors.primary,
     borderRadius: 2,
+    position: 'absolute',
   },
   sliderThumb: {
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
     backgroundColor: Colors.primary,
-    borderRadius: 10,
+    borderRadius: 12,
     position: 'absolute',
-    top: 10,
-    borderWidth: 2,
+    top: -10, // Center the thumb on the track
+    borderWidth: 3,
     borderColor: Colors.white,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   sliderLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 15,
+    marginTop: 10,
   },
   sliderLabel: {
     fontSize: 12,
@@ -523,6 +536,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderTopWidth: 0.4,
     borderTopColor: Colors.lightgrey,
+    backgroundColor: Colors.white,
   },
   applyButton: {
     backgroundColor: Colors.primary,

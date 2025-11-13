@@ -5,6 +5,7 @@ import CustomDialog from '@/components/ui/CustomDialog';
 import VideoCard from '@/components/VideoCard';
 import { useAuth } from '@/contexts/authContext';
 import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
+import ForgotPasswordScreen from '@/src/app/(screens)/(auth)/forgot-password';
 import SignIn from '@/src/app/(screens)/(auth)/signin';
 import SignUp from '@/src/app/(screens)/(auth)/signup';
 import { Colors, getCategoryImage } from '@/src/constants/constant';
@@ -15,29 +16,29 @@ import { useFeaturedVideos } from '@/src/hooks/useVideos';
 import { useAppStore } from '@/stores/useAppStore';
 import { showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+type ActiveModal = 'none' | 'signOutDialog';
 
 type Props = Record<string, never>;
-
 
 const Home = (props: Props) => {
     const router = useRouter();
     const { user, signOut } = useAuth();
-    const [showAuthModal, setShowAuthModal] = useState(false);
-    const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
-    const [isSignIn, setIsSignIn] = useState(true);
+    const [activeModal, setActiveModal] = useState<ActiveModal>('none');
     const { searchQuery, setSearchQuery } = useAppStore();
     const [loadingCategoryId, setLoadingCategoryId] = useState<number | null>(null);
 
-    
-    
-    const [showSignOutDialog, setShowSignOutDialog] = useState(false);
-    
+    const signInRef = useRef<BottomSheetModal>(null);
+    const signUpRef = useRef<BottomSheetModal>(null);
+    const forgotPasswordRef = useRef<BottomSheetModal>(null);
+    const avatarDropdownRef = useRef<BottomSheetModal>(null);
+
     const { data: categories, isLoading: categoriesLoading } = useCategories();
     const { prefetchSubcategories } = useCategoryMutations();
     
@@ -54,39 +55,26 @@ const Home = (props: Props) => {
     
     const handleAccountPress = useCallback(() => {
         if (user) {
-            setShowAvatarDropdown(true);
+            avatarDropdownRef.current?.present();
         } else {
-            setIsSignIn(true);
-            setShowAuthModal(true);
+            signInRef.current?.present();
         }
     }, [user]);
-    
-    const handleSignUpPress = useCallback(() => {
-        setIsSignIn(false);
-    }, []);
-    
-    const handleSignInPress = useCallback(() => {
-        setIsSignIn(true);
-    }, []);
-    
-    const closeAuthModal = useCallback(() => {
-        setShowAuthModal(false);
-    }, []);
 
     const handleDashboard = useCallback(() => {
-        setShowAvatarDropdown(false);
+        avatarDropdownRef.current?.dismiss();
         router.push('/(screens)/(dashboard)');
     }, [router]);
 
     const handleSignOut = useCallback(() => {
-        setShowAvatarDropdown(false);
-        setShowSignOutDialog(true);
+        avatarDropdownRef.current?.dismiss();
+        setActiveModal('signOutDialog');
     }, []);
 
     const handleConfirmSignOut = useCallback(async () => {
         try {
             const { error } = await signOut();
-            setShowSignOutDialog(false);
+            setActiveModal('none');
             if (error) {
                 console.error('Sign out error:', error);
             } else {
@@ -94,13 +82,31 @@ const Home = (props: Props) => {
             }
         } catch (error) {
             console.error('Sign out error:', error);
-            setShowSignOutDialog(false);
+            setActiveModal('none');
         }
     }, [signOut]);
 
-    const handleCancelSignOut = useCallback(() => {
-        setShowSignOutDialog(false);
-    }, []);
+    const handleSwitchToSignUp = () => {
+        signInRef.current?.dismiss();
+        signUpRef.current?.present();
+    };
+
+    const handleSwitchToSignIn = () => {
+        signUpRef.current?.dismiss();
+        forgotPasswordRef.current?.dismiss();
+        signInRef.current?.present();
+    };
+
+    const handleSwitchToForgotPassword = () => {
+        signInRef.current?.dismiss();
+        forgotPasswordRef.current?.present();
+    };
+
+    const handleCloseAuth = () => {
+        signInRef.current?.dismiss();
+        signUpRef.current?.dismiss();
+        forgotPasswordRef.current?.dismiss();
+    };
 
     const handleSearchSubmit = () => {
         if (searchQuery) {
@@ -162,10 +168,10 @@ const Home = (props: Props) => {
     }, [categories]);
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
             <StatusBar style="light" />
             {/* Header with status bar background */}
-            <SafeAreaView style={styles.header} edges={['top']}>
+            <View style={styles.header}>
                 <View style={styles.headerContent}>
                 {/* Logo */}
                 <View style={styles.logoContainer}>
@@ -182,7 +188,7 @@ const Home = (props: Props) => {
                     <NotificationBadge notifications={notifications} onMarkAllAsRead={markAllAsRead} />
                     
                     {/* Account Avatar */}
-                    <TouchableOpacity style={styles.avatarContainer} onPress={handleAccountPress}>
+                    <Pressable style={({ pressed }) => [styles.avatarContainer, { opacity: pressed ? 0.7 : 1 }]} onPress={handleAccountPress}>
                         <View style={[styles.avatar, user && styles.authenticatedAvatar]}>
                             {user ? (
                                 <Text style={styles.avatarText}>
@@ -192,10 +198,10 @@ const Home = (props: Props) => {
                                 <Ionicons name="person-outline" size={20} color={Colors.white} />
                             )}
                         </View>
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
                 </View>
-            </SafeAreaView>
+            </View>
             
             {/* Main Content */}
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -231,14 +237,14 @@ const Home = (props: Props) => {
                             {categoryRows.map((row, rowIndex) => (
                                 <View key={rowIndex} style={styles.categoryRow}>
                                     {row.map((category) => (
-                                        <TouchableOpacity 
+                                        <Pressable 
                                             key={category.id} 
-                                            style={[
+                                            style={({ pressed }) => [
                                                 styles.categoryItem,
-                                                loadingCategoryId === category.id && styles.categoryItemLoading
+                                                loadingCategoryId === category.id && styles.categoryItemLoading,
+                                                { opacity: pressed ? 0.7 : 1 },
                                             ]}
                                             onPress={() => handleCategoryPress(category.id)}
-                                            activeOpacity={0.7}
                                         >
                                             <View style={styles.categoryImageContainer}>
                                                 {loadingCategoryId === category.id ? (
@@ -254,7 +260,7 @@ const Home = (props: Props) => {
                                             <Text style={styles.categoryName} numberOfLines={2}>
                                                 {category.name}
                                             </Text>
-                                        </TouchableOpacity>
+                                        </Pressable>
                                     ))}
                                 </View>
                             ))}
@@ -266,9 +272,9 @@ const Home = (props: Props) => {
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>See It In Action: For You</Text>
-                        <TouchableOpacity onPress={() => router.push('/(tabs)/discover')}>
+                        <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })} onPress={() => router.push('/(tabs)/discover')}>
                             <Text style={styles.seeAllText}>See More</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                     
                     {videosLoading ? (
@@ -301,9 +307,9 @@ const Home = (props: Props) => {
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Listings Near You</Text>
-                        <TouchableOpacity onPress={() => router.push('/(tabs)/listings')}>
+                        <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })} onPress={() => router.push('/(tabs)/listings')}>
                             <Text style={styles.seeAllText}>See More</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                     
                     {listingsLoading ? (
@@ -339,21 +345,27 @@ const Home = (props: Props) => {
             </ScrollView>
             
             {/* Auth Modals */}
-            <SignIn 
-                visible={showAuthModal && isSignIn}
-                onClose={closeAuthModal}
-                onSwitchToSignUp={handleSignUpPress}
+            <SignIn
+                ref={signInRef}
+                onClose={handleCloseAuth}
+                onSwitchToSignUp={handleSwitchToSignUp}
+                onSwitchToForgotPassword={handleSwitchToForgotPassword}
             />
-            <SignUp 
-                visible={showAuthModal && !isSignIn}
-                onClose={closeAuthModal}
-                onSwitchToSignIn={handleSignInPress}
+            <SignUp
+                ref={signUpRef}
+                onClose={handleCloseAuth}
+                onSwitchToSignIn={handleSwitchToSignIn}
+            />
+            <ForgotPasswordScreen
+                ref={forgotPasswordRef}
+                onClose={handleCloseAuth}
+                onSwitchToSignIn={handleSwitchToSignIn}
             />
 
             {/* Avatar Dropdown */}
             <AvatarDropdown
-                visible={showAvatarDropdown}
-                onClose={() => setShowAvatarDropdown(false)}
+                ref={avatarDropdownRef}
+                onClose={() => avatarDropdownRef.current?.dismiss()}
                 onDashboard={handleDashboard}
                 onSignOut={handleSignOut}
                 userName={user?.full_name}
@@ -362,13 +374,13 @@ const Home = (props: Props) => {
 
             {/* Sign Out Confirmation Dialog */}
             <CustomDialog
-                visible={showSignOutDialog}
+                visible={activeModal === 'signOutDialog'}
                 title="Sign Out"
                 message="Are you sure you want to sign out?"
                 confirmText="Sign Out"
                 denyText="Cancel"
                 onConfirm={handleConfirmSignOut}
-                onDeny={handleCancelSignOut}
+                onDeny={() => setActiveModal('none')}
                 icon="log-out-outline"
                 iconColor={Colors.red}
                 confirmColor={Colors.red}
@@ -376,7 +388,7 @@ const Home = (props: Props) => {
                 confirmWeight="600"
                 denyWeight="400"
             />
-        </View>
+        </SafeAreaView>
   );
 };
 

@@ -301,9 +301,6 @@ const MapScreenContent = () => {
             >
               <Ionicons name="chevron-back" size={24} color={Colors.black} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle} accessibilityLabel="Map View Screen">
-              Map View
-            </Text>
             <TouchableOpacity 
               style={[styles.refreshButton, { backgroundColor: 'rgba(255, 255, 255, 0.7)' }, loading && styles.refreshButtonDisabled]} 
               onPress={handleRefresh}

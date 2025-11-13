@@ -1,8 +1,10 @@
 import { useAuth } from '@/contexts/authContext';
+import ForgotPasswordScreen from '@/src/app/(screens)/(auth)/forgot-password';
 import SignIn from '@/src/app/(screens)/(auth)/signin';
 import SignUp from '@/src/app/(screens)/(auth)/signup';
 import { Colors } from '@/src/constants/constant';
-import React, { useEffect, useState } from 'react';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import React, { useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -16,29 +18,40 @@ interface AuthGuardProps {
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const { user, loading } = useAuth();
-  const [showSignIn, setShowSignIn] = useState(false);
-  const [showSignUp, setShowSignUp] = useState(false);
+  const signInRef = useRef<BottomSheetModal>(null);
+  const signUpRef = useRef<BottomSheetModal>(null);
+  const forgotPasswordRef = useRef<BottomSheetModal>(null);
 
   useEffect(() => {
-    // Only show sign-in modal if auth is loaded and user is not authenticated
     if (!loading && !user) {
-      setShowSignIn(true);
+        signInRef.current?.present();
+    } else {
+        signInRef.current?.dismiss();
+        signUpRef.current?.dismiss();
+        forgotPasswordRef.current?.dismiss();
     }
   }, [loading, user]);
 
   const handleSwitchToSignUp = () => {
-    setShowSignIn(false);
-    setShowSignUp(true);
+    signInRef.current?.dismiss();
+    signUpRef.current?.present();
   };
 
   const handleSwitchToSignIn = () => {
-    setShowSignUp(false);
-    setShowSignIn(true);
+    signUpRef.current?.dismiss();
+    forgotPasswordRef.current?.dismiss();
+    signInRef.current?.present();
+  };
+
+  const handleSwitchToForgotPassword = () => {
+      signInRef.current?.dismiss();
+      forgotPasswordRef.current?.present();
   };
 
   const handleClose = () => {
-    setShowSignIn(false);
-    setShowSignUp(false);
+    signInRef.current?.dismiss();
+    signUpRef.current?.dismiss();
+    forgotPasswordRef.current?.dismiss();
   };
 
   if (loading) {
@@ -56,20 +69,22 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
   return (
     <View style={styles.loadingContainer}>
-      {showSignIn && (
         <SignIn
-          visible={showSignIn}
-          onClose={handleClose}
-          onSwitchToSignUp={handleSwitchToSignUp}
+            ref={signInRef}
+            onClose={handleClose}
+            onSwitchToSignUp={handleSwitchToSignUp}
+            onSwitchToForgotPassword={handleSwitchToForgotPassword}
         />
-      )}
-      {showSignUp && (
         <SignUp
-          visible={showSignUp}
-          onClose={handleClose}
-          onSwitchToSignIn={handleSwitchToSignIn}
+            ref={signUpRef}
+            onClose={handleClose}
+            onSwitchToSignIn={handleSwitchToSignIn}
         />
-      )}
+        <ForgotPasswordScreen
+            ref={forgotPasswordRef}
+            onClose={handleClose}
+            onSwitchToSignIn={handleSwitchToSignIn}
+        />
     </View>
   );
 };

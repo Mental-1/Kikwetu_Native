@@ -3,10 +3,11 @@ import { Colors } from '@/src/constants/constant';
 import { useDashboardAnalytics, useListingAnalytics } from '@/src/hooks/useApiAnalytics';
 import { useSubscriptions } from '@/src/hooks/useSubscriptions';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Dimensions,
   RefreshControl,
@@ -18,17 +19,44 @@ import {
 } from 'react-native';
 import { BarChart, LineChart, PieChart } from 'react-native-gifted-charts';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
+
+// Shimmering Skeleton Component
+const Skeleton = ({ style }: { style: any }) => {
+  const shimmer = useSharedValue(-1);
+
+  React.useEffect(() => {
+    shimmer.value = withRepeat(
+      withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      false
+    );
+  }, [shimmer]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const translate = shimmer.value * (style.width || 100) * 2;
+    return {
+      transform: [{ translateX: translate }],
+    };
+  });
+
+  return (
+    <View style={[styles.skeleton, style]}>
+      <Animated.View style={[styles.shimmer, animatedStyle]} />
+    </View>
+  );
+};
 
 export default function Analytics() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const premiumModalRef = useRef<BottomSheetModal>(null);
 
-  const { data: dashboardData, isLoading, refetch } = useDashboardAnalytics(selectedPeriod);
-  const { data: listingData, isLoading: listingLoading } = useListingAnalytics(selectedPeriod);
+  const { data: dashboardData, isLoading, refetch, isError } = useDashboardAnalytics(selectedPeriod);
+  const { data: listingData, isLoading: listingLoading, isError: isListingError } = useListingAnalytics(selectedPeriod);
   
   const { currentSubscription } = useSubscriptions();
 
@@ -49,7 +77,7 @@ export default function Analytics() {
 
   const handleRefresh = async () => {
     if (!isPremium) {
-      setShowPremiumModal(true);
+      premiumModalRef.current?.present();
       return;
     }
     setRefreshing(true);
@@ -57,8 +85,12 @@ export default function Analytics() {
     setRefreshing(false);
   };
 
+  const handlePremiumModalOpen = () => {
+    premiumModalRef.current?.present();
+  };
+
   const handlePremiumModalClose = () => {
-    setShowPremiumModal(false);
+    premiumModalRef.current?.dismiss();
   };
 
   const PremiumSection = ({ children, style }: { children: React.ReactNode; style?: any }) => {
@@ -77,7 +109,7 @@ export default function Analytics() {
         >
           <TouchableOpacity 
             style={styles.premiumOverlayContent}
-            onPress={() => setShowPremiumModal(true)}
+            onPress={handlePremiumModalOpen}
             activeOpacity={0.8}
           >
             <Ionicons name="diamond" size={32} color={Colors.primary} />
@@ -87,7 +119,7 @@ export default function Analytics() {
             </Text>
             <TouchableOpacity 
               style={styles.premiumUpgradeButton}
-              onPress={() => setShowPremiumModal(true)}
+              onPress={handlePremiumModalOpen}
             >
               <Text style={styles.premiumUpgradeButtonText}>Upgrade Now</Text>
             </TouchableOpacity>
@@ -115,7 +147,7 @@ export default function Analytics() {
           <View style={[styles.summaryIcon, { backgroundColor: '#E3F2FD' }]}>
             <Ionicons name="list-outline" size={20} color="#1976D2" />
           </View>
-          <Text style={styles.summaryValue}>{(combinedAnalytics as any)?.stats?.totalListings || (combinedAnalytics as any)?.listingAnalytics?.totalListings || 0}</Text>
+          {isLoading ? <Skeleton style={styles.skeletonValue} /> : <Text style={styles.summaryValue}>{(combinedAnalytics as any)?.stats?.totalListings || (combinedAnalytics as any)?.listingAnalytics?.totalListings || 0}</Text>}
           <Text style={styles.summaryLabel}>Total Listings</Text>
         </View>
 
@@ -123,7 +155,7 @@ export default function Analytics() {
           <View style={[styles.summaryIcon, { backgroundColor: '#FFF3E0' }]}>
             <Ionicons name="eye-outline" size={20} color="#EF6C00" />
           </View>
-          <Text style={styles.summaryValue}>{formatNumber((combinedAnalytics as any)?.stats?.totalViews || (combinedAnalytics as any)?.listingAnalytics?.totalViews || 0)}</Text>
+          {isLoading ? <Skeleton style={styles.skeletonValue} /> : <Text style={styles.summaryValue}>{formatNumber((combinedAnalytics as any)?.stats?.totalViews || (combinedAnalytics as any)?.listingAnalytics?.totalViews || 0)}</Text>}
           <Text style={styles.summaryLabel}>Total Views</Text>
         </View>
 
@@ -131,7 +163,7 @@ export default function Analytics() {
           <View style={[styles.summaryIcon, { backgroundColor: '#FFEBEE' }]}>
             <Ionicons name="heart-outline" size={20} color="#C62828" />
           </View>
-          <Text style={styles.summaryValue}>{(analyticsData as any)?.summaryStats?.totalSaves || 0}</Text>
+          {isLoading ? <Skeleton style={styles.skeletonValue} /> : <Text style={styles.summaryValue}>{(analyticsData as any)?.summaryStats?.totalSaves || 0}</Text>}
           <Text style={styles.summaryLabel}>Total Saves</Text>
         </View>
 
@@ -139,7 +171,7 @@ export default function Analytics() {
           <View style={[styles.summaryIcon, { backgroundColor: '#FFF3E0' }]}>
             <Ionicons name="trending-up-outline" size={20} color="#FF9800" />
           </View>
-          <Text style={styles.summaryValue}>{(analyticsData as any)?.summaryStats?.conversionRate || 0}%</Text>
+          {isLoading ? <Skeleton style={styles.skeletonValue} /> : <Text style={styles.summaryValue}>{(analyticsData as any)?.summaryStats?.conversionRate || 0}%</Text>}
           <Text style={styles.summaryLabel}>Click Through Rate</Text>
         </View>
 
@@ -147,7 +179,7 @@ export default function Analytics() {
           <View style={[styles.summaryIcon, { backgroundColor: '#E8F5E8' }]}>
             <Ionicons name="cash-outline" size={20} color="#4CAF50" />
           </View>
-          <Text style={styles.summaryValue}>{(analyticsData as any)?.summaryStats?.totalRevenue ? formatNumber((analyticsData as any).summaryStats.totalRevenue) : '0'}</Text>
+          {isLoading ? <Skeleton style={styles.skeletonValue} /> : <Text style={styles.summaryValue}>{(analyticsData as any)?.summaryStats?.totalRevenue ? formatNumber((analyticsData as any).summaryStats.totalRevenue) : '0'}</Text>}
           <Text style={styles.summaryLabel}>Total Revenue</Text>
         </View>
 
@@ -155,7 +187,7 @@ export default function Analytics() {
           <View style={[styles.summaryIcon, { backgroundColor: '#F3E5F5' }]}>
             <Ionicons name="trending-up-outline" size={20} color="#9C27B0" />
           </View>
-          <Text style={styles.summaryValue}>{Math.round((combinedAnalytics as any)?.listingAnalytics?.averageViews || 0)}</Text>
+          {listingLoading ? <Skeleton style={styles.skeletonValue} /> : <Text style={styles.summaryValue}>{Math.round((combinedAnalytics as any)?.listingAnalytics?.averageViews || 0)}</Text>}
           <Text style={styles.summaryLabel}>Avg Views/Listing</Text>
         </View>
       </View>
@@ -178,7 +210,7 @@ export default function Analytics() {
       <View style={styles.chartSection}>
         <Text style={styles.sectionTitle}>Listing Performance (Views)</Text>
         <View style={styles.chartContainer}>
-          {barData.length > 0 ? (
+          {isLoading ? <Skeleton style={styles.skeletonChart} /> : barData.length > 0 ? (
             <BarChart
               data={barData}
               width={width - 40}
@@ -226,7 +258,7 @@ export default function Analytics() {
       <View style={styles.chartSection}>
         <Text style={styles.sectionTitle}>Listing Status Distribution</Text>
         <View style={styles.chartContainer}>
-          {pieData.length > 0 ? (
+        {isLoading ? <Skeleton style={styles.skeletonPieChart} /> : pieData.length > 0 ? (
             <>
               <PieChart
                 data={pieData}
@@ -282,7 +314,7 @@ export default function Analytics() {
       <View style={styles.chartSection}>
         <Text style={styles.sectionTitle}>Revenue Trend (KES 000s)</Text>
         <View style={styles.chartContainer}>
-          {lineData.length > 0 ? (
+          {isLoading ? <Skeleton style={styles.skeletonChart} /> : lineData.length > 0 ? (
             <LineChart
               data={lineData}
               width={width - 40}
@@ -333,7 +365,9 @@ export default function Analytics() {
       <View style={styles.chartSection}>
         <Text style={styles.sectionTitle}>Top Performing Listings</Text>
         <View style={styles.topListingsContainer}>
-          {topListings.length > 0 ? (
+          {listingLoading ? 
+            Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} style={styles.skeletonListingItem} />) 
+            : topListings.length > 0 ? (
             topListings.map((listing: any, index: number) => (
               <View key={listing.id || index} style={styles.topListingItem}>
                 <View style={styles.rankingBadge}>
@@ -398,15 +432,7 @@ export default function Analytics() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Loading State */}
-        {(isLoading || listingLoading) && (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading analytics...</Text>
-          </View>
-        )}
-
-        {/* Error State */}
-        {!isLoading && !listingLoading && (!analyticsData || !listingData) && (
+        {isError || isListingError ? (
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={48} color={Colors.red} />
             <Text style={styles.errorTitle}>Failed to Load Analytics</Text>
@@ -417,10 +443,7 @@ export default function Analytics() {
               <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
           </View>
-        )}
-
-        {/* Content - Only show if not loading and data exists */}
-        {!isLoading && !listingLoading && analyticsData && listingData && (
+        ) : (
           <>
             {/* Period Selector */}
             <View style={styles.periodSelector}>
@@ -458,7 +481,7 @@ export default function Analytics() {
                   </Text>
                   <TouchableOpacity 
                     style={styles.upgradeButton}
-                    onPress={() => setShowPremiumModal(true)}
+                    onPress={handlePremiumModalOpen}
                   >
                     <Text style={styles.upgradeButtonText}>Upgrade</Text>
                   </TouchableOpacity>
@@ -494,7 +517,7 @@ export default function Analytics() {
 
       {/* Premium Feature Modal */}
       <PremiumFeatureModal
-        visible={showPremiumModal}
+        ref={premiumModalRef}
         onClose={handlePremiumModalClose}
         featureName="Advanced Analytics"
         featureDescription="Unlock detailed insights into your listing performance, revenue trends, and optimization opportunities with our premium analytics dashboard."
@@ -515,6 +538,40 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  skeleton: {
+    backgroundColor: '#E0E0E0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  shimmer: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: '200%',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    transform: [{ translateX: -width }],
+  },
+  skeletonValue: {
+    width: 80,
+    height: 24,
+    marginBottom: 4,
+  },
+  skeletonChart: {
+    width: width - 40,
+    height: 220,
+    borderRadius: 8,
+  },
+  skeletonPieChart: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+  },
+  skeletonListingItem: {
+    width: '100%',
+    height: 80,
+    borderRadius: 12,
+    marginBottom: 12,
   },
   header: {
     flexDirection: 'row',
@@ -783,17 +840,6 @@ const styles = StyleSheet.create({
     color: Colors.grey,
     textAlign: 'center',
     fontStyle: 'italic',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: Colors.grey,
-    marginTop: 16,
   },
   errorContainer: {
     flex: 1,

@@ -3,12 +3,18 @@ import Svg, { Path, G } from 'react-native-svg';
 
 interface GoogleIconProps {
   size?: number;
-  color?: string;
 }
 
-const GoogleIcon: React.FC<GoogleIconProps> = ({ size = 24, color = '#4285F4' }) => {
+const GoogleIcon: React.FC<GoogleIconProps> = ({ size = 24 }) => {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      accessible
+      accessibilityLabel="Google"
+    >
       <G fill="none" fillRule="evenodd">
         <Path
           d="M20.64 12.2045c0-.638-.059-1.252-.164-1.845H12v3.495h4.822c-.208 1.144-.847 2.11-1.795 2.747v2.258h2.908c1.702-1.57 2.684-3.88 2.684-6.655z"
@@ -31,4 +37,4 @@ const GoogleIcon: React.FC<GoogleIconProps> = ({ size = 24, color = '#4285F4' })
   );
 };
 
-export default GoogleIcon;
+export default React.memo(GoogleIcon);

@@ -1,1 +1,0 @@
-// <Button title='Try!' onPress={ () => { Sentry.captureException(new Error('First error')) }}/>

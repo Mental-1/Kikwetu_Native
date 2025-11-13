@@ -11,14 +11,24 @@ import { useAppStore } from '@/stores/useAppStore';
 import type { ListingItem } from '@/types/types';
 import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Dimensions,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
+} from 'react-native';
+import Animated, { runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const ListingsLoading = () => (
   <View style={{ flex: 1, backgroundColor: Colors.background }}>
@@ -43,7 +53,6 @@ function ListingsContent() {
   }, [searchQuery]);
   const [isGridView, setIsGridView] = useState(true);
   const [sortBy, setSortBy] = useState('newest');
-  const [showFilters, setShowFilters] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<any>(null);
   const [showSort, setShowSort] = useState(false);
   
@@ -51,10 +60,11 @@ function ListingsContent() {
   const saveListingMutation = useSaveListing();
   const unsaveListingMutation = useUnsaveListing();
   
-  const [showBackToTop, setShowBackToTop] = useState(false);
   const flatListRef = useRef<React.ComponentRef<typeof FlashList<ListingItem>>>(null);
-  const scrollY = useRef(new Animated.Value(0)).current;
-  
+  const filtersModalRef = useRef<BottomSheetModal>(null);
+  const scrollY = useSharedValue(0);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { isLoading: subcategoriesLoading } = useSubcategories();
   const { prefetchSubcategories } = useCategoryMutations();
@@ -81,52 +91,27 @@ function ListingsContent() {
     }
   }, [error]);
 
-  useEffect(() => {
-    if (showFilters && categories && categories.length > 0) {
-      prefetchSubcategories();
-    }
-  }, [showFilters, categories, prefetchSubcategories]);
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+      runOnJS(setShowBackToTop)(event.contentOffset.y > height * 1.5);
+    },
+  });
 
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    { useNativeDriver: false }
-  );
-
-  useEffect(() => {
-    const listener = scrollY.addListener(({ value }) => {
-      const screenHeight = Dimensions.get('window').height;
-      setShowBackToTop(value > screenHeight * 1.5);
-    });
-
-    return () => scrollY.removeListener(listener);
-  }, [scrollY]);
+  const backToTopStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(showBackToTop ? 1 : 0),
+      transform: [{ scale: withTiming(showBackToTop ? 1 : 0.5) }],
+    };
+  });
 
   const scrollToTop = useCallback(() => {
-    console.log('scrollToTop called, flatListRef.current:', !!flatListRef.current);
     if (!flatListRef.current) {
       console.warn('flatListRef.current is null');
       return;
     }
-    
-    try {
-      console.log('Attempting scrollToOffset');
-      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
-    } catch (error) {
-      console.error('Failed to scroll to top:', error);
-      try {
-        if (listings.length > 0) {
-          console.log('Attempting scrollToIndex as fallback');
-          flatListRef.current.scrollToIndex({ 
-            index: 0, 
-            animated: true,
-            viewPosition: 0
-          });
-        }
-      } catch (indexError) {
-        console.error('Failed to scroll using scrollToIndex:', indexError);
-      }
-    }
-  }, [listings.length]);
+    flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+  }, []);
 
   const handleBackPress = () => {
     router.push('/(tabs)/home');
@@ -163,12 +148,13 @@ function ListingsContent() {
     setShowSort(true);
   };
 
-  const handleFilterToggle = () => {
-    setShowFilters(!showFilters);
-  };
+  const handleFilterToggle = useCallback(() => {
+    filtersModalRef.current?.present();
+  }, []);
 
   const handleApplyFilters = useCallback((filters: any) => {
     setAppliedFilters(filters);
+    filtersModalRef.current?.dismiss();
     console.log('Applied filters:', filters);
   }, []);
 
@@ -232,9 +218,9 @@ function ListingsContent() {
       <SafeAreaView style={styles.header} edges={['top']}>
         <View style={styles.headerContent}>
           {/* Back Button */}
-          <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+          <Pressable style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.7 : 1 }]} onPress={handleBackPress}>
             <Ionicons name="chevron-back" size={24} color={Colors.black} />
-          </TouchableOpacity>
+          </Pressable>
 
           {/* Search Bar */}
           <View style={styles.searchContainer}>
@@ -249,18 +235,18 @@ function ListingsContent() {
           </View>
 
           {/* View Toggle */}
-          <TouchableOpacity style={styles.toggleButton} onPress={toggleView}>
+          <Pressable style={({ pressed }) => [styles.toggleButton, { opacity: pressed ? 0.7 : 1 }]} onPress={toggleView}>
             <Ionicons 
               name={isGridView ? "grid-outline" : "list-outline"} 
               size={20} 
               color={Colors.primary} 
             />
-          </TouchableOpacity>
+          </Pressable>
 
           {/* Sort Button */}
-          <TouchableOpacity style={styles.sortButton} onPress={handleSort}>
+          <Pressable style={({ pressed }) => [styles.sortButton, { opacity: pressed ? 0.7 : 1 }]} onPress={handleSort}>
             <Ionicons name="funnel-outline" size={20} color={Colors.primary} />
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </SafeAreaView>
 
@@ -268,10 +254,10 @@ function ListingsContent() {
       <View style={styles.filterSection}>
         <View style={styles.filterRow}>
           {/* Filter Pill */}
-          <TouchableOpacity style={styles.filterPill} onPress={handleFilterToggle}>
+          <Pressable style={({ pressed }) => [styles.filterPill, { opacity: pressed ? 0.7 : 1 }]} onPress={handleFilterToggle}>
             <Text style={styles.filterPillText}>Filters</Text>
             <Ionicons name="options-outline" size={16} color={Colors.white} />
-          </TouchableOpacity>
+          </Pressable>
 
           {/* Results and Sort Info */}
           <View style={styles.resultsInfo}>
@@ -292,15 +278,15 @@ function ListingsContent() {
         ) : error ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error?.message || 'Something went wrong'}</Text>
-            <TouchableOpacity 
-              style={styles.retryButton} 
+            <Pressable 
+              style={({ pressed }) => [styles.retryButton, { opacity: pressed ? 0.7 : 1 }]} 
               onPress={() => {
                 refetch();
                 showErrorToast('Retrying to load listings...', 'Retry');
               }}
             >
               <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         ) : listings.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -319,7 +305,7 @@ function ListingsContent() {
             numColumns={2}
             contentContainerStyle={styles.gridContainer}
             showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
+            onScroll={scrollHandler}
             scrollEventThrottle={16}
             onEndReached={() => {
               if (hasNextPage && !isFetchingNextPage) {
@@ -345,7 +331,7 @@ function ListingsContent() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}
             showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
+            onScroll={scrollHandler}
             scrollEventThrottle={16}
             onEndReached={() => {
               if (hasNextPage && !isFetchingNextPage) {
@@ -367,8 +353,7 @@ function ListingsContent() {
 
       {/* Filters Modal */}
       <FiltersModal
-        visible={showFilters}
-        onClose={() => setShowFilters(false)}
+        ref={filtersModalRef}
         onApplyFilters={handleApplyFilters}
         categories={categories || []}
         isLoading={categoriesLoading || subcategoriesLoading}
@@ -385,21 +370,16 @@ function ListingsContent() {
       {/* Back to Top Button */}
       {showBackToTop && (
         <Animated.View 
-          style={[styles.backToTopButton, { opacity: scrollY.interpolate({
-            inputRange: [Dimensions.get('window').height * 1.5, Dimensions.get('window').height * 2],
-            outputRange: [0.7, 1],
-            extrapolate: 'clamp',
-          })}]}
+          style={[styles.backToTopButton, backToTopStyle]}
           pointerEvents="box-none"
         >
-          <TouchableOpacity 
-            style={styles.backToTopTouchable} 
+          <Pressable 
+            style={({ pressed }) => [styles.backToTopTouchable, { opacity: pressed ? 0.8 : 1 }]} 
             onPress={scrollToTop}
-            activeOpacity={0.8}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="chevron-up" size={24} color={Colors.white} />
-          </TouchableOpacity>
+          </Pressable>
         </Animated.View>
       )}
     </View>

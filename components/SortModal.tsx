@@ -1,7 +1,8 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Modal, StyleSheet, Text, View } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 
 interface SortModalProps {
   visible: boolean;
@@ -179,8 +180,6 @@ const styles = StyleSheet.create({
   applyButtonContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderTopWidth: 0.3,
-    borderTopColor: Colors.lightgrey,
   },
   applyButton: {
     backgroundColor: Colors.primary,

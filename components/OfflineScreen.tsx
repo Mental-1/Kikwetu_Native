@@ -15,6 +15,7 @@ const OfflineScreen = () => {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.innerContainer}>
           <Feather name="wifi-off" size={64} color={Colors.black} />
+          <Text style={styles.titleText}>No Connection</Text>
           <Text style={styles.messageText}>
             Check your connection and try again.
           </Text>
@@ -35,7 +36,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.black,
+    backgroundColor: Colors.white,
   },
   safeArea: {
     position: 'absolute',
@@ -50,18 +51,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
-  messageText: {
-    color: Colors.white,
-    fontSize: 18,
+  titleText: {
+    color: Colors.black,
+    fontSize: 24,
+    fontWeight: 'bold',
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  messageText: {
+    color: Colors.black,
+    fontSize: 16,
+    textAlign: 'center',
   },
   tryAgainButton: {
     backgroundColor: Colors.black,
     paddingVertical: 16,
     paddingHorizontal: 32,
-    borderRadius: 8,
-    marginBottom: 32,
+    borderRadius: 12,
+    marginBottom: 48,
     alignSelf: 'center',
   },
   tryAgainText: {

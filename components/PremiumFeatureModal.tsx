@@ -1,61 +1,51 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import React, { forwardRef, useMemo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface PremiumFeatureModalProps {
-  visible: boolean;
-  onClose: () => void;
   featureName: string;
   featureDescription: string;
   benefits?: string[];
+  onClose: () => void;
 }
+
 const defaultBenefits = [
   'Detailed analytics and insights',
   'Performance tracking',
   'Revenue optimization',
   'Advanced reporting'
 ]
-const PremiumFeatureModal: React.FC<PremiumFeatureModalProps> = ({
-  visible,
-  onClose,
-  featureName,
-  featureDescription,
-  benefits = defaultBenefits
-}) => {
+
+const PremiumFeatureModal = forwardRef<BottomSheetModal, PremiumFeatureModalProps>((
+  { featureName, featureDescription, benefits = defaultBenefits, onClose },
+  ref
+) => {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { bottom } = useSafeAreaInsets();
+
+  const snapPoints = useMemo(() => ['60%', '85%'], []);
 
   const handleUpgrade = () => {
-    onClose();
+    if (ref && typeof ref !== 'function') {
+      ref.current?.dismiss();
+    }
     router.push('/(screens)/(dashboard)/plans-billing');
   };
 
-  const handleClose = () => {
-    onClose();
-  };
-
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      onRequestClose={handleClose}
-    >
-      <View style={styles.overlay}>
-        <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
-        
-        <View
-          style={[
-            styles.modalContainer,
-            ({ width: Math.min(520, Math.round(width * 0.85)),
-               marginHorizontal: Math.round(width * 0.075) }),
-          ]}
-        >
-          <View style={styles.modal}>
+    <BottomSheetModal
+        ref={ref}
+        index={-1}
+        snapPoints={snapPoints}
+        onDismiss={onClose}
+        backgroundStyle={styles.modal}
+        handleIndicatorStyle={{ backgroundColor: Colors.lightgrey }}
+      >
+        <BottomSheetScrollView contentContainerStyle={[styles.modalContainer, { paddingBottom: bottom > 0 ? bottom + 12 : 24 }]}>
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.iconContainer}>
@@ -83,52 +73,37 @@ const PremiumFeatureModal: React.FC<PremiumFeatureModalProps> = ({
 
             {/* Actions */}
             <View style={styles.actionsContainer}>
-              <TouchableOpacity 
-                style={styles.upgradeButton} 
+              <Pressable 
+                style={({ pressed }) => [styles.upgradeButton, { opacity: pressed ? 0.8 : 1 }]} 
                 onPress={handleUpgrade}
-                activeOpacity={0.8}
               >
                 <Ionicons name="diamond" size={20} color={Colors.white} />
                 <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
-              </TouchableOpacity>
+              </Pressable>
               
-              <TouchableOpacity 
-                style={styles.cancelButton} 
-                onPress={handleClose}
-                activeOpacity={0.7}
+              <Pressable 
+                style={({ pressed }) => [styles.cancelButton, { opacity: pressed ? 0.7 : 1 }]} 
+                onPress={onClose}
               >
                 <Text style={styles.cancelButtonText}>Maybe Later</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
-          </View>
-        </View>
-      </View>
-    </Modal>
+        </BottomSheetScrollView>
+    </BottomSheetModal>
   );
-};
+});
+
+PremiumFeatureModal.displayName = 'PremiumFeatureModal';
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   modalContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
   },
   modal: {
     backgroundColor: Colors.white,
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   header: {
     alignItems: 'center',
@@ -190,6 +165,7 @@ const styles = StyleSheet.create({
   actionsContainer: {
     width: '100%',
     gap: 12,
+    marginTop: 12,
   },
   upgradeButton: {
     backgroundColor: Colors.primary,

@@ -2,21 +2,21 @@ import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
 import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useState } from 'react';
+import React, { forwardRef, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, TouchableWithoutFeedback, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
 import { z } from 'zod';
 import GoogleIcon from '@/components/ui/GoogleIcon';
-import { useRouter } from 'expo-router';
+import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface SignInProps {
-    visible: boolean;
     onClose: () => void;
     onSwitchToSignUp: () => void;
+    onSwitchToForgotPassword: () => void;
 }
 
-// Form validation schema
 const signInSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(1, 'Password is required'),
@@ -24,17 +24,16 @@ const signInSchema = z.object({
 
 type SignInFormData = z.infer<typeof signInSchema>;
 
-interface SignInProps {
-  visible: boolean;
-  onClose: () => void;
-  onSwitchToSignUp: () => void;
-}
-
-const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
+const SignIn = forwardRef<BottomSheetModal, SignInProps>((
+    { onClose, onSwitchToSignUp, onSwitchToForgotPassword }, 
+    ref
+) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
-  const router = useRouter();
+  const { bottom } = useSafeAreaInsets();
+
+  const snapPoints = useMemo(() => ['60%', '85%'], []);
 
   const {
     control,
@@ -43,261 +42,173 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp }: SignInProps) => {
     reset,
   } = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
+    defaultValues: { email: '', password: '' },
   });
 
   const onSubmitSignIn = async (data: SignInFormData) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const { error } = await signIn(data.email, data.password);
-
       if (error) {
-        console.error('signIn failed:', error);
-        showErrorToast('Failed to sign in. Please try again.', 'Sign In Error');
-      } else {
-        showSuccessToast('Successfully signed in!', 'Welcome Back');
-        onClose();
-        reset();
+        throw new Error(error.message || 'Failed to sign in. Please try again.');
       }
-    } catch (error) {
-      console.error('Sign in error:', error);
-      showErrorToast('An unexpected error occurred', 'Sign In Error');
+      showSuccessToast('Successfully signed in!', 'Welcome Back');
+      onClose();
+      reset();
+    } catch (err: any) {
+      showErrorToast(err.message, 'Sign In Error');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleClose = () => {
-    onClose();
-    reset();
-  };
-
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={handleClose}
-    >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+    <BottomSheetModal
+        ref={ref}
+        index={-1}
+        snapPoints={snapPoints}
+        onDismiss={onClose}
+        backgroundStyle={styles.modalContainer}
+        handleIndicatorStyle={{ backgroundColor: Colors.lightgrey }}
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
       >
-        <TouchableWithoutFeedback onPress={handleClose}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                  <ScrollView
-                    style={styles.authForm}
-                    contentContainerStyle={styles.authFormContent}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="on-drag"
-                  >
-                    <Text style={styles.subtitle}>Sign in to your account</Text>
+        <BottomSheetScrollView 
+            style={styles.modalContent}
+            contentContainerStyle={{ paddingBottom: bottom > 0 ? bottom + 12 : 24 }}
+            keyboardShouldPersistTaps="handled"
+        >
+            <Text style={styles.subtitle}>Sign in to your account</Text>
 
-                    <View style={styles.formContainer}>
-                      {/* Email */}
-                      <Controller
-                        control={control}
-                        name="email"
-                        render={({ field: { onChange, onBlur, value } }) => (
-                          <TextInput
-                            label="Email"
-                            value={value}
-                            onBlur={onBlur}
-                            onChangeText={onChange}
-                            error={!!errors.email}
-                            mode="outlined"
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            style={styles.textInput}
-                            textColor={Colors.black}
-                            outlineColor={Colors.lightgrey}
-                            activeOutlineColor={Colors.lightgrey}
-                            autoComplete="off"
-                            textContentType="oneTimeCode"
-                            theme={{
-                              roundness: 12,
-                              colors: {
-                                primary: Colors.primary,
-                                placeholder: Colors.black,
-                                text: Colors.black,
-                                outline: Colors.lightgrey,
-                                background: Colors.white,
-                              },
-                            }}
-                          />
-                        )}
-                      />
-                      {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
+            <View style={styles.formContainer}>
+                <Controller
+                control={control}
+                name="email"
+                render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                    label="Email"
+                    value={value}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    error={!!errors.email}
+                    mode="outlined"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    style={styles.textInput}
+                    theme={{
+                        roundness: 12,
+                        colors: { primary: Colors.primary, background: Colors.white },
+                    }}
+                    />
+                )}
+                />
+                {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
 
-                      {/* Password */}
-                      <Controller
-                        control={control}
-                        name="password"
-                        render={({ field: { onChange, onBlur, value } }) => (
-                          <TextInput
-                            label="Password"
-                            value={value}
-                            onBlur={onBlur}
-                            onChangeText={onChange}
-                            error={!!errors.password}
-                            mode="outlined"
-                            secureTextEntry={!showPassword}
-                            style={styles.textInput}
-                            textColor={Colors.black}
-                            outlineColor={Colors.lightgrey}
-                            activeOutlineColor={Colors.lightgrey}
-                            autoComplete="off"
-                            textContentType="oneTimeCode"
-                            theme={{
-                              roundness: 12,
-                              colors: {
-                                primary: Colors.primary,
-                                placeholder: Colors.black,
-                                text: Colors.black,
-                                outline: Colors.lightgrey,
-                                background: Colors.white,
-                              },
-                            }}
-                            right={
-                              <TextInput.Icon
-                                icon={showPassword ? 'eye-off' : 'eye'}
-                                onPress={() => setShowPassword(!showPassword)}
-                              />
-                            }
-                          />
-                        )}
-                      />
-                      {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
+                <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                    label="Password"
+                    value={value}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    error={!!errors.password}
+                    mode="outlined"
+                    secureTextEntry={!showPassword}
+                    style={styles.textInput}
+                    theme={{
+                        roundness: 12,
+                        colors: { primary: Colors.primary, background: Colors.white },
+                    }}
+                    right={
+                        <TextInput.Icon
+                        icon={showPassword ? 'eye-off' : 'eye'}
+                        onPress={() => setShowPassword(!showPassword)}
+                        />
+                    }
+                    />
+                )}
+                />
+                {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
 
-                      <Pressable
-                        onPress={() => {
-                          router.push('/forgot-password');
-                          onClose();
-                        }}
-                        style={styles.forgotPasswordButton}
-                      >
-                        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                      </Pressable>
-                    </View>
+                <Pressable
+                onPress={onSwitchToForgotPassword}
+                style={styles.forgotPasswordButton}
+                >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                </Pressable>
+            </View>
 
-                    <Button
-                      mode="contained"
-                      onPress={handleSubmit(onSubmitSignIn)}
-                      style={[styles.submitButton, { backgroundColor: Colors.primary }]}
-                      labelStyle={styles.submitButtonText}
-                      loading={isLoading}
-                      disabled={isLoading}
-                      icon="email-outline"
-                      contentStyle={styles.submitButtonContent}
-                    >
-                      {isLoading ? 'Signing In...' : 'Sign In with Email'}
-                    </Button>
+            <Button
+                mode="contained"
+                onPress={handleSubmit(onSubmitSignIn)}
+                style={[styles.submitButton, { backgroundColor: Colors.primary }]}
+                labelStyle={styles.submitButtonText}
+                loading={isLoading}
+                disabled={isLoading}
+                icon="email-outline"
+                contentStyle={styles.submitButtonContent}
+            >
+                {isLoading ? 'Signing In...' : 'Sign In with Email'}
+            </Button>
 
-                    <View style={styles.dividerContainer}>
-                      <View style={styles.dividerLine} />
-                      <Text style={styles.dividerText}>or continue with</Text>
-                      <View style={styles.dividerLine} />
-                    </View>
+            <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or continue with</Text>
+                <View style={styles.dividerLine} />
+            </View>
 
-                    <TouchableOpacity style={styles.authButton} onPress={() => {}}>
-                      <View style={styles.authButtonIconContainer}>
-                        <GoogleIcon size={24} />
-                      </View>
-                      <Text style={styles.authButtonText}>Sign In with Google</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.switchAuthButton} onPress={onSwitchToSignUp}>
-                      <Text style={styles.switchAuthText}>
-                        Don&apos;t have an account? <Text style={styles.switchAuthLink}>Sign Up</Text>
-                      </Text>
-                    </TouchableOpacity>
-
-                    <View style={styles.legalLinksContainer}>
-                      <TouchableOpacity onPress={() => console.log('Navigate to Terms of Service')}>
-                        <Text style={styles.legalLink}>Terms</Text>
-                      </TouchableOpacity>
-                      <Text style={styles.legalDivider}>|</Text>
-                      <TouchableOpacity onPress={() => console.log('Navigate to Privacy Policy')}>
-                        <Text style={styles.legalLink}>Privacy Policy</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </ScrollView>
+            <Pressable style={({ pressed }) => [styles.authButton, { opacity: pressed ? 0.7 : 1 }]} onPress={() => {}}>
+                <View style={styles.authButtonIconContainer}>
+                <GoogleIcon size={24} />
                 </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
-    </Modal>
+                <Text style={styles.authButtonText}>Sign In with Google</Text>
+            </Pressable>
+
+            <Pressable style={({ pressed }) => [styles.switchAuthButton, { opacity: pressed ? 0.7 : 1 }]} onPress={onSwitchToSignUp}>
+                <Text style={styles.switchAuthText}>
+                Don&apos;t have an account? <Text style={styles.switchAuthLink}>Sign Up</Text>
+                </Text>
+            </Pressable>
+
+            <View style={styles.legalLinksContainer}>
+                <Pressable onPress={() => console.log('Navigate to Terms of Service')}>
+                <Text style={styles.legalLink}>Terms</Text>
+                </Pressable>
+                <Text style={styles.legalDivider}>|</Text>
+                <Pressable onPress={() => console.log('Navigate to Privacy Policy')}>
+                <Text style={styles.legalLink}>Privacy Policy</Text>
+                </Pressable>
+            </View>
+        </BottomSheetScrollView>
+    </BottomSheetModal>
   );
-};
+});
+
+SignIn.displayName = 'SignIn';
 
 const styles = StyleSheet.create({
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
-    },
     modalContainer: {
-        height: '60%',
         backgroundColor: Colors.white,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        paddingBottom: 34,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.lightgrey,
-    },
-    closeButton: {
-        padding: 8,
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: Colors.primary,
-        flex: 1,
-        textAlign: 'center',
-        marginRight: 40,
-        letterSpacing: 1,
     },
     modalContent: {
-        flex: 1,
         padding: 20,
-    },
-    authForm: {
-        flex: 1,
-    },
-    authFormContent: {
-        flexGrow: 1,
-        justifyContent: 'flex-start',
-        paddingTop: 10,
-        paddingBottom: 20,
     },
     subtitle: {
         fontSize: 18,
         color: Colors.grey,
         textAlign: 'center',
-        marginBottom: 5,
+        marginBottom: 20,
         fontWeight: 'bold',
     },
     formContainer: {
         marginVertical: 10,
     },
     textInput: {
-        marginBottom: 8,
+        marginBottom: 12,
         backgroundColor: 'transparent',
     },
     errorText: {
@@ -308,7 +219,7 @@ const styles = StyleSheet.create({
     },
     submitButton: {
         marginTop: 20,
-        marginBottom: 8,
+        marginBottom: 16,
         borderRadius: 12,
     },
     submitButtonText: {
@@ -344,7 +255,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     switchAuthButton: {
-        marginTop: 20,
+        marginTop: 16,
         alignItems: 'center',
     },
     switchAuthText: {
@@ -369,8 +280,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 20,
-        paddingBottom: 10,
+        marginTop: 24,
+        paddingBottom: 20,
     },
     legalLink: {
         fontSize: 12,
@@ -385,7 +296,7 @@ const styles = StyleSheet.create({
     dividerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: 20,
+        marginVertical: 24,
     },
     dividerLine: {
         flex: 1,

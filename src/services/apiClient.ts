@@ -54,23 +54,54 @@ class ApiClient {
    * Handle API response
    */
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
-          try {
-            console.log('Raw API response:', response); // Added for debugging
-            const data = await response.json();
-      // If token expired, try to refresh
-      if (response.status === 401 && data.error?.includes('expired')) {
+    if (!response.ok) {
+      // Handle HTTP errors like 4xx, 5xx
+      const errorText = await response.text();
+      let errorData: ApiResponse<T>;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        // If parsing fails, it's likely a plain text or HTML response from a server error.
+        // Log the actual error for debugging, but don't expose it to the user.
+        console.error("API Error - Non-JSON response received:", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText.substring(0, 1000)
+        });
+
+        errorData = {
+          success: false,
+          error: 'server_error',
+          message: 'An unexpected error occurred. Please try again later.',
+        };
+      }
+
+      // Special handling for token expiry
+      if (response.status === 401 && (errorData.error?.includes('expired') || errorData.message?.includes('expired'))) {
         const refreshed = await this.refreshToken();
         if (refreshed) {
-          // Retry the original request
-          return data; // For now, return original response
+          // This part is tricky. A full-fledged solution would re-try the original request.
+          // For now, i'll return a specific error to let the caller know to retry.
+          return { success: false, error: 'Token refreshed. Please retry the request.' };
         }
       }
 
-      return data;
+      return errorData;
+    }
+
+    try {
+      // Handle successful responses
+      const text = await response.text();
+      // Handle cases where the response body is empty but the request was successful
+      if (text.length === 0) {
+        return { success: true };
+      }
+      return JSON.parse(text) as ApiResponse<T>;
     } catch (error) {
+      console.error('Failed to parse successful response:', error);
       return {
         success: false,
-        error: 'Failed to parse response',
+        error: 'Failed to parse server response.',
       };
     }
   }
@@ -107,11 +138,14 @@ class ApiClient {
   /**
    * GET request
    */
-  async get<T>(endpoint: string, params?: Record<string, string>): Promise<ApiResponse<T>> {
+  async get<T>(endpoint: string, params?: Record<string, string | number>): Promise<ApiResponse<T>> {
     try {
       const headers = await this.getAuthHeaders();
-      const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
-      const url = `${this.baseUrl}${endpoint}${queryString}`;
+      // Filter out undefined or null params before creating the query string
+      const filteredParams = params ? Object.fromEntries(Object.entries(params).filter(([_, v]) => v !== undefined && v !== null)) : {};
+      const queryString = new URLSearchParams(filteredParams as Record<string, string>).toString();
+      const url = `${this.baseUrl}${endpoint}${queryString ? '?' + queryString : ''}`;
+
 
       const response = await fetch(url, { headers });
       return await this.handleResponse<T>(response);
@@ -119,7 +153,8 @@ class ApiClient {
       console.error('GET request failed:', error);
       return {
         success: false,
-        error: 'Network request failed',
+        error: 'network_error',
+        message: 'Could not connect to the server. Please check your internet connection.',
       };
     }
   }
@@ -142,7 +177,8 @@ class ApiClient {
       console.error('POST request failed:', error);
       return {
         success: false,
-        error: 'Network request failed',
+        error: 'network_error',
+        message: 'Could not connect to the server. Please check your internet connection.',
       };
     }
   }
@@ -165,7 +201,8 @@ class ApiClient {
       console.error('PUT request failed:', error);
       return {
         success: false,
-        error: 'Network request failed',
+        error: 'network_error',
+        message: 'Could not connect to the server. Please check your internet connection.',
       };
     }
   }
@@ -188,7 +225,8 @@ class ApiClient {
       console.error('PATCH request failed:', error);
       return {
         success: false,
-        error: 'Network request failed',
+        error: 'network_error',
+        message: 'Could not connect to the server. Please check your internet connection.',
       };
     }
   }
@@ -210,7 +248,8 @@ class ApiClient {
       console.error('DELETE request failed:', error);
       return {
         success: false,
-        error: 'Network request failed',
+        error: 'network_error',
+        message: 'Could not connect to the server. Please check your internet connection.',
       };
     }
   }
@@ -221,4 +260,3 @@ export const apiClient = new ApiClient(API_BASE_URL);
 
 // Export types
 export type { ApiResponse, PaginatedResponse };
-

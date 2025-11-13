@@ -46,3 +46,6 @@ app-example
 #VSCode
 .vscode/
 .idea/
+
+# Snyk Security Extension - AI Rules (auto-generated)
+.cursor\rules\snyk_rules.mdc

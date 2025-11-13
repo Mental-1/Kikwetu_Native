@@ -1,12 +1,14 @@
+import PaymentConfirmationSheet from '@/components/PaymentConfirmationSheet';
 import { Colors } from '@/src/constants/constant';
 import { useCancelSubscription, useCurrentSubscription, useSubscriptionHistory, useSubscriptionPlans } from '@/src/hooks/useApiSubscriptions';
 import { ApiSubscription, ApiSubscriptionPlan } from '@/src/types/api.types';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SubscriptionPlan {
@@ -44,8 +46,9 @@ const PlansBilling = () => {
   const { showAlert, AlertComponent } = useCustomAlert();
   const { success } = createAlertHelpers(showAlert);
 
-  const [selectedPlan, setSelectedPlan] = useState<string>('basic');
+  const [selectedPlanDetails, setSelectedPlanDetails] = useState<SubscriptionPlan | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const paymentSheetRef = useRef<BottomSheetModal>(null);
 
   const { data: plansData, isLoading: plansLoading, error: plansError } = useSubscriptionPlans();
   const { data: currentSubscription, isLoading: subscriptionLoading } = useCurrentSubscription();
@@ -73,6 +76,7 @@ const PlansBilling = () => {
         user_id: plan.user_id,
       }));
     }, [plansData, currentSubscription]);
+
   const billingHistory: BillingTransaction[] = useMemo(() => {
     return (historyData || []).map((sub: ApiSubscription) => ({
       id: sub.id,
@@ -81,22 +85,24 @@ const PlansBilling = () => {
       amount: `${sub.currency} ${sub.amount.toLocaleString()}`,
             status: sub.status === 'active' || sub.status === 'free' ? 'completed' :
                     sub.status === 'past_due' ? 'pending' :
-                    'failed',      type: 'subscription' as const,
+                    'failed',
+      type: 'subscription' as const,
       invoiceUrl: undefined, // Will be implemented with real invoice service
       transaction_id: sub.transaction_id,
     }));
   }, [historyData]);
-
-  
 
   const handleBack = () => {
     router.back();
   };
 
   const handleSelectPlan = (planId: string) => {
-    setSelectedPlan(planId);
     const plan = subscriptionPlans.find(p => p.id === planId);
-    if (plan?.id === 'enterprise') {
+    if (!plan) return;
+
+    setSelectedPlanDetails(plan);
+
+    if (plan.id === 'enterprise') {
       showAlert({
         title: 'Enterprise Plan',
         message: 'Contact our sales team for custom pricing and features.',
@@ -110,36 +116,26 @@ const PlansBilling = () => {
         icon: 'business-outline',
         iconColor: Colors.primary,
       });
-    } else if (plan?.id === 'free') {
+    } else if (plan.id === 'free') {
       success('Free Plan', 'You are already on the free plan!');
     } else {
-      showAlert({
-        title: 'Proceed to Payment',
-        message: `You've selected the ${plan?.name} plan (${billingCycle}). Proceed to complete your payment?`,
-        buttons: [{
-          text: 'Cancel',
-          style: 'cancel',
-        }, {
-          text: 'Continue',
-          color: Colors.primary,
-          onPress: () => {
-            if (!plan) return;
-            router.push({
-              pathname: '/(screens)/(dashboard)/payment',
-              params: {
-                planId: plan.id,
-                planName: plan.name,
-                price: billingCycle === 'monthly' ? plan.price : plan.annualPrice,
-                period: billingCycle === 'monthly' ? 'month' : 'year',
-                billingCycle: billingCycle
-              }
-            });
-          },
-        }],
-        icon: 'card-outline',
-        iconColor: Colors.primary,
-      });
+      paymentSheetRef.current?.present();
     }
+  };
+
+  const handleProceedToPayment = () => {
+    if (!selectedPlanDetails) return;
+    paymentSheetRef.current?.dismiss();
+    router.push({
+      pathname: '/(screens)/(dashboard)/payment',
+      params: {
+        planId: selectedPlanDetails.id,
+        planName: selectedPlanDetails.name,
+        price: billingCycle === 'monthly' ? selectedPlanDetails.price : selectedPlanDetails.annualPrice,
+        period: billingCycle === 'monthly' ? 'month' : 'year',
+        billingCycle: billingCycle
+      }
+    });
   };
 
   const handleCancelSubscription = () => {
@@ -252,12 +248,13 @@ const PlansBilling = () => {
   };
 
   const renderPlanCard = (plan: SubscriptionPlan) => (
-    <TouchableOpacity
+    <Pressable
       key={plan.id}
-      style={[
+      style={({ pressed }) => [
         styles.planCard,
-        selectedPlan === plan.id && styles.selectedPlan,
-        plan.isPopular && styles.popularPlan
+        selectedPlanDetails?.id === plan.id && styles.selectedPlan,
+        plan.isPopular && styles.popularPlan,
+        { opacity: pressed ? 0.8 : 1 },
       ]}
       onPress={() => handleSelectPlan(plan.id)}
     >
@@ -303,12 +300,12 @@ const PlansBilling = () => {
         ))}
       </View>
 
-      {selectedPlan === plan.id && (
+      {selectedPlanDetails?.id === plan.id && (
         <View style={[styles.selectedIndicator, { backgroundColor: plan.color }]}>
           <Ionicons name="checkmark" size={20} color={Colors.white} />
         </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 
   const renderTransaction = (transaction: BillingTransaction) => (
@@ -332,13 +329,13 @@ const PlansBilling = () => {
           </View>
         </View>
       </View>
-      <TouchableOpacity 
-        style={styles.downloadButton}
+      <Pressable 
+        style={({ pressed }) => [styles.downloadButton, { opacity: pressed ? 0.7 : 1 }]} 
         onPress={() => handleDownloadInvoice(transaction.id)}
       >
         <Ionicons name="download-outline" size={16} color={Colors.primary} />
         <Text style={styles.downloadText}>Download Invoice</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 
@@ -348,13 +345,13 @@ const PlansBilling = () => {
       
       {/* Header */}
       <SafeAreaView style={styles.header} edges={['top']}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+        <Pressable style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.7 : 1 }]} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.headerTitle}>Plans & Billing</Text>
-        <TouchableOpacity style={styles.helpButton} onPress={() => success('Help', 'Support information will be available here')}>
+        <Pressable style={({ pressed }) => [styles.helpButton, { opacity: pressed ? 0.7 : 1 }]} onPress={() => success('Help', 'Support information will be available here')}>
           <Ionicons name="help-circle-outline" size={24} color={Colors.primary} />
-        </TouchableOpacity>
+        </Pressable>
       </SafeAreaView>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -395,8 +392,8 @@ const PlansBilling = () => {
               {/* Subscription Management Actions */}
               <View style={styles.subscriptionActions}>
                 {(currentSubscription.status === 'active' || currentSubscription.status === 'free') && (
-                  <TouchableOpacity 
-                    style={styles.cancelButton}
+                  <Pressable 
+                    style={({ pressed }) => [styles.cancelButton, { opacity: pressed ? 0.7 : 1 }]} 
                     onPress={handleCancelSubscription}
                     disabled={cancelSubscriptionMutation.isPending}
                   >
@@ -404,29 +401,29 @@ const PlansBilling = () => {
                     <Text style={styles.cancelButtonText}>
                       {cancelSubscriptionMutation.isPending ? 'Cancelling...' : 'Cancel Subscription'}
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 )}
                 
                 {(currentSubscription.status === 'cancelled' || currentSubscription.status === 'inactive') && (
-                  <TouchableOpacity 
-                    style={styles.reactivateButton}
+                  <Pressable 
+                    style={({ pressed }) => [styles.reactivateButton, { opacity: pressed ? 0.7 : 1 }]} 
                     onPress={handleReactivateSubscription}
                   >
                     <Ionicons name="refresh-outline" size={16} color={Colors.primary} />
                     <Text style={styles.reactivateButtonText}>
                       Select New Plan
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 )}
                 
                 {currentSubscription.status === 'past_due' && (
-                  <TouchableOpacity 
-                    style={styles.paymentButton}
+                  <Pressable 
+                    style={({ pressed }) => [styles.paymentButton, { opacity: pressed ? 0.7 : 1 }]} 
                     onPress={() => router.push('/(screens)/(dashboard)/payment')}
                   >
                     <Ionicons name="card-outline" size={16} color={Colors.white} />
                     <Text style={styles.paymentButtonText}>Update Payment Method</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 )}
               </View>
             </View>
@@ -451,10 +448,11 @@ const PlansBilling = () => {
                 <Text style={styles.billingToggleLabel}>Monthly</Text>
                 <Text style={styles.billingToggleSubLabel}>Billed monthly</Text>
               </View>
-              <TouchableOpacity
-                style={[
+              <Pressable
+                style={({ pressed }) => [
                   styles.simpleToggle,
-                  billingCycle === 'annual' && styles.simpleToggleActive
+                  billingCycle === 'annual' && styles.simpleToggleActive,
+                  { opacity: pressed ? 0.7 : 1 },
                 ]}
                 onPress={() => setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly')}
               >
@@ -462,7 +460,7 @@ const PlansBilling = () => {
                   styles.toggleThumb,
                   billingCycle === 'annual' && styles.toggleThumbActive
                 ]} />
-              </TouchableOpacity>
+              </Pressable>
               <View style={styles.toggleLabelContainer}>
                 <Text style={styles.billingToggleLabel}>Annual</Text>
                 <Text style={styles.billingToggleSubLabel}>Save 17%</Text>
@@ -492,9 +490,9 @@ const PlansBilling = () => {
         <View style={styles.section}>
           <View style={styles.billingHeader}>
             <Text style={styles.sectionTitle}>Billing History</Text>
-            <TouchableOpacity onPress={handleViewAllTransactions}>
+            <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })} onPress={handleViewAllTransactions}>
               <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
           
           <View style={styles.transactionsContainer}>
@@ -525,6 +523,18 @@ const PlansBilling = () => {
       
       {/* Custom Alert Component */}
       <AlertComponent />
+
+      {/* Payment Confirmation Sheet */}
+      {selectedPlanDetails && (
+        <PaymentConfirmationSheet
+            ref={paymentSheetRef}
+            planName={selectedPlanDetails.name}
+            price={billingCycle === 'monthly' ? selectedPlanDetails.price : selectedPlanDetails.annualPrice}
+            billingCycle={billingCycle}
+            onProceed={handleProceedToPayment}
+            onClose={() => paymentSheetRef.current?.dismiss()}
+        />
+      )}
     </View>
   );
 };

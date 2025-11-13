@@ -51,7 +51,6 @@ function Navigator() {
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="(screens)" />
-            <Stack.Screen name="forgot-password" options={{ presentation: "modal" }} />
         </Stack>
     );
 }
