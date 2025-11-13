@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlashList, FlashListProps } from '@shopify/flash-list';
+import { FlashList } from '@shopify/flash-list';
 import {
   Image,
   StyleSheet,
@@ -28,7 +28,6 @@ interface Conversation {
   sellerAvatar: string;
   lastMessage: string;
   lastMessageTime: string;
-  // Note: unreadCount is expected to be calculated by the backend/API
   unreadCount: number;
   listingTitle: string;
 }
