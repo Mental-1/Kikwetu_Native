@@ -60,7 +60,7 @@ function ListingsContent() {
   const unsaveListingMutation = useUnsaveListing();
 
   const flatListRef = useRef<React.ComponentRef<typeof FlashList<ListingItem>>>(null);
-  const filtersModalRef = useRef<BottomSheetModal>(null);
+    const filtersModalRef = useRef<BottomSheetModal>(null);
   const sortModalRef = useRef<BottomSheetModal>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -211,7 +211,7 @@ function ListingsContent() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       
       {/* Header */}
       <SafeAreaView style={styles.header} edges={['top']}>
@@ -298,7 +298,7 @@ function ListingsContent() {
           <FlashList
             ref={flatListRef}
             key="grid"
-            data={listings}
+            data={listings as ListingItem[]}
             renderItem={renderGridItem}
             keyExtractor={(item) => item.id}
             numColumns={2}
@@ -325,7 +325,7 @@ function ListingsContent() {
           <FlashList
             ref={flatListRef}
             key="list"
-            data={listings}
+            data={listings as ListingItem[]}
             renderItem={renderListItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}
@@ -372,9 +372,7 @@ function ListingsContent() {
           onPress={scrollToTop}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <View style={styles.backToTopTouchable}>
-            <Ionicons name="chevron-up" size={24} color={Colors.white} />
-          </View>
+          <Ionicons name="chevron-up" size={24} color={Colors.white} />
         </Pressable>
       )}
     </View>
@@ -547,8 +545,6 @@ const styles = StyleSheet.create({
     bottom: 20,
     right: 20,
     zIndex: 1000,
-  },
-  backToTopTouchable: {
     backgroundColor: Colors.primary,
     width: 50,
     height: 50,

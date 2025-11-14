@@ -1,4 +1,4 @@
-import AvatarDropdown from '@/components/AvatarDropdown';
+import AvatarSheet from '@/components/AvatarSheet';
 import ListingCard from '@/components/ListingCard';
 import NotificationBadge from '@/components/NotificationBadge';
 import CustomDialog from '@/components/ui/CustomDialog';
@@ -20,8 +20,10 @@ import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CategoryItem from '@/components/CategoryItem';
 
 type ActiveModal = 'none' | 'signOutDialog';
 
@@ -183,179 +185,150 @@ const Home = (props: Props) => {
             <StatusBar style="light" />
             <SafeAreaView style={styles.header} edges={['top']}>
                 <View style={styles.headerContent}>
-                {/* Logo */}
-                <View style={styles.logoContainer}>
-                    <Image 
-                        source={require('@/assets/images/icon.png')} 
-                        style={styles.logo}
-                        resizeMode="contain"
-                    />
-                </View>
-                
-                {/* Right side icons */}
-                <View style={styles.headerRight}>
-                    {/* Notifications Badge */}
-                    <NotificationBadge notifications={notifications} onMarkAllAsRead={markAllAsRead} />
+                    <View style={styles.logoContainer}>
+                        <Image 
+                            source={require('@/assets/images/icon.png')} 
+                            style={styles.logo}
+                            contentFit='contain'
+                        />
+                    </View>
                     
-                    {/* Account Avatar */}
-                    <Pressable style={({ pressed }) => [styles.avatarContainer, { opacity: pressed ? 0.7 : 1 }]} onPress={handleAccountPress}>
-                        <View style={[styles.avatar, user && styles.authenticatedAvatar]}>
-                            {user ? (
-                                <Text style={styles.avatarText}>
-                                    {user.full_name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
-                                </Text>
-                            ) : (
-                                <Ionicons name="person-outline" size={20} color={Colors.white} />
-                            )}
-                        </View>
-                    </Pressable>
-                </View>
+                    <View style={styles.headerRight}>
+                        <NotificationBadge notifications={notifications} onMarkAllAsRead={markAllAsRead} />
+                        
+                        <Pressable style={({ pressed }) => [styles.avatarContainer, { opacity: pressed ? 0.7 : 1 }]} onPress={handleAccountPress}>
+                            <View style={[styles.avatar, user && styles.authenticatedAvatar]}>
+                                {user ? (
+                                    <Text style={styles.avatarText}>
+                                        {user.full_name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
+                                    </Text>
+                                ) : (
+                                    <Ionicons name="person-outline" size={20} color={Colors.white} />
+                                )}
+                            </View>
+                        </Pressable>
+                    </View>
                 </View>
             </SafeAreaView>
             
-            <SafeAreaView style={{ flex: 1 }} edges={['bottom', 'left', 'right']}>
-                <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                    {/* Search Bar */}
-                    <View style={styles.searchContainer}>
-                        <View style={styles.searchBar}>
-                            <Ionicons name="search-outline" size={20} color={Colors.grey} style={styles.searchIcon} />
-                            <TextInput
-                                style={styles.searchInput}
-                                placeholder="Search Kikwetu"
-                                placeholderTextColor={Colors.grey}
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                                onSubmitEditing={handleSearchSubmit}
-                                returnKeyType="search"
-                            />
-                        </View>
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                <View style={styles.searchContainer}>
+                    <View style={styles.searchBar}>
+                        <Ionicons name="search-outline" size={20} color={Colors.grey} style={styles.searchIcon} />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Search Kikwetu"
+                            placeholderTextColor={Colors.grey}
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            onSubmitEditing={handleSearchSubmit}
+                            returnKeyType="search"
+                        />
                     </View>
+                </View>
 
-                    {/* Browse Categories Section */}
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Explore Our Categories</Text>
-                        </View>
-                        
-                        {categoriesLoading ? (
-                            <View style={styles.loadingContainer}>
-                                <ActivityIndicator size="large" color={Colors.primary} />
-                                <Text style={styles.loadingText}>Loading categories...</Text>
-                            </View>
-                        ) : (
-                            <View style={styles.categoriesGrid}>
-                                {categoryRows.map((row, rowIndex) => (
-                                    <View key={rowIndex} style={styles.categoryRow}>
-                                        {row.map((category) => (
-                                            <Pressable 
-                                                key={category.id} 
-                                                style={({ pressed }) => [
-                                                    styles.categoryItem,
-                                                    loadingCategoryId === category.id && styles.categoryItemLoading,
-                                                    { opacity: pressed ? 0.7 : 1 },
-                                                ]}
-                                                onPress={() => handleCategoryPress(category.id)}
-                                            >
-                                                <View style={styles.categoryImageContainer}>
-                                                    {loadingCategoryId === category.id ? (
-                                                        <ActivityIndicator size="small" color={Colors.primary} />
-                                                    ) : (
-                                                        <Image 
-                                                            source={getCategoryImage(category.name)}
-                                                            style={styles.categoryImage}
-                                                            resizeMode="cover"
-                                                        />
-                                                    )}
-                                                </View>
-                                                <Text style={styles.categoryName} numberOfLines={2}>
-                                                    {category.name}
-                                                </Text>
-                                            </Pressable>
-                                        ))}
-                                    </View>
-                                ))}
-                            </View>
-                        )}
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Explore Our Categories</Text>
                     </View>
-
-                    {/* For You Section */}
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>See It In Action: For You</Text>
-                            <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })} onPress={() => router.push('/(tabs)/discover')}>
-                                <Text style={styles.seeAllText}>See More</Text>
-                            </Pressable>
+                    
+                    {categoriesLoading ? (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="large" color={Colors.primary} />
+                            <Text style={styles.loadingText}>Loading categories...</Text>
                         </View>
-                        
-                        {videosLoading ? (
-                            <View style={styles.loadingContainer}>
-                                <ActivityIndicator size="small" color={Colors.primary} />
-                                <Text style={styles.loadingText}>Loading videos...</Text>
-                            </View>
-                        ) : (
-                            <ScrollView 
-                                horizontal 
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.videoScrollContent}
-                            >
-                                {featuredVideos?.map((video) => (
-                                    <VideoCard
-                                        key={video.id}
-                                        id={video.id}
-                                        title={video.title}
-                                        videoUrl={video.videoUrl}
-                                        thumbnail={video.thumbnail}
-                                        duration={video.duration?.toString()}
-                                        onPress={handleVideoPress}
-                                    />
-                                ))}
-                            </ScrollView>
-                        )}
-                    </View>
-
-                    {/* Listings Near You Section */}
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Listings Near You</Text>
-                            <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })} onPress={() => router.push('/(tabs)/listings')}>
-                                <Text style={styles.seeAllText}>See More</Text>
-                            </Pressable>
+                    ) : (
+                        <View style={styles.categoriesGrid}>
+                            {categoryRows.map((row, rowIndex) => (
+                                <View key={rowIndex} style={styles.categoryRow}>
+                                    {row.map((category) => (
+                                        <CategoryItem
+                                            key={category.id}
+                                            id={category.id}
+                                            name={category.name}
+                                            isLoading={loadingCategoryId === category.id}
+                                            onPress={handleCategoryPress}
+                                        />
+                                    ))}
+                                </View>
+                            ))}
                         </View>
-                        
-                        {listingsLoading ? (
-                            <View style={styles.loadingContainer}>
-                                <ActivityIndicator size="small" color={Colors.primary} />
-                                <Text style={styles.loadingText}>Loading listings...</Text>
-                            </View>
-                        ) : (
-                            <View style={styles.listingsGrid}>
-                                {displayListings.map((listing) => (
-                                    <ListingCard
-                                        key={listing.id}
-                                        id={listing.id}
-                                        title={listing.title}
-                                        price={`Kes ${listing.price?.toLocaleString() || '0'}`}
-                                        condition={listing.condition || 'Unknown'}
-                                        location={listing.location || 'Unknown'}
-                                        image={listing.images?.[0] || 'https://via.placeholder.com/200x140'}
-                                        description={listing.description}
-                                        views={listing.views || 0}
-                                        isFavorite={favoriteStates[listing.id] || false}
-                                        viewMode="grid"
-                                        onPress={handleListingPress}
-                                        onFavoritePress={handleListingFavoritePress}
-                                    />
-                                ))}
-                            </View>
-                        )}
-                    </View>
+                    )}
+                </View>
 
-                    {/* Bottom padding for better scrolling */}
-                    <View style={styles.bottomPadding} />
-                </ScrollView>
-            </SafeAreaView>
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>See It In Action: For You</Text>
+                        <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })} onPress={() => router.push('/(tabs)/discover')}>
+                            <Text style={styles.seeAllText}>See More</Text>
+                        </Pressable>
+                    </View>
+                    
+                    {videosLoading ? (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="small" color={Colors.primary} />
+                            <Text style={styles.loadingText}>Loading videos...</Text>
+                        </View>
+                    ) : (
+                        <ScrollView 
+                            horizontal 
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.videoScrollContent}
+                        >
+                            {featuredVideos?.map((video) => (
+                                <VideoCard
+                                    key={video.id}
+                                    id={video.id}
+                                    title={video.title}
+                                    videoUrl={video.videoUrl}
+                                    thumbnail={video.thumbnail}
+                                    duration={video.duration?.toString()}
+                                    onPress={handleVideoPress}
+                                />
+                            ))}
+                        </ScrollView>
+                    )}
+                </View>
+
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Listings Near You</Text>
+                        <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })} onPress={() => router.push('/(tabs)/listings')}>
+                            <Text style={styles.seeAllText}>See More</Text>
+                        </Pressable>
+                    </View>
+                    
+                    {listingsLoading ? (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="small" color={Colors.primary} />
+                            <Text style={styles.loadingText}>Loading listings...</Text>
+                        </View>
+                    ) : (
+                        <View style={styles.listingsGrid}>
+                            {displayListings.map((listing) => (
+                                <ListingCard
+                                    key={listing.id}
+                                    id={listing.id}
+                                    title={listing.title}
+                                    price={`Kes ${listing.price?.toLocaleString() || '0'}`}
+                                    condition={listing.condition || 'Unknown'}
+                                    location={listing.location || 'Unknown'}
+                                    image={listing.images?.[0] || 'https://via.placeholder.com/200x140'}
+                                    description={listing.description}
+                                    views={listing.views || 0}
+                                    isFavorite={favoriteStates[listing.id] || false}
+                                    viewMode="grid"
+                                    onPress={handleListingPress}
+                                    onFavoritePress={handleListingFavoritePress}
+                                />
+                            ))}
+                        </View>
+                    )}
+                </View>
+
+                <View style={styles.bottomPadding} />
+            </ScrollView>
             
-            {/* Auth Modals */}
             <SignIn
                 ref={signInRef}
                 onClose={handleCloseAuth}
@@ -373,8 +346,7 @@ const Home = (props: Props) => {
                 onSwitchToSignIn={handleSwitchToSignIn}
             />
 
-            {/* Avatar Dropdown */}
-            <AvatarDropdown
+            <AvatarSheet
                 ref={avatarDropdownRef}
                 onClose={() => avatarDropdownRef.current?.dismiss()}
                 onDashboard={handleDashboard}
@@ -383,7 +355,6 @@ const Home = (props: Props) => {
                 userEmail={user?.email}
             />
 
-            {/* Sign Out Confirmation Dialog */}
             <CustomDialog
                 visible={activeModal === 'signOutDialog'}
                 title="Sign Out"
@@ -465,7 +436,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.background,
     },
-    // Search Bar Styles
     searchContainer: {
         paddingHorizontal: 16,
         paddingTop: 16,
@@ -495,7 +465,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: Colors.black,
     },
-    // Section Styles
     section: {
         paddingHorizontal: 16,
         paddingVertical: 20,
@@ -517,7 +486,6 @@ const styles = StyleSheet.create({
         color: Colors.primary,
         fontWeight: '600',
     },
-    // Categories Styles
     loadingContainer: {
         alignItems: 'center',
         justifyContent: 'center',
@@ -529,55 +497,17 @@ const styles = StyleSheet.create({
         marginTop: 12,
     },
     categoriesGrid: {
-        paddingRight: 16,
+        width: '100%',
     },
     categoryRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: 12,
-        paddingHorizontal: 0,
-    },
-    categoryItem: {
-        width: '20%',
-        alignItems: 'center',
-    },
-    categoryImageContainer: {
         width: '100%',
-        aspectRatio: 1,
-        borderRadius: 999,
-        backgroundColor: Colors.white,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 4,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        overflow: 'hidden',
     },
-    categoryImage: {
-        width: '100%',
-        height: '100%',
-    },
-    categoryName: {
-        fontSize: 10,
-        color: Colors.black,
-        textAlign: 'center',
-        fontWeight: '500',
-        lineHeight: 12,
-    },
-    categoryItemLoading: {
-        opacity: 0.7,
-    },
-    // Video Cards Styles
     videoScrollContent: {
         paddingRight: 16,
     },
-    // Listings Grid Styles
     listingsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',

@@ -228,21 +228,8 @@ export default function ListingDetails() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       
-      {/* Header */}
-      <SafeAreaView style={styles.header} edges={['top']}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Ionicons name="chevron-back" size={24} color={Colors.black} />
-        </TouchableOpacity>
-          <Text style={styles.headerTitle}>Listing Details</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIcon} onPress={handleShare}>
-            <Ionicons name="share-social-outline" size={24} color={Colors.black} />
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Image Carousel */}
         <View style={styles.imageSection}>
@@ -521,6 +508,16 @@ export default function ListingDetails() {
         </View>
       </ScrollView>
 
+      {/* Header Buttons */}
+      <SafeAreaView style={styles.overlayHeader} edges={['top']}>
+        <TouchableOpacity style={styles.overlayButton} onPress={handleBack}>
+          <Ionicons name="chevron-back" size={24} color={Colors.black} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.overlayButton} onPress={handleShare}>
+          <Ionicons name="share-social-outline" size={24} color={Colors.black} />
+        </TouchableOpacity>
+      </SafeAreaView>
+
       {/* Bottom Action Bar */}
       <View style={styles.bottomBar}>
         <TouchableOpacity 
@@ -603,39 +600,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  header: {
+  overlayHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 0.2,
-    borderBottomColor: Colors.lightgrey,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    zIndex: 1,
   },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.black,
-  },
-  headerRight: {
-    flexDirection: 'row',
+  overlayButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
-  },
-  headerIcon: {
-    padding: 4,
   },
   content: {
     flex: 1,
