@@ -1,14 +1,28 @@
-import { createListing, CreateListingData, deleteListing, getListingById, getListings, getUserListings, updateListing, updateListingStatus, ListingFilters } from '@/src/services/listingsService';
-import { uploadImages } from '@/src/utils/imageUpload';
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
+import {
+  createListing,
+  CreateListingData,
+  deleteListing,
+  getListingById,
+  getListings,
+  getUserListings,
+  ListingFilters,
+  updateListing,
+  updateListingStatus,
+} from "@/src/services/listingsService";
+import { uploadImages } from "@/src/utils/imageUpload";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 /**
  * Hook to fetch user's listings
  */
 export function useUserListings(filters?: any) {
   return useQuery({
-    queryKey: ['userListings', filters],
+    queryKey: ["userListings", filters],
     queryFn: () => getUserListings(filters),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -19,7 +33,7 @@ export function useUserListings(filters?: any) {
  */
 export function useListingDetails(listingId: string) {
   return useQuery({
-    queryKey: ['listingDetails', listingId],
+    queryKey: ["listingDetails", listingId],
     queryFn: () => getListingById(listingId),
     enabled: !!listingId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -39,19 +53,19 @@ export function useCreateListing() {
       onUploadProgress?: (progress: number) => void;
     }) => {
       const { listingData, imageUris, onUploadProgress } = data;
-      
+
       let uploadedImages: string[] = [];
       if (imageUris && imageUris.length > 0) {
         onUploadProgress?.(10);
-        
+
         const uploadResults = await uploadImages(imageUris, {
           onProgress: (progress) => {
             const mappedProgress = 10 + (progress.percentage * 0.8);
             onUploadProgress?.(mappedProgress);
           },
         });
-        
-        uploadedImages = uploadResults.map(result => result.url);
+
+        uploadedImages = uploadResults.map((result) => result.url);
         onUploadProgress?.(90);
       }
 
@@ -64,12 +78,12 @@ export function useCreateListing() {
       onUploadProgress?.(95);
       const result = await createListing(listingWithImages);
       onUploadProgress?.(100);
-      
+
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userListings'] });
-      queryClient.invalidateQueries({ queryKey: ['listings'] });
+      queryClient.invalidateQueries({ queryKey: ["userListings"] });
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
     },
   });
 }
@@ -88,19 +102,19 @@ export function useUpdateListing() {
       onUploadProgress?: (progress: number) => void;
     }) => {
       const { listingId, listingData, imageUris, onUploadProgress } = data;
-      
+
       let uploadedImages: string[] = [];
       if (imageUris && imageUris.length > 0) {
         onUploadProgress?.(10);
-        
+
         const uploadResults = await uploadImages(imageUris, {
           onProgress: (progress) => {
             const mappedProgress = 10 + (progress.percentage * 0.8);
             onUploadProgress?.(mappedProgress);
           },
         });
-        
-        uploadedImages = uploadResults.map(result => result.url);
+
+        uploadedImages = uploadResults.map((result) => result.url);
         onUploadProgress?.(90);
       }
 
@@ -113,13 +127,15 @@ export function useUpdateListing() {
       onUploadProgress?.(95);
       const result = await updateListing(listingId, updateData);
       onUploadProgress?.(100);
-      
+
       return result;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['userListings'] });
-      queryClient.invalidateQueries({ queryKey: ['listings'] });
-      queryClient.invalidateQueries({ queryKey: ['listingDetails', variables.listingId] });
+      queryClient.invalidateQueries({ queryKey: ["userListings"] });
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
+      queryClient.invalidateQueries({
+        queryKey: ["listingDetails", variables.listingId],
+      });
     },
   });
 }
@@ -133,8 +149,8 @@ export function useDeleteListing() {
   return useMutation({
     mutationFn: deleteListing,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userListings'] });
-      queryClient.invalidateQueries({ queryKey: ['listings'] });
+      queryClient.invalidateQueries({ queryKey: ["userListings"] });
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
     },
   });
 }
@@ -146,12 +162,15 @@ export function useUpdateListingStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ listingId, status }: { listingId: string; status: string }) =>
-      updateListingStatus(listingId, status),
+    mutationFn: (
+      { listingId, status }: { listingId: string; status: string },
+    ) => updateListingStatus(listingId, status),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['userListings'] });
-      queryClient.invalidateQueries({ queryKey: ['listings'] });
-      queryClient.invalidateQueries({ queryKey: ['listingDetails', variables.listingId] });
+      queryClient.invalidateQueries({ queryKey: ["userListings"] });
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
+      queryClient.invalidateQueries({
+        queryKey: ["listingDetails", variables.listingId],
+      });
     },
   });
 }
@@ -174,19 +193,23 @@ export function useSaveDraft() {
       images: string[];
       tags: string[];
       negotiable: boolean;
-      store_id?: number;
+      store_id?: string;
+      isDraft?: boolean;
     }) => {
       const draftKey = `listing_draft_${Date.now()}`;
-      await localStorage.setItem(draftKey, JSON.stringify({
-        ...draftData,
-        created_at: new Date().toISOString(),
-        status: 'draft',
-      }));
-      
+      await localStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          ...draftData,
+          created_at: new Date().toISOString(),
+          status: "draft",
+        }),
+      );
+
       return { draftKey, ...draftData };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['drafts'] });
+      queryClient.invalidateQueries({ queryKey: ["drafts"] });
     },
   });
 }
@@ -196,40 +219,43 @@ export function useSaveDraft() {
  */
 export function useLoadDrafts() {
   return useQuery({
-    queryKey: ['drafts'],
+    queryKey: ["drafts"],
     queryFn: async () => {
       const drafts: any[] = [];
-      
+
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('listing_draft_')) {
+        if (key && key.startsWith("listing_draft_")) {
           try {
-            const draftData = JSON.parse(localStorage.getItem(key) || '{}');
+            const draftData = JSON.parse(localStorage.getItem(key) || "{}");
             drafts.push({ key, ...draftData });
           } catch (error) {
-            console.error('Error parsing draft:', error);
+            console.error("Error parsing draft:", error);
           }
         }
       }
-      
-      return drafts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      return drafts.sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     },
     staleTime: 1 * 60 * 1000,
   });
 }
-
 
 /**
  * Hook for fetching listings with infinite scrolling
  */
 export function useListings(filters: ListingFilters = {}) {
   return useInfiniteQuery({
-    queryKey: ['listings', filters],
+    queryKey: ["listings", filters],
     queryFn: ({ pageParam = 1 }) => getListings(filters, pageParam),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       if (!lastPage.pagination) return undefined;
-      return lastPage.pagination.page < lastPage.pagination.totalPages ? allPages.length + 1 : undefined;
+      return lastPage.pagination.page < lastPage.pagination.totalPages
+        ? allPages.length + 1
+        : undefined;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes

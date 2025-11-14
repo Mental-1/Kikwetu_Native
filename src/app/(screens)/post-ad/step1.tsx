@@ -18,11 +18,11 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
@@ -56,9 +56,7 @@ export default function Step1() {
   } = useAppStore((state) => state.postAd);
 
   const [tagInput, setTagInput] = useState('');
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const [showSubcategoryDropdown, setShowSubcategoryDropdown] = useState(false);
-  const [showStoreDropdown, setShowStoreDropdown] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [priceInput, setPriceInput] = useState('');
 
   useEffect(() => {
@@ -68,11 +66,11 @@ export default function Step1() {
       setPriceInput(price.toLocaleString());
     }
   }, [price]);
+
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
 
   const { showAlert, AlertComponent } = useCustomAlert();
-
   const alertHelpers = useMemo(
     () => createAlertHelpers(showAlert),
     [showAlert]
@@ -125,14 +123,12 @@ export default function Step1() {
   const formatPrice = (value: string) => {
     const numericValue = value.replace(/\D/g, '');
     if (numericValue === '') return '';
-
     return parseInt(numericValue).toLocaleString();
   };
 
   const handlePriceChange = (text: string) => {
     const formatted = formatPrice(text);
     setPriceInput(formatted);
-
     const numericValue = text.replace(/\D/g, '');
     setPrice(numericValue ? parseFloat(numericValue) : null);
   };
@@ -170,7 +166,6 @@ export default function Step1() {
         setLocation(locationText);
         setLatitude(locationData.latitude);
         setLongitude(locationData.longitude);
-
         showLocationSuccessAlert(
           'Your location has been automatically detected and filled in.'
         );
@@ -195,6 +190,10 @@ export default function Step1() {
     setShowLocationDialog(false);
   };
 
+  const toggleDropdown = (name: string) => {
+    setOpenDropdown(openDropdown === name ? null : name);
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -205,9 +204,15 @@ export default function Step1() {
           <StatusBar style='dark' />
           {/* Header */}
           <SafeAreaView style={styles.header} edges={['top']}>
-            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.backButton,
+                { opacity: pressed ? 0.7 : 1 },
+              ]}
+              onPress={handleBack}
+            >
               <Ionicons name='chevron-back' size={24} color={Colors.black} />
-            </TouchableOpacity>
+            </Pressable>
             <Text style={styles.headerTitle}>Post Ad - Details</Text>
             <View style={styles.placeholder} />
           </SafeAreaView>
@@ -256,11 +261,9 @@ export default function Step1() {
                 {/* Category Dropdown */}
                 <View style={styles.halfWidth}>
                   <Text style={styles.label}>Category *</Text>
-                  <TouchableOpacity
+                  <Pressable
                     style={styles.dropdown}
-                    onPress={() =>
-                      setShowCategoryDropdown(!showCategoryDropdown)
-                    }
+                    onPress={() => toggleDropdown('category')}
                   >
                     <Text
                       style={[
@@ -273,15 +276,13 @@ export default function Step1() {
                         : 'Select Category'}
                     </Text>
                     <Ionicons
-                      name={
-                        showCategoryDropdown ? 'chevron-up' : 'chevron-down'
-                      }
+                      name={openDropdown === 'category' ? 'chevron-up' : 'chevron-down'}
                       size={20}
                       color={Colors.grey}
                     />
-                  </TouchableOpacity>
+                  </Pressable>
 
-                  {showCategoryDropdown && (
+                  {openDropdown === 'category' && (
                     <View style={styles.dropdownList}>
                       <ScrollView
                         style={styles.dropdownScroll}
@@ -295,18 +296,18 @@ export default function Step1() {
                           </Text>
                         ) : (
                           categories?.map((category) => (
-                            <TouchableOpacity
+                            <Pressable
                               key={category.id}
                               style={styles.dropdownItem}
                               onPress={() => {
                                 setCategoryId(category.id);
-                                setShowCategoryDropdown(false);
+                                toggleDropdown('category');
                               }}
                             >
                               <Text style={styles.dropdownItemText}>
                                 {category.name}
                               </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                           ))
                         )}
                       </ScrollView>
@@ -317,14 +318,13 @@ export default function Step1() {
                 {/* Subcategory Dropdown */}
                 <View style={styles.halfWidth}>
                   <Text style={styles.label}>Subcategory</Text>
-                  <TouchableOpacity
+                  <Pressable
                     style={[
                       styles.dropdown,
                       !categoryId && styles.disabledDropdown,
                     ]}
                     onPress={() =>
-                      categoryId &&
-                      setShowSubcategoryDropdown(!showSubcategoryDropdown)
+                      categoryId && toggleDropdown('subcategory')
                     }
                     disabled={!categoryId}
                   >
@@ -344,14 +344,14 @@ export default function Step1() {
                     </Text>
                     <Ionicons
                       name={
-                        showSubcategoryDropdown ? 'chevron-up' : 'chevron-down'
+                        openDropdown === 'subcategory' ? 'chevron-up' : 'chevron-down'
                       }
                       size={20}
                       color={Colors.grey}
                     />
-                  </TouchableOpacity>
+                  </Pressable>
 
-                  {showSubcategoryDropdown && categoryId && (
+                  {openDropdown === 'subcategory' && categoryId && (
                     <View style={styles.dropdownList}>
                       <ScrollView
                         style={styles.dropdownScroll}
@@ -365,18 +365,18 @@ export default function Step1() {
                           </Text>
                         ) : (
                           subcategories?.map((subcategory) => (
-                            <TouchableOpacity
+                            <Pressable
                               key={subcategory.id}
                               style={styles.dropdownItem}
                               onPress={() => {
                                 setSubcategoryId(subcategory.id);
-                                setShowSubcategoryDropdown(false);
+                                toggleDropdown('subcategory');
                               }}
                             >
                               <Text style={styles.dropdownItemText}>
                                 {subcategory.name}
                               </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                           ))
                         )}
                       </ScrollView>
@@ -389,9 +389,9 @@ export default function Step1() {
             {/* Store Selection */}
             <View style={styles.section}>
               <Text style={styles.label}>Store (Optional)</Text>
-              <TouchableOpacity
+              <Pressable
                 style={styles.dropdown}
-                onPress={() => setShowStoreDropdown(!showStoreDropdown)}
+                onPress={() => toggleDropdown('store')}
               >
                 <Text
                   style={[
@@ -404,13 +404,13 @@ export default function Step1() {
                     : 'Select Store (Optional)'}
                 </Text>
                 <Ionicons
-                  name={showStoreDropdown ? 'chevron-up' : 'chevron-down'}
+                  name={openDropdown === 'store' ? 'chevron-up' : 'chevron-down'}
                   size={20}
                   color={Colors.grey}
                 />
-              </TouchableOpacity>
+              </Pressable>
 
-              {showStoreDropdown && (
+              {openDropdown === 'store' && (
                 <View style={styles.dropdownList}>
                   <ScrollView
                     style={styles.dropdownScroll}
@@ -423,10 +423,14 @@ export default function Step1() {
                     ) : (
                       <>
                         {/* Create Store Option */}
-                        <TouchableOpacity
-                          style={[styles.dropdownItem, styles.createStoreItem]}
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.dropdownItem,
+                            styles.createStoreItem,
+                            { opacity: pressed ? 0.7 : 1 },
+                          ]}
                           onPress={() => {
-                            setShowStoreDropdown(false);
+                            toggleDropdown('store');
                             router.push(
                               '/(screens)/(dashboard)/stores/store-create'
                             );
@@ -445,7 +449,7 @@ export default function Step1() {
                           >
                             Create New Store
                           </Text>
-                        </TouchableOpacity>
+                        </Pressable>
 
                         {/* Existing Stores */}
                         {safeStores.length === 0 ? (
@@ -454,18 +458,18 @@ export default function Step1() {
                           </Text>
                         ) : (
                           safeStores.map((store) => (
-                            <TouchableOpacity
+                            <Pressable
                               key={store.id}
                               style={styles.dropdownItem}
                               onPress={() => {
                                 setStoreId(store.id);
-                                setShowStoreDropdown(false);
+                                toggleDropdown('store');
                               }}
                             >
                               <Text style={styles.dropdownItemText}>
                                 {store.name}
                               </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                           ))
                         )}
                       </>
@@ -488,10 +492,12 @@ export default function Step1() {
               />
 
               {/* Negotiable Checkbox */}
-              <TouchableOpacity
-                style={styles.checkboxContainer}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.checkboxContainer,
+                  { opacity: pressed ? 0.7 : 1 },
+                ]}
                 onPress={() => setIsNegotiable(!isNegotiable)}
-                activeOpacity={0.7}
               >
                 <View
                   style={[
@@ -504,7 +510,7 @@ export default function Step1() {
                   )}
                 </View>
                 <Text style={styles.checkboxLabel}>Price is negotiable</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             {/* Location */}
@@ -518,10 +524,11 @@ export default function Step1() {
                   value={location}
                   onChangeText={setLocation}
                 />
-                <TouchableOpacity
-                  style={[
+                <Pressable
+                  style={({ pressed }) => [
                     styles.locationButton,
                     isLoadingLocation && styles.locationButtonLoading,
+                    { opacity: pressed ? 0.7 : 1 },
                   ]}
                   onPress={requestLocation}
                   disabled={isLoadingLocation}
@@ -535,7 +542,7 @@ export default function Step1() {
                       color={Colors.primary}
                     />
                   )}
-                </TouchableOpacity>
+                </Pressable>
               </View>
             </View>
 
@@ -544,11 +551,12 @@ export default function Step1() {
               <Text style={styles.label}>Condition *</Text>
               <View style={styles.conditionContainer}>
                 {['New', 'Like New', 'Good', 'Fair', 'Poor'].map((cond) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={cond}
-                    style={[
+                    style={({ pressed }) => [
                       styles.conditionButton,
                       condition === cond && styles.conditionButtonSelected,
+                      { opacity: pressed ? 0.7 : 1 },
                     ]}
                     onPress={() => setCondition(cond)}
                   >
@@ -560,7 +568,7 @@ export default function Step1() {
                     >
                       {cond}
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             </View>
@@ -581,23 +589,32 @@ export default function Step1() {
                   returnKeyType='done'
                   blurOnSubmit={false}
                 />
-                <TouchableOpacity style={styles.addTagButton} onPress={addTag}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.addTagButton,
+                    { opacity: pressed ? 0.7 : 1 },
+                  ]}
+                  onPress={addTag}
+                >
                   <Ionicons name='add' size={20} color={Colors.white} />
-                </TouchableOpacity>
+                </Pressable>
               </View>
 
               {/* Display Tags */}
               {tags.length > 0 && (
                 <View style={styles.tagsContainer}>
                   {tags.map((tag, index) => (
-                    <TouchableOpacity
+                    <Pressable
                       key={index}
-                      style={styles.tag}
+                      style={({ pressed }) => [
+                        styles.tag,
+                        { opacity: pressed ? 0.7 : 1 },
+                      ]}
                       onPress={() => removeTag(tag)}
                     >
                       <Text style={styles.tagText}>#{tag}</Text>
                       <Ionicons name='close' size={16} color={Colors.white} />
-                    </TouchableOpacity>
+                    </Pressable>
                   ))}
                 </View>
               )}
@@ -607,10 +624,16 @@ export default function Step1() {
           {/* Next Button */}
           <SafeAreaView edges={['bottom']}>
             <View style={styles.footer}>
-              <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.nextButton,
+                  { opacity: pressed ? 0.7 : 1 },
+                ]}
+                onPress={handleNext}
+              >
                 <Text style={styles.nextButtonText}>Next: Add Media</Text>
                 <Ionicons name='chevron-forward' size={20} color={Colors.white} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </SafeAreaView>
 

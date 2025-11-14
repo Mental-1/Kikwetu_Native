@@ -15,6 +15,7 @@ interface PostAdState {
   videos: string[];
   latitude: number | null;
   longitude: number | null;
+  isDraft: boolean;
   setTitle: (title: string) => void;
   setDescription: (description: string) => void;
   setPrice: (price: number | null) => void;
@@ -30,6 +31,7 @@ interface PostAdState {
   setVideos: (videos: string[]) => void;
   setLatitude: (latitude: number | null) => void;
   setLongitude: (longitude: number | null) => void;
+  setIsDraft: (isDraft: boolean) => void;
   resetPostAd: () => void;
 }
 
@@ -58,6 +60,7 @@ export const useAppStore = create<AppState>((set) => ({
     videos: [],
     latitude: null,
     longitude: null,
+    isDraft: false,
     setTitle: (title) => set((state) => ({ postAd: { ...state.postAd, title } })),
     setDescription: (description) =>
       set((state) => ({ postAd: { ...state.postAd, description } })),
@@ -74,6 +77,7 @@ export const useAppStore = create<AppState>((set) => ({
     setVideos: (videos) => set((state) => ({ postAd: { ...state.postAd, videos } })),
     setLatitude: (latitude) => set((state) => ({ postAd: { ...state.postAd, latitude } })),
     setLongitude: (longitude) => set((state) => ({ postAd: { ...state.postAd, longitude } })),
+    setIsDraft: (isDraft) => set((state) => ({ postAd: { ...state.postAd, isDraft } })),
     resetPostAd: () => set((state) => ({
       postAd: {
         ...state.postAd,
@@ -92,6 +96,7 @@ export const useAppStore = create<AppState>((set) => ({
         videos: [],
         latitude: null,
         longitude: null,
+        isDraft: false,
       }
     })),
   },

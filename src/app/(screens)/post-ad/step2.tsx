@@ -1,11 +1,20 @@
 import { Colors } from '@/src/constants/constant';
 import { useAppStore } from '@/stores/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useState } from 'react';
-import { Alert, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const MAX_IMAGES = 10;
@@ -13,7 +22,9 @@ const MAX_VIDEOS = 3;
 
 export default function Step2() {
   const router = useRouter();
-  const { images, videos, setImages, setVideos } = useAppStore((state) => state.postAd);
+  const { images, videos, setImages, setVideos } = useAppStore(
+    (state) => state.postAd
+  );
   const [activeTab, setActiveTab] = useState<'images' | 'videos'>('images');
 
   const handleBack = useCallback(() => {
@@ -22,17 +33,24 @@ export default function Step2() {
 
   const handleNext = useCallback(() => {
     if (images.length === 0 && videos.length === 0) {
-      Alert.alert('Media Required', 'Please add at least one image or video to your listing');
+      Alert.alert(
+        'Media Required',
+        'Please add at least one image or video to your listing'
+      );
       return;
     }
     router.push('/(screens)/post-ad/step3');
   }, [images.length, videos.length, router]);
 
   const pickImage = useCallback(async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
     if (permissionResult.granted === false) {
-      Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+      Alert.alert(
+        'Permission Required',
+        'Permission to access camera roll is required!'
+      );
       return;
     }
 
@@ -46,7 +64,10 @@ export default function Step2() {
     if (!result.canceled && result.assets) {
       const availableSlots = MAX_IMAGES - images.length;
       if (availableSlots <= 0) {
-        Alert.alert('Limit Reached', `You can only add up to ${MAX_IMAGES} images.`);
+        Alert.alert(
+          'Limit Reached',
+          `You can only add up to ${MAX_IMAGES} images.`
+        );
         return;
       }
 
@@ -59,17 +80,23 @@ export default function Step2() {
       if (result.assets.length > availableSlots) {
         Alert.alert(
           'Limit Reached',
-          `Only the first ${availableSlots} image${availableSlots > 1 ? 's were' : ' was'} added to keep you within the ${MAX_IMAGES}-image limit.`
+          `Only the first ${availableSlots} image${
+            availableSlots > 1 ? 's were' : ' was'
+          } added to keep you within the ${MAX_IMAGES}-image limit.`
         );
       }
     }
   }, [images, setImages]);
 
   const pickVideo = useCallback(async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
     if (permissionResult.granted === false) {
-      Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+      Alert.alert(
+        'Permission Required',
+        'Permission to access camera roll is required!'
+      );
       return;
     }
 
@@ -81,7 +108,10 @@ export default function Step2() {
 
     if (!result.canceled && result.assets[0]) {
       if (videos.length >= MAX_VIDEOS) {
-        Alert.alert('Limit Reached', `You can only add up to ${MAX_VIDEOS} videos.`);
+        Alert.alert(
+          'Limit Reached',
+          `You can only add up to ${MAX_VIDEOS} videos.`
+        );
         return;
       }
 
@@ -89,42 +119,60 @@ export default function Step2() {
     }
   }, [videos, setVideos]);
 
-  const removeImage = useCallback((index: number) => {
-    const newImages = images.filter((_, i) => i !== index);
-    setImages(newImages);
-  }, [images, setImages]);
+  const removeImage = useCallback(
+    (index: number) => {
+      const newImages = images.filter((_, i) => i !== index);
+      setImages(newImages);
+    },
+    [images, setImages]
+  );
 
-  const removeVideo = useCallback((index: number) => {
-    const newVideos = videos.filter((_, i) => i !== index);
-    setVideos(newVideos);
-  }, [videos, setVideos]);
+  const removeVideo = useCallback(
+    (index: number) => {
+      const newVideos = videos.filter((_, i) => i !== index);
+      setVideos(newVideos);
+    },
+    [videos, setVideos]
+  );
 
-  const renderImageItem = useCallback(({ item, index }: { item: string; index: number }) => (
-    <View style={styles.mediaItem}>
-      <Image source={{ uri: item }} style={styles.mediaImage} />
-      <TouchableOpacity 
-        style={styles.removeButton} 
-        onPress={() => removeImage(index)}
-      >
-        <Ionicons name="close" size={20} color={Colors.white} />
-      </TouchableOpacity>
-    </View>
-  ), [removeImage]);
-
-  const renderVideoItem = useCallback(({ item, index }: { item: string; index: number }) => (
-    <View style={styles.mediaItem}>
-      <View style={styles.videoPlaceholder}>
-        <Ionicons name="play-circle" size={40} color={Colors.primary} />
-        <Text style={styles.videoText}>Video {index + 1}</Text>
+  const renderImageItem = useCallback(
+    ({ item, index }: { item: string; index: number }) => (
+      <View style={styles.mediaItem}>
+        <Image source={{ uri: item }} style={styles.mediaImage} />
+        <Pressable
+          style={({ pressed }) => [
+            styles.removeButton,
+            { opacity: pressed ? 0.7 : 1 },
+          ]}
+          onPress={() => removeImage(index)}
+        >
+          <Ionicons name="close" size={20} color={Colors.white} />
+        </Pressable>
       </View>
-      <TouchableOpacity 
-        style={styles.removeButton} 
-        onPress={() => removeVideo(index)}
-      >
-        <Ionicons name="close" size={20} color={Colors.white} />
-      </TouchableOpacity>
-    </View>
-  ), [removeVideo]);
+    ),
+    [removeImage]
+  );
+
+  const renderVideoItem = useCallback(
+    ({ item, index }: { item: string; index: number }) => (
+      <View style={styles.mediaItem}>
+        <View style={styles.videoPlaceholder}>
+          <Ionicons name="play-circle" size={40} color={Colors.primary} />
+          <Text style={styles.videoText}>Video {index + 1}</Text>
+        </View>
+        <Pressable
+          style={({ pressed }) => [
+            styles.removeButton,
+            { opacity: pressed ? 0.7 : 1 },
+          ]}
+          onPress={() => removeVideo(index)}
+        >
+          <Ionicons name="close" size={20} color={Colors.white} />
+        </Pressable>
+      </View>
+    ),
+    [removeVideo]
+  );
 
   const handleTabChange = useCallback((tab: 'images' | 'videos') => {
     setActiveTab(tab);
@@ -135,42 +183,60 @@ export default function Step2() {
       <StatusBar style="dark" />
       {/* Header */}
       <SafeAreaView style={styles.header} edges={['top']}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.backButton,
+            { opacity: pressed ? 0.7 : 1 },
+          ]}
+          onPress={handleBack}
+        >
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.headerTitle}>Post Ad - Media</Text>
         <View style={styles.placeholder} />
       </SafeAreaView>
 
       {/* Tab Selector */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'images' && styles.activeTab]}
+        <Pressable
+          style={({ pressed }) => [
+            styles.tab,
+            activeTab === 'images' && styles.activeTab,
+            { opacity: pressed ? 0.7 : 1 },
+          ]}
           onPress={() => handleTabChange('images')}
         >
-          <Ionicons 
-            name="images-outline" 
-            size={20} 
-            color={activeTab === 'images' ? Colors.primary : Colors.grey} 
+          <Ionicons
+            name="images-outline"
+            size={20}
+            color={activeTab === 'images' ? Colors.primary : Colors.grey}
           />
-          <Text style={[styles.tabText, activeTab === 'images' && styles.activeTabText]}>
+          <Text
+            style={[styles.tabText, activeTab === 'images' && styles.activeTabText]}
+          >
             Images ({images.length})
           </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'videos' && styles.activeTab]}
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.tab,
+            activeTab === 'videos' && styles.activeTab,
+            { opacity: pressed ? 0.7 : 1 },
+          ]}
           onPress={() => handleTabChange('videos')}
         >
-          <Ionicons 
-            name="videocam-outline" 
-            size={20} 
-            color={activeTab === 'videos' ? Colors.primary : Colors.grey} 
+          <Ionicons
+            name="videocam-outline"
+            size={20}
+            color={activeTab === 'videos' ? Colors.primary : Colors.grey}
           />
-          <Text style={[styles.tabText, activeTab === 'videos' && styles.activeTabText]}>
+          <Text
+            style={[styles.tabText, activeTab === 'videos' && styles.activeTabText]}
+          >
             Videos ({videos.length})
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -180,26 +246,28 @@ export default function Step2() {
             Add {activeTab === 'images' ? 'Images' : 'Videos'}
           </Text>
           <Text style={styles.sectionDescription}>
-            {activeTab === 'images' 
+            {activeTab === 'images'
               ? 'Upload photos of your item. You can add up to 10 images.'
-              : 'Upload videos of your item. You can add up to 3 videos.'
-            }
+              : 'Upload videos of your item. You can add up to 3 videos.'}
           </Text>
 
           {/* Add Button */}
-          <TouchableOpacity 
-            style={styles.addButton} 
+          <Pressable
+            style={({ pressed }) => [
+              styles.addButton,
+              { opacity: pressed ? 0.7 : 1 },
+            ]}
             onPress={activeTab === 'images' ? pickImage : pickVideo}
           >
-            <Ionicons 
-              name={activeTab === 'images' ? 'camera-outline' : 'videocam-outline'} 
-              size={24} 
-              color={Colors.primary} 
+            <Ionicons
+              name={activeTab === 'images' ? 'camera-outline' : 'videocam-outline'}
+              size={24}
+              color={Colors.primary}
             />
             <Text style={styles.addButtonText}>
               Add {activeTab === 'images' ? 'Photo' : 'Video'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {/* Media Grid */}
@@ -236,7 +304,9 @@ export default function Step2() {
           <Text style={styles.tipsTitle}>Tips for better listings:</Text>
           <Text style={styles.tipText}>• Use good lighting and clear photos</Text>
           <Text style={styles.tipText}>• Show different angles of your item</Text>
-          <Text style={styles.tipText}>• Include any defects or wear in photos</Text>
+          <Text style={styles.tipText}>
+            • Include any defects or wear in photos
+          </Text>
           <Text style={styles.tipText}>• Keep videos short and focused</Text>
         </View>
       </ScrollView>
@@ -244,10 +314,16 @@ export default function Step2() {
       {/* Footer */}
       <SafeAreaView edges={['bottom']}>
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.nextButton,
+              { opacity: pressed ? 0.7 : 1 },
+            ]}
+            onPress={handleNext}
+          >
             <Text style={styles.nextButtonText}>Next: Preview</Text>
             <Ionicons name="chevron-forward" size={20} color={Colors.white} />
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </SafeAreaView>
     </View>

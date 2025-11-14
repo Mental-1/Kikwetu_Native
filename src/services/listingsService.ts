@@ -16,7 +16,7 @@ export interface Listing {
   videos: string[];
   store_id?: string;
   tags?: string[];
-  status: 'draft' | 'active' | 'pending' | 'rejected' | 'under_review' | 'sold';
+  status: 'draft'| 'active' | 'pending' | 'rejected' | 'under_review' | 'sold';
   payment_status?: 'pending' | 'completed' | 'failed';
   plan?: string;
   views?: number;
@@ -24,6 +24,7 @@ export interface Listing {
   user_id: string;
   created_at: string;
   updated_at: string;
+  isDraft?: boolean;
 }
 
 export interface CreateListingData extends Omit<Listing, 'id' | 'user_id' | 'created_at' | 'updated_at'> {}

@@ -1,85 +1,86 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // Base listing validation schema
 export const listingSchema = z.object({
   title: z
     .string()
-    .min(1, 'Title is required')
-    .min(5, 'Title must be at least 5 characters')
-    .max(100, 'Title must be less than 100 characters')
-    .regex(/^[a-zA-Z0-9\s\-.,!?]+$/, 'Title contains invalid characters'),
-  
+    .min(1, "Title is required")
+    .min(5, "Title must be at least 5 characters")
+    .max(100, "Title must be less than 100 characters")
+    .regex(/^[a-zA-Z0-9\s\-.,!?]+$/, "Title contains invalid characters"),
+
   description: z
     .string()
-    .min(1, 'Description is required')
-    .min(20, 'Description must be at least 20 characters')
-    .max(1000, 'Description must be less than 1000 characters'),
-  
+    .min(1, "Description is required")
+    .min(20, "Description must be at least 20 characters")
+    .max(1000, "Description must be less than 1000 characters"),
+
   price: z
     .number()
-    .min(1, 'Price must be greater than 0')
-    .max(10000000, 'Price must be less than 10,000,000'),
-  
+    .min(1, "Price must be greater than 0")
+    .max(10000000, "Price must be less than 10,000,000"),
+
   category_id: z
     .number()
-    .min(1, 'Category is required'),
-  
+    .min(1, "Category is required"),
+
   subcategory_id: z
     .number()
-    .min(1, 'Subcategory is required')
+    .min(1, "Subcategory is required")
     .optional(),
-  
+
   condition: z
     .string()
-    .min(1, 'Condition is required')
+    .min(1, "Condition is required")
     .refine(
-      (val) => ['New', 'Like New', 'Good', 'Fair', 'Poor'].includes(val),
-      'Invalid condition selected'
+      (val) => ["New", "Like New", "Good", "Fair", "Poor"].includes(val),
+      "Invalid condition selected",
     ),
-  
+
   location: z
     .string()
-    .min(1, 'Location is required')
-    .min(2, 'Location must be at least 2 characters')
-    .max(100, 'Location must be less than 100 characters'),
-  
+    .min(1, "Location is required")
+    .min(2, "Location must be at least 2 characters")
+    .max(100, "Location must be less than 100 characters"),
+
   latitude: z
     .number()
-    .min(-90, 'Invalid latitude')
-    .max(90, 'Invalid latitude')
+    .min(-90, "Invalid latitude")
+    .max(90, "Invalid latitude")
     .nullable()
     .optional(),
-  
+
   longitude: z
     .number()
-    .min(-180, 'Invalid longitude')
-    .max(180, 'Invalid longitude')
+    .min(-180, "Invalid longitude")
+    .max(180, "Invalid longitude")
     .nullable()
     .optional(),
-  
+
   negotiable: z
     .boolean()
     .default(false),
-  
+
   images: z
     .array(z.string())
-    .min(1, 'At least one image is required')
-    .max(10, 'Maximum 10 images allowed'),
-  
+    .min(1, "At least one image is required")
+    .max(10, "Maximum 10 images allowed"),
+
   videos: z
     .array(z.string())
-    .max(3, 'Maximum 3 videos allowed')
+    .max(3, "Maximum 3 videos allowed")
     .default([]),
-  
+
   tags: z
     .array(z.string())
-    .max(10, 'Maximum 10 tags allowed')
+    .max(10, "Maximum 10 tags allowed")
     .default([]),
-  
+
   store_id: z
-    .number()
+    .string()
     .nullable()
     .optional(),
+  isDraft: z.boolean().optional(),
 });
 
 // Step 1 validation (basic info)
@@ -117,12 +118,12 @@ export function validateStep1(data: any) {
       return {
         success: false,
         errors: error.issues.reduce((acc, err) => {
-          acc[err.path.join('.')] = err.message;
+          acc[err.path.join(".")] = err.message;
           return acc;
         }, {} as Record<string, string>),
       };
     }
-    return { success: false, errors: { general: 'Validation failed' } };
+    return { success: false, errors: { general: "Validation failed" } };
   }
 }
 
@@ -134,12 +135,12 @@ export function validateStep2(data: any) {
       return {
         success: false,
         errors: error.issues.reduce((acc, err) => {
-          acc[err.path.join('.')] = err.message;
+          acc[err.path.join(".")] = err.message;
           return acc;
         }, {} as Record<string, string>),
       };
     }
-    return { success: false, errors: { general: 'Validation failed' } };
+    return { success: false, errors: { general: "Validation failed" } };
   }
 }
 
@@ -151,16 +152,20 @@ export function validateStep3(data: any) {
       return {
         success: false,
         errors: error.issues.reduce((acc, err) => {
-          acc[err.path.join('.')] = err.message;
+          acc[err.path.join(".")] = err.message;
           return acc;
         }, {} as Record<string, string>),
       };
     }
-    return { success: false, errors: { general: 'Validation failed' } };
+    return { success: false, errors: { general: "Validation failed" } };
   }
 }
 
-export function validateCompleteListing(data: any) {
+export function validateCompleteListing(
+  data: any,
+):
+  | { success: true; data: z.infer<typeof listingSchema> }
+  | { success: false; errors: Record<string, string> } {
   try {
     return { success: true, data: listingSchema.parse(data) };
   } catch (error) {
@@ -178,77 +183,93 @@ export function validateCompleteListing(data: any) {
 }
 
 // Helper functions for specific validations
-export function validatePrice(price: string | number): { valid: boolean; value?: number; error?: string } {
+export function validatePrice(
+  price: string | number,
+): { valid: boolean; value?: number; error?: string } {
   try {
-    const numericPrice = typeof price === 'string' ? parseFloat(price.replace(/[^\d.-]/g, '')) : price;
-    
+    const numericPrice = typeof price === "string"
+      ? parseFloat(price.replace(/[^\d.-]/g, ""))
+      : price;
+
     if (isNaN(numericPrice)) {
-      return { valid: false, error: 'Invalid price format' };
+      return { valid: false, error: "Invalid price format" };
     }
-    
+
     if (numericPrice <= 0) {
-      return { valid: false, error: 'Price must be greater than 0' };
+      return { valid: false, error: "Price must be greater than 0" };
     }
-    
+
     if (numericPrice > 10000000) {
-      return { valid: false, error: 'Price must be less than 10,000,000' };
+      return { valid: false, error: "Price must be less than 10,000,000" };
     }
-    
+
     return { valid: true, value: numericPrice };
   } catch (error) {
-    return { valid: false, error: 'Invalid price format' };
+    return { valid: false, error: "Invalid price format" };
   }
 }
 
-export function validateImages(images: string[]): { valid: boolean; error?: string } {
+export function validateImages(
+  images: string[],
+): { valid: boolean; error?: string } {
   if (!images || images.length === 0) {
-    return { valid: false, error: 'At least one image is required' };
+    return { valid: false, error: "At least one image is required" };
   }
-  
+
   if (images.length > 10) {
-    return { valid: false, error: 'Maximum 10 images allowed' };
+    return { valid: false, error: "Maximum 10 images allowed" };
   }
-  
+
   // Check if all images are valid URIs
   const validImagePattern = /^(file:\/\/|content:\/\/|https?:\/\/)/;
-  const invalidImages = images.filter(img => !validImagePattern.test(img));
-  
+  const invalidImages = images.filter((img) => !validImagePattern.test(img));
+
   if (invalidImages.length > 0) {
-    return { valid: false, error: 'Invalid image format detected' };
+    return { valid: false, error: "Invalid image format detected" };
   }
-  
+
   return { valid: true };
 }
 
-export function validateVideos(videos: string[]): { valid: boolean; error?: string } {
+export function validateVideos(
+  videos: string[],
+): { valid: boolean; error?: string } {
   if (videos && videos.length > 3) {
-    return { valid: false, error: 'Maximum 3 videos allowed' };
+    return { valid: false, error: "Maximum 3 videos allowed" };
   }
-  
+
   // Check if all videos are valid URIs
   const validVideoPattern = /^(file:\/\/|content:\/\/|https?:\/\/)/;
-  const invalidVideos = videos.filter(vid => !validVideoPattern.test(vid));
-  
+  const invalidVideos = videos.filter((vid) => !validVideoPattern.test(vid));
+
   if (invalidVideos.length > 0) {
-    return { valid: false, error: 'Invalid video format detected' };
+    return { valid: false, error: "Invalid video format detected" };
   }
-  
+
   return { valid: true };
 }
 
-export function validateTags(tags: string[]): { valid: boolean; error?: string } {
+export function validateTags(
+  tags: string[],
+): { valid: boolean; error?: string } {
   if (tags && tags.length > 10) {
-    return { valid: false, error: 'Maximum 10 tags allowed' };
+    return { valid: false, error: "Maximum 10 tags allowed" };
   }
-  
+
   // Check tag format (alphanumeric with spaces and hyphens)
   const tagPattern = /^[a-zA-Z0-9\s\-]+$/;
-  const invalidTags = tags.filter(tag => !tagPattern.test(tag) || tag.length < 2 || tag.length > 20);
-  
+  const invalidTags = tags.filter((tag) =>
+    !tagPattern.test(tag) || tag.length < 2 || tag.length > 20
+  );
+
   if (invalidTags.length > 0) {
-    return { valid: false, error: 'Tags must be 2-20 characters, alphanumeric with spaces and hyphens only' };
+    return {
+      valid: false,
+      error:
+        "Tags must be 2-20 characters, alphanumeric with spaces and hyphens only",
+    };
   }
-  
+
   return { valid: true };
 }
 
