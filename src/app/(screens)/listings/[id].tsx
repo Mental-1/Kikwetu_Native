@@ -15,7 +15,6 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
-  Image,
   ScrollView,
   Share,
   StyleSheet,
@@ -23,6 +22,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -241,8 +241,11 @@ export default function ListingDetails() {
             <Image 
               source={{ uri: images[currentImageIndex] }} 
               style={styles.mainImage}
-              resizeMode="cover"
-            />
+              contentFit='cover'
+              priority="high"
+              cachePolicy="memory-disk"
+              recyclingKey={`listing-${id}-${currentImageIndex}`} 
+            /> 
           </TouchableOpacity>
           
           {/* Navigation Buttons */}
