@@ -6,10 +6,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import OfflineScreen from '@/components/OfflineScreen';
 import { useConnectivity } from '@/src/hooks/useConnectivity';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
 Sentry.init({
   dsn: 'https://c670fa4991891b62dc670c9e71806185@o4509619077382144.ingest.us.sentry.io/4510064800169984',
@@ -67,15 +69,19 @@ function RootLayout() {
     }
 
     return (
-        <SafeAreaProvider>
-            <QueryClientProvider client={queryClient}>
-                <PaperProvider>
-                    <AuthProvider>
-                        <Navigator />
-                    </AuthProvider>
-                </PaperProvider>
-            </QueryClientProvider>
-        </SafeAreaProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <SafeAreaProvider>
+                <QueryClientProvider client={queryClient}>
+                    <PaperProvider>
+                        <AuthProvider>
+                            <BottomSheetModalProvider>
+                                <Navigator />
+                            </BottomSheetModalProvider>
+                        </AuthProvider>
+                    </PaperProvider>
+                </QueryClientProvider>
+            </SafeAreaProvider>
+        </GestureHandlerRootView>
     );
 }
 

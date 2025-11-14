@@ -92,14 +92,6 @@ const ForgotPasswordScreen = forwardRef<BottomSheetModal, ForgotPasswordProps>((
             contentContainerStyle={{ paddingBottom: bottom > 0 ? bottom + 12 : 24, flexGrow: 1, justifyContent: 'center' }}
             keyboardShouldPersistTaps="handled"
         >
-            <View style={styles.iconContainer}>
-                <Ionicons
-                name="lock-closed-outline"
-                size={64}
-                color={Colors.primary}
-                />
-            </View>
-
             <Text style={styles.title}>Reset Your Password</Text>
             <Text style={styles.description}>
                 Enter your email address and we&apos;ll send you a link to reset your password.
@@ -177,11 +169,6 @@ const styles = StyleSheet.create({
     },
     modalContent: {
         padding: 20,
-    },
-    iconContainer: {
-        alignItems: 'center',
-        marginBottom: 24,
-        paddingTop: 20,
     },
     title: {
         fontSize: 24,

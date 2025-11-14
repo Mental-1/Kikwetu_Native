@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -140,7 +140,7 @@ const Home = (props: Props) => {
         }
     }, [favoriteStates, saveListingMutation, unsaveListingMutation]);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (categories && categories.length > 0) {
             prefetchSubcategories();
         }
@@ -148,11 +148,22 @@ const Home = (props: Props) => {
 
     const handleCategoryPress = useCallback((categoryId: number) => {
         setLoadingCategoryId(categoryId);
-        requestAnimationFrame(() => {
-            router.push(`/(screens)/subcategories/${categoryId}`);
-            setTimeout(() => setLoadingCategoryId(null), 1000);
-        });
+        router.push(`/(screens)/subcategories/${categoryId}`);
     }, [router]);
+
+    useEffect(() => {
+      let timer: ReturnType<typeof setTimeout>;
+      if (loadingCategoryId !== null) {
+        timer = setTimeout(() => {
+          setLoadingCategoryId(null);
+        }, 1000);
+      }
+      return () => {
+        if (timer) {
+          clearTimeout(timer);
+        }
+      };
+    }, [loadingCategoryId]);
 
     const categoryRows = useMemo(() => {
         if (!categories || categories.length === 0) return [];
