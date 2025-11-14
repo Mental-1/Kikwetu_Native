@@ -22,11 +22,10 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View
+  View,
+  Animated
 } from 'react-native';
-import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 
 const { width, height } = Dimensions.get('window');
 
@@ -35,7 +34,6 @@ const ListingsLoading = () => (
     <ListingsSkeleton viewMode="grid" count={6} />
   </View>
 );
-
 
 function ListingsContent() {
   const router = useRouter();
@@ -51,23 +49,24 @@ function ListingsContent() {
       clearTimeout(handler);
     };
   }, [searchQuery]);
+
   const [isGridView, setIsGridView] = useState(true);
   const [sortBy, setSortBy] = useState('newest');
   const [appliedFilters, setAppliedFilters] = useState<any>(null);
-  const [showSort, setShowSort] = useState(false);
-  
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
   const [favoriteStates, setFavoriteStates] = useState<Record<string, boolean>>({});
   const saveListingMutation = useSaveListing();
   const unsaveListingMutation = useUnsaveListing();
-  
+
   const flatListRef = useRef<React.ComponentRef<typeof FlashList<ListingItem>>>(null);
   const filtersModalRef = useRef<BottomSheetModal>(null);
-  const scrollY = useSharedValue(0);
-  const showBackToTop = useSharedValue(0);
+  const sortModalRef = useRef<BottomSheetModal>(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { prefetchSubcategories } = useCategoryMutations();
-  
+
   const { 
     data, 
     isLoading, 
@@ -91,25 +90,24 @@ function ListingsContent() {
   }, [error]);
 
   useEffect(() => {
-    // Prefetch subcategories as soon as categories are available
     if (categories && categories.length > 0) {
         prefetchSubcategories();
     }
   }, [categories, prefetchSubcategories]);
 
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
-      showBackToTop.value = event.contentOffset.y > height * 1.5 ? 1 : 0;
-    },
-  });
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { useNativeDriver: false }
+  );
 
-  const backToTopStyle = useAnimatedStyle(() => {
-    return {
-      opacity: withTiming(showBackToTop.value),
-      transform: [{ scale: withTiming(showBackToTop.value) }],
+  useEffect(() => {
+    const listener = scrollY.addListener(({ value }) => {
+      setShowBackToTop(value > height * 1.5);
+    });
+    return () => {
+      scrollY.removeListener(listener);
     };
-  });
+  }, [scrollY]);
 
   const scrollToTop = useCallback(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -146,13 +144,14 @@ function ListingsContent() {
     setIsGridView(!isGridView);
   };
 
-  const handleSort = () => {
-    setShowSort(true);
-  };
+  const handleSort = useCallback(() => {
+    sortModalRef.current?.present();
+  }, []);
 
   const handleFilterToggle = useCallback(() => {
+    prefetchSubcategories();
     filtersModalRef.current?.present();
-  }, []);
+  }, [prefetchSubcategories]);
 
   const handleApplyFilters = useCallback((filters: any) => {
     setAppliedFilters(filters);
@@ -173,8 +172,6 @@ function ListingsContent() {
     }
     return searchQuery;
   };
-
-  
 
   const renderGridItem = ({ item }: { item: ListingItem }) => (
     <View style={styles.gridItem}>
@@ -307,7 +304,7 @@ function ListingsContent() {
             numColumns={2}
             contentContainerStyle={styles.gridContainer}
             showsVerticalScrollIndicator={false}
-            onScroll={scrollHandler}
+            onScroll={handleScroll}
             scrollEventThrottle={16}
             onEndReached={() => {
               if (hasNextPage && !isFetchingNextPage) {
@@ -333,7 +330,7 @@ function ListingsContent() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}
             showsVerticalScrollIndicator={false}
-            onScroll={scrollHandler}
+            onScroll={handleScroll}
             scrollEventThrottle={16}
             onEndReached={() => {
               if (hasNextPage && !isFetchingNextPage) {
@@ -363,25 +360,23 @@ function ListingsContent() {
 
       {/* Sort Modal */}
       <SortModal
-        visible={showSort}
-        onClose={() => setShowSort(false)}
+        ref={sortModalRef}
         currentSortBy={sortBy}
         onSortChange={handleSortChange}
       />
 
       {/* Back to Top Button */}
-      <Animated.View 
-        style={[styles.backToTopButton, backToTopStyle]}
-        pointerEvents={showBackToTop.value > 0 ? 'auto' : 'none'}
-      >
+      {showBackToTop && (
         <Pressable 
-          style={({ pressed }) => [styles.backToTopTouchable, { opacity: pressed ? 0.8 : 1 }]} 
+          style={({ pressed }) => [styles.backToTopButton, { opacity: pressed ? 0.8 : 1 }]} 
           onPress={scrollToTop}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="chevron-up" size={24} color={Colors.white} />
+          <View style={styles.backToTopTouchable}>
+            <Ionicons name="chevron-up" size={24} color={Colors.white} />
+          </View>
         </Pressable>
-      </Animated.View>
+      )}
     </View>
   );
 }
@@ -450,7 +445,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   filterPill: {
-    backgroundColor: Colors.black,
+    backgroundColor: Colors.primary,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,

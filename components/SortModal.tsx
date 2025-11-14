@@ -1,16 +1,17 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
-import { Dimensions, Modal, StyleSheet, Text, View } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import React, { forwardRef, useCallback, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  BottomSheetBackdrop,
+  BottomSheetModal,
+  useBottomSheetModal,
+} from '@gorhom/bottom-sheet';
 
 interface SortModalProps {
-  visible: boolean;
-  onClose: () => void;
   currentSortBy: string;
   onSortChange: (sortBy: string) => void;
 }
-const { height } = Dimensions.get('window');
 
 const DEFAULT_SORT = 'newest';
 
@@ -23,100 +24,102 @@ const sortOptions = [
   { value: 'rating', label: 'Highest Rated' },
 ];
 
-const SortModal: React.FC<SortModalProps> = ({
-  visible,
-  onClose,
-  currentSortBy,
-  onSortChange,
-}) => {
-  const [tempSortBy, setTempSortBy] = useState(currentSortBy);
-  useEffect(() => {
-    if (visible) {
-      setTempSortBy(currentSortBy);
-    }
-  }, [visible, currentSortBy]);
+export type Ref = BottomSheetModal;
 
-  const handleApply = () => {
-    onSortChange(tempSortBy);
-    onClose();
-  };
+const SortModal = forwardRef<Ref, SortModalProps>(
+  ({ currentSortBy, onSortChange }, ref) => {
+    const [tempSortBy, setTempSortBy] = useState(currentSortBy);
+    const { dismiss } = useBottomSheetModal();
 
-  const handleReset = () => {
-    setTempSortBy(DEFAULT_SORT);
-  };
+    const snapPoints = useMemo(() => ['50%'], []);
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity 
-        style={styles.modalOverlay} 
-        activeOpacity={1} 
-        onPress={onClose}
+    const handleApply = () => {
+      onSortChange(tempSortBy);
+      dismiss();
+    };
+
+    const handleReset = () => {
+      setTempSortBy(DEFAULT_SORT);
+    };
+
+    const renderBackdrop = useCallback(
+      (props: any) => (
+        <BottomSheetBackdrop
+          appearsOnIndex={0}
+          disappearsOnIndex={-1}
+          {...props}
+        />
+      ),
+      []
+    );
+
+    return (
+      <BottomSheetModal
+        ref={ref}
+        snapPoints={snapPoints}
+        backdropComponent={renderBackdrop}
+        enablePanDownToClose
+        handleIndicatorStyle={{ backgroundColor: Colors.lightgrey }}
+        backgroundStyle={{ backgroundColor: Colors.white }}
       >
-        <TouchableOpacity activeOpacity={1}>
-          <View style={styles.modalContainer}>
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={Colors.primary} />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Sort By</Text>
-              <TouchableOpacity onPress={handleReset} style={styles.resetButton}>
-                <Text style={styles.resetText}>Reset</Text>
-              </TouchableOpacity>
-            </View>
+        <View style={styles.modalContainer}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <Pressable
+              onPress={() => dismiss()}
+              style={({ pressed }) => [styles.closeButton, { opacity: pressed ? 0.7 : 1 }]}
+            >
+              <Ionicons name="close" size={24} color={Colors.primary} />
+            </Pressable>
+            <Text style={styles.modalTitle}>Sort By</Text>
+            <Pressable onPress={handleReset} style={({ pressed }) => [styles.resetButton, { opacity: pressed ? 0.7 : 1 }]}>
+              <Text style={styles.resetText}>Reset</Text>
+            </Pressable>
+          </View>
 
-            {/* Sort Options */}
-            <View style={styles.modalContent}>
-              <View style={styles.pillsContainer}>
-                {sortOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
+          {/* Sort Options */}
+          <View style={styles.modalContent}>
+            <View style={styles.pillsContainer}>
+              {sortOptions.map((option) => (
+                <Pressable
+                  key={option.value}
+                  style={({ pressed }) => [
+                    styles.pill,
+                    tempSortBy === option.value && styles.selectedPill,
+                    { opacity: pressed ? 0.7 : 1 },
+                  ]}
+                  onPress={() => setTempSortBy(option.value)}
+                >
+                  <Text
                     style={[
-                      styles.pill,
-                      tempSortBy === option.value && styles.selectedPill
-                    ]}
-                    onPress={() => setTempSortBy(option.value)}
-                  >
-                    <Text style={[
                       styles.pillText,
-                      tempSortBy === option.value && styles.selectedPillText
-                    ]}>
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Apply Button */}
-            <View style={styles.applyButtonContainer}>
-              <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
-                <Text style={styles.applyButtonText}>Apply Sort</Text>
-              </TouchableOpacity>
+                      tempSortBy === option.value && styles.selectedPillText,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
           </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
-  );
-};
+
+          {/* Apply Button */}
+          <View style={styles.applyButtonContainer}>
+            <Pressable style={({ pressed }) => [styles.applyButton, { opacity: pressed ? 0.7 : 1 }]} onPress={handleApply}>
+              <Text style={styles.applyButtonText}>Apply Sort</Text>
+            </Pressable>
+          </View>
+        </View>
+      </BottomSheetModal>
+    );
+  }
+);
+
+SortModal.displayName = 'SortModal';
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
   modalContainer: {
-    height: height * 0.5,
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    flex: 1,
     paddingBottom: 34,
   },
   modalHeader: {

@@ -33,7 +33,6 @@ const Home = (props: Props) => {
     const [activeModal, setActiveModal] = useState<ActiveModal>('none');
     const { searchQuery, setSearchQuery } = useAppStore();
     const [loadingCategoryId, setLoadingCategoryId] = useState<number | null>(null);
-    const [isAuthSheetMounted, setIsAuthSheetMounted] = useState(false);
 
     const signInRef = useRef<BottomSheetModal>(null);
     const signUpRef = useRef<BottomSheetModal>(null);
@@ -58,15 +57,9 @@ const Home = (props: Props) => {
         if (user) {
             avatarDropdownRef.current?.present();
         } else {
-            setIsAuthSheetMounted(true);
-        }
-    }, [user]);
-
-    useEffect(() => {
-        if (isAuthSheetMounted) {
             signInRef.current?.present();
         }
-    }, [isAuthSheetMounted]);
+    }, [user]);
 
     const handleDashboard = useCallback(() => {
         avatarDropdownRef.current?.dismiss();
@@ -186,10 +179,9 @@ const Home = (props: Props) => {
     }, [categories]);
 
     return (
-        <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+        <View style={styles.container}>
             <StatusBar style="light" />
-            {/* Header with status bar background */}
-            <View style={styles.header}>
+            <SafeAreaView style={styles.header} edges={['top']}>
                 <View style={styles.headerContent}>
                 {/* Logo */}
                 <View style={styles.logoContainer}>
@@ -219,170 +211,167 @@ const Home = (props: Props) => {
                     </Pressable>
                 </View>
                 </View>
-            </View>
+            </SafeAreaView>
             
-            {/* Main Content */}
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Search Bar */}
-                <View style={styles.searchContainer}>
-                    <View style={styles.searchBar}>
-                        <Ionicons name="search-outline" size={20} color={Colors.grey} style={styles.searchIcon} />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Search Kikwetu"
-                            placeholderTextColor={Colors.grey}
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                            onSubmitEditing={handleSearchSubmit}
-                            returnKeyType="search"
-                        />
+            <SafeAreaView style={{ flex: 1 }} edges={['bottom', 'left', 'right']}>
+                <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                    {/* Search Bar */}
+                    <View style={styles.searchContainer}>
+                        <View style={styles.searchBar}>
+                            <Ionicons name="search-outline" size={20} color={Colors.grey} style={styles.searchIcon} />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Search Kikwetu"
+                                placeholderTextColor={Colors.grey}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                onSubmitEditing={handleSearchSubmit}
+                                returnKeyType="search"
+                            />
+                        </View>
                     </View>
-                </View>
 
-                {/* Browse Categories Section */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Explore Our Categories</Text>
+                    {/* Browse Categories Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Explore Our Categories</Text>
+                        </View>
+                        
+                        {categoriesLoading ? (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="large" color={Colors.primary} />
+                                <Text style={styles.loadingText}>Loading categories...</Text>
+                            </View>
+                        ) : (
+                            <View style={styles.categoriesGrid}>
+                                {categoryRows.map((row, rowIndex) => (
+                                    <View key={rowIndex} style={styles.categoryRow}>
+                                        {row.map((category) => (
+                                            <Pressable 
+                                                key={category.id} 
+                                                style={({ pressed }) => [
+                                                    styles.categoryItem,
+                                                    loadingCategoryId === category.id && styles.categoryItemLoading,
+                                                    { opacity: pressed ? 0.7 : 1 },
+                                                ]}
+                                                onPress={() => handleCategoryPress(category.id)}
+                                            >
+                                                <View style={styles.categoryImageContainer}>
+                                                    {loadingCategoryId === category.id ? (
+                                                        <ActivityIndicator size="small" color={Colors.primary} />
+                                                    ) : (
+                                                        <Image 
+                                                            source={getCategoryImage(category.name)}
+                                                            style={styles.categoryImage}
+                                                            resizeMode="cover"
+                                                        />
+                                                    )}
+                                                </View>
+                                                <Text style={styles.categoryName} numberOfLines={2}>
+                                                    {category.name}
+                                                </Text>
+                                            </Pressable>
+                                        ))}
+                                    </View>
+                                ))}
+                            </View>
+                        )}
                     </View>
-                    
-                    {categoriesLoading ? (
-                        <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="large" color={Colors.primary} />
-                            <Text style={styles.loadingText}>Loading categories...</Text>
-                        </View>
-                    ) : (
-                        <View style={styles.categoriesGrid}>
-                            {categoryRows.map((row, rowIndex) => (
-                                <View key={rowIndex} style={styles.categoryRow}>
-                                    {row.map((category) => (
-                                        <Pressable 
-                                            key={category.id} 
-                                            style={({ pressed }) => [
-                                                styles.categoryItem,
-                                                loadingCategoryId === category.id && styles.categoryItemLoading,
-                                                { opacity: pressed ? 0.7 : 1 },
-                                            ]}
-                                            onPress={() => handleCategoryPress(category.id)}
-                                        >
-                                            <View style={styles.categoryImageContainer}>
-                                                {loadingCategoryId === category.id ? (
-                                                    <ActivityIndicator size="small" color={Colors.primary} />
-                                                ) : (
-                                                    <Image 
-                                                        source={getCategoryImage(category.name)}
-                                                        style={styles.categoryImage}
-                                                        resizeMode="cover"
-                                                    />
-                                                )}
-                                            </View>
-                                            <Text style={styles.categoryName} numberOfLines={2}>
-                                                {category.name}
-                                            </Text>
-                                        </Pressable>
-                                    ))}
-                                </View>
-                            ))}
-                        </View>
-                    )}
-                </View>
 
-                {/* For You Section */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>See It In Action: For You</Text>
-                        <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })} onPress={() => router.push('/(tabs)/discover')}>
-                            <Text style={styles.seeAllText}>See More</Text>
-                        </Pressable>
+                    {/* For You Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>See It In Action: For You</Text>
+                            <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })} onPress={() => router.push('/(tabs)/discover')}>
+                                <Text style={styles.seeAllText}>See More</Text>
+                            </Pressable>
+                        </View>
+                        
+                        {videosLoading ? (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="small" color={Colors.primary} />
+                                <Text style={styles.loadingText}>Loading videos...</Text>
+                            </View>
+                        ) : (
+                            <ScrollView 
+                                horizontal 
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.videoScrollContent}
+                            >
+                                {featuredVideos?.map((video) => (
+                                    <VideoCard
+                                        key={video.id}
+                                        id={video.id}
+                                        title={video.title}
+                                        videoUrl={video.videoUrl}
+                                        thumbnail={video.thumbnail}
+                                        duration={video.duration?.toString()}
+                                        onPress={handleVideoPress}
+                                    />
+                                ))}
+                            </ScrollView>
+                        )}
                     </View>
-                    
-                    {videosLoading ? (
-                        <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="small" color={Colors.primary} />
-                            <Text style={styles.loadingText}>Loading videos...</Text>
-                        </View>
-                    ) : (
-                        <ScrollView 
-                            horizontal 
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.videoScrollContent}
-                        >
-                            {featuredVideos?.map((video) => (
-                                <VideoCard
-                                    key={video.id}
-                                    id={video.id}
-                                    title={video.title}
-                                    videoUrl={video.videoUrl}
-                                    thumbnail={video.thumbnail}
-                                    duration={video.duration?.toString()}
-                                    onPress={handleVideoPress}
-                                />
-                            ))}
-                        </ScrollView>
-                    )}
-                </View>
 
-                {/* Listings Near You Section */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Listings Near You</Text>
-                        <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })} onPress={() => router.push('/(tabs)/listings')}>
-                            <Text style={styles.seeAllText}>See More</Text>
-                        </Pressable>
+                    {/* Listings Near You Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Listings Near You</Text>
+                            <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })} onPress={() => router.push('/(tabs)/listings')}>
+                                <Text style={styles.seeAllText}>See More</Text>
+                            </Pressable>
+                        </View>
+                        
+                        {listingsLoading ? (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="small" color={Colors.primary} />
+                                <Text style={styles.loadingText}>Loading listings...</Text>
+                            </View>
+                        ) : (
+                            <View style={styles.listingsGrid}>
+                                {displayListings.map((listing) => (
+                                    <ListingCard
+                                        key={listing.id}
+                                        id={listing.id}
+                                        title={listing.title}
+                                        price={`Kes ${listing.price?.toLocaleString() || '0'}`}
+                                        condition={listing.condition || 'Unknown'}
+                                        location={listing.location || 'Unknown'}
+                                        image={listing.images?.[0] || 'https://via.placeholder.com/200x140'}
+                                        description={listing.description}
+                                        views={listing.views || 0}
+                                        isFavorite={favoriteStates[listing.id] || false}
+                                        viewMode="grid"
+                                        onPress={handleListingPress}
+                                        onFavoritePress={handleListingFavoritePress}
+                                    />
+                                ))}
+                            </View>
+                        )}
                     </View>
-                    
-                    {listingsLoading ? (
-                        <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="small" color={Colors.primary} />
-                            <Text style={styles.loadingText}>Loading listings...</Text>
-                        </View>
-                    ) : (
-                        <View style={styles.listingsGrid}>
-                            {displayListings.map((listing) => (
-                                <ListingCard
-                                    key={listing.id}
-                                    id={listing.id}
-                                    title={listing.title}
-                                    price={`Kes ${listing.price?.toLocaleString() || '0'}`}
-                                    condition={listing.condition || 'Unknown'}
-                                    location={listing.location || 'Unknown'}
-                                    image={listing.images?.[0] || 'https://via.placeholder.com/200x140'}
-                                    description={listing.description}
-                                    views={listing.views || 0}
-                                    isFavorite={favoriteStates[listing.id] || false}
-                                    viewMode="grid"
-                                    onPress={handleListingPress}
-                                    onFavoritePress={handleListingFavoritePress}
-                                />
-                            ))}
-                        </View>
-                    )}
-                </View>
 
-                {/* Bottom padding for better scrolling */}
-                <View style={styles.bottomPadding} />
-            </ScrollView>
+                    {/* Bottom padding for better scrolling */}
+                    <View style={styles.bottomPadding} />
+                </ScrollView>
+            </SafeAreaView>
             
-            {/* Auth Modals (Lazy Rendered) */}
-            {isAuthSheetMounted && (
-                <>
-                    <SignIn
-                        ref={signInRef}
-                        onClose={handleCloseAuth}
-                        onSwitchToSignUp={handleSwitchToSignUp}
-                        onSwitchToForgotPassword={handleSwitchToForgotPassword}
-                    />
-                    <SignUp
-                        ref={signUpRef}
-                        onClose={handleCloseAuth}
-                        onSwitchToSignIn={handleSwitchToSignIn}
-                    />
-                    <ForgotPasswordScreen
-                        ref={forgotPasswordRef}
-                        onClose={handleCloseAuth}
-                        onSwitchToSignIn={handleSwitchToSignIn}
-                    />
-                </>
-            )}
+            {/* Auth Modals */}
+            <SignIn
+                ref={signInRef}
+                onClose={handleCloseAuth}
+                onSwitchToSignUp={handleSwitchToSignUp}
+                onSwitchToForgotPassword={handleSwitchToForgotPassword}
+            />
+            <SignUp
+                ref={signUpRef}
+                onClose={handleCloseAuth}
+                onSwitchToSignIn={handleSwitchToSignIn}
+            />
+            <ForgotPasswordScreen
+                ref={forgotPasswordRef}
+                onClose={handleCloseAuth}
+                onSwitchToSignIn={handleSwitchToSignIn}
+            />
 
             {/* Avatar Dropdown */}
             <AvatarDropdown
@@ -410,7 +399,7 @@ const Home = (props: Props) => {
                 confirmWeight="600"
                 denyWeight="400"
             />
-        </SafeAreaView>
+        </View>
   );
 };
 
@@ -429,7 +418,6 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
-        paddingTop: 0,
     },
     headerContent: {
         flexDirection: 'row',

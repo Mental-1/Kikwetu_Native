@@ -192,7 +192,6 @@ const FiltersModal = forwardRef<BottomSheetModal, FiltersModalProps>((
       index={-1}
       backgroundStyle={styles.modalContainer}
       handleIndicatorStyle={styles.handleIndicator}
-      onDismiss={handleClose}
     >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
