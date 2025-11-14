@@ -33,6 +33,7 @@ const Home = (props: Props) => {
     const [activeModal, setActiveModal] = useState<ActiveModal>('none');
     const { searchQuery, setSearchQuery } = useAppStore();
     const [loadingCategoryId, setLoadingCategoryId] = useState<number | null>(null);
+    const [isAuthSheetMounted, setIsAuthSheetMounted] = useState(false);
 
     const signInRef = useRef<BottomSheetModal>(null);
     const signUpRef = useRef<BottomSheetModal>(null);
@@ -57,9 +58,15 @@ const Home = (props: Props) => {
         if (user) {
             avatarDropdownRef.current?.present();
         } else {
-            signInRef.current?.present();
+            setIsAuthSheetMounted(true);
         }
     }, [user]);
+
+    useEffect(() => {
+        if (isAuthSheetMounted) {
+            signInRef.current?.present();
+        }
+    }, [isAuthSheetMounted]);
 
     const handleDashboard = useCallback(() => {
         avatarDropdownRef.current?.dismiss();
@@ -355,23 +362,27 @@ const Home = (props: Props) => {
                 <View style={styles.bottomPadding} />
             </ScrollView>
             
-            {/* Auth Modals */}
-            <SignIn
-                ref={signInRef}
-                onClose={handleCloseAuth}
-                onSwitchToSignUp={handleSwitchToSignUp}
-                onSwitchToForgotPassword={handleSwitchToForgotPassword}
-            />
-            <SignUp
-                ref={signUpRef}
-                onClose={handleCloseAuth}
-                onSwitchToSignIn={handleSwitchToSignIn}
-            />
-            <ForgotPasswordScreen
-                ref={forgotPasswordRef}
-                onClose={handleCloseAuth}
-                onSwitchToSignIn={handleSwitchToSignIn}
-            />
+            {/* Auth Modals (Lazy Rendered) */}
+            {isAuthSheetMounted && (
+                <>
+                    <SignIn
+                        ref={signInRef}
+                        onClose={handleCloseAuth}
+                        onSwitchToSignUp={handleSwitchToSignUp}
+                        onSwitchToForgotPassword={handleSwitchToForgotPassword}
+                    />
+                    <SignUp
+                        ref={signUpRef}
+                        onClose={handleCloseAuth}
+                        onSwitchToSignIn={handleSwitchToSignIn}
+                    />
+                    <ForgotPasswordScreen
+                        ref={forgotPasswordRef}
+                        onClose={handleCloseAuth}
+                        onSwitchToSignIn={handleSwitchToSignIn}
+                    />
+                </>
+            )}
 
             {/* Avatar Dropdown */}
             <AvatarDropdown
