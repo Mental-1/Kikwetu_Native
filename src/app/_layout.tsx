@@ -1,3 +1,4 @@
+import 'react-native-gesture-handler';
 import { AuthProvider } from '@/contexts/authContext';
 import '@/global.css';
 import '@fontsource/montserrat';
