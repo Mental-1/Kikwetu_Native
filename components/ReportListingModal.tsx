@@ -1,8 +1,15 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { Button } from 'react-native-paper';
+import BottomSheet from './BottomSheet';
 
 interface ReportReason {
   id: string;
@@ -70,102 +77,89 @@ const ReportListingModal: React.FC<ReportListingModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={handleClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.primary} />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Report</Text>
-          </View>
-          
-          <View style={styles.modalContent}>
-            <ScrollView 
-              style={styles.formContainer} 
-              contentContainerStyle={styles.formContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <Text style={styles.subtitle}>Why are you reporting this listing?</Text>
-              
-              <View style={styles.reasonsContainer}>
-                {reportReasons.map((reason) => (
-                  <TouchableOpacity
-                    key={reason.id}
-                    style={[
-                      styles.reasonItem,
-                      selectedReason === reason.id && styles.selectedReason
-                    ]}
-                    onPress={() => setSelectedReason(reason.id)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.reasonContent}>
-                      <View style={styles.radioContainer}>
-                        <View style={[
-                          styles.radioButton,
-                          selectedReason === reason.id && styles.radioSelected
-                        ]}>
-                          {selectedReason === reason.id && (
-                            <View style={styles.radioInner} />
-                          )}
-                        </View>
-                      </View>
-                      <View style={styles.reasonText}>
-                        <Text style={[
-                          styles.reasonTitle,
-                          selectedReason === reason.id && styles.selectedReasonTitle
-                        ]}>
-                          {reason.title}
-                        </Text>
-                        <Text style={[
-                          styles.reasonDescription,
-                          selectedReason === reason.id && styles.selectedReasonDescription
-                        ]}>
-                          {reason.description}
-                        </Text>
+    <BottomSheet visible={visible} onClose={handleClose}>
+      <View style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+            <Ionicons name="close" size={24} color={Colors.primary} />
+          </TouchableOpacity>
+          <Text style={styles.modalTitle}>Report</Text>
+        </View>
+        
+        <View style={styles.modalContent}>
+          <ScrollView 
+            style={styles.formContainer} 
+            contentContainerStyle={styles.formContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.subtitle}>Why are you reporting this listing?</Text>
+            
+            <View style={styles.reasonsContainer}>
+              {reportReasons.map((reason) => (
+                <TouchableOpacity
+                  key={reason.id}
+                  style={[
+                    styles.reasonItem,
+                    selectedReason === reason.id && styles.selectedReason
+                  ]}
+                  onPress={() => setSelectedReason(reason.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.reasonContent}>
+                    <View style={styles.radioContainer}>
+                      <View style={[
+                        styles.radioButton,
+                        selectedReason === reason.id && styles.radioSelected
+                      ]}>
+                        {selectedReason === reason.id && (
+                          <View style={styles.radioInner} />
+                        )}
                       </View>
                     </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              
-              <Button
-                mode="contained"
-                onPress={handleSubmit}
-                style={[
-                  styles.submitButton,
-                  !selectedReason && styles.submitButtonDisabled
-                ]}
-                labelStyle={styles.submitButtonText}
-                disabled={!selectedReason}
-              >
-                Report Listing
-              </Button>
-            </ScrollView>
-          </View>
+                    <View style={styles.reasonText}>
+                      <Text style={[
+                        styles.reasonTitle,
+                        selectedReason === reason.id && styles.selectedReasonTitle
+                      ]}>
+                        {reason.title}
+                      </Text>
+                      <Text style={[
+                        styles.reasonDescription,
+                        selectedReason === reason.id && styles.selectedReasonDescription
+                      ]}>
+                        {reason.description}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            <Button
+              mode="contained"
+              onPress={handleSubmit}
+              style={[
+                styles.submitButton,
+                !selectedReason && styles.submitButtonDisabled
+              ]}
+              labelStyle={styles.submitButtonText}
+              disabled={!selectedReason}
+            >
+              Report Listing
+            </Button>
+          </ScrollView>
         </View>
       </View>
-    </Modal>
+    </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
   modalContainer: {
-    height: '75%',
+    height: '100%',
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: 34,
   },
   modalHeader: {
     flexDirection: 'row',

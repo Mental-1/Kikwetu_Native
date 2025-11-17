@@ -5,9 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
-    Modal,
     Platform,
     ScrollView,
     StyleSheet,
@@ -16,6 +14,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import BottomSheet from '@/components/BottomSheet';
 
 interface ChangePasswordModalProps {
   visible: boolean;
@@ -109,125 +108,106 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
     onClose();
   };
 
-  if (!visible) return null;
-
   return (
     <>
-      <Modal
-        visible={visible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={handleClose}
-      >
-        <TouchableOpacity 
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={handleClose}
+      <BottomSheet visible={visible} onClose={handleClose}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoidingView}
         >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
-      >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.modalContainer}>
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={Colors.black} />
-              </TouchableOpacity>
-              <Text style={styles.title}>Change Password</Text>
-              <View style={styles.placeholder} />
-            </View>
-
-            {/* Content */}
-            <View style={styles.content}>
-              <Text style={styles.description}>
-                Enter your current password and choose a new secure password.
-              </Text>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Current Password</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter your current password"
-                  value={currentPassword}
-                  onChangeText={setCurrentPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  textContentType="password"
-                  autoComplete="password"
-                />
+          <ScrollView contentContainerStyle={styles.scrollContainer}>
+            <View style={styles.modalContainer}>
+              {/* Header */}
+              <View style={styles.header}>
+                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                  <Ionicons name="close" size={24} color={Colors.black} />
+                </TouchableOpacity>
+                <Text style={styles.title}>Change Password</Text>
+                <View style={styles.placeholder} />
               </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>New Password</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter new password"
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  textContentType="newPassword"
-                  autoComplete="new-password"
-                />
-                <Text style={styles.helpText}>
-                  Must be at least 8 characters with letters and numbers
+              {/* Content */}
+              <View style={styles.content}>
+                <Text style={styles.description}>
+                  Enter your current password and choose a new secure password.
                 </Text>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Current Password</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Enter your current password"
+                    value={currentPassword}
+                    onChangeText={setCurrentPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    textContentType="password"
+                    autoComplete="password"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>New Password</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    textContentType="newPassword"
+                    autoComplete="new-password"
+                  />
+                  <Text style={styles.helpText}>
+                    Must be at least 8 characters with letters and numbers
+                  </Text>
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Confirm New Password</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    textContentType="newPassword"
+                    autoComplete="new-password"
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.button, isLoading && styles.buttonDisabled]}
+                  onPress={handleChangePassword}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color={Colors.white} />
+                  ) : (
+                    <Text style={styles.buttonText}>Change Password</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
               </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Confirm New Password</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Confirm new password"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  textContentType="newPassword"
-                  autoComplete="new-password"
-                />
-              </View>
-
-              <TouchableOpacity
-                style={[styles.button, isLoading && styles.buttonDisabled]}
-                onPress={handleChangePassword}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color={Colors.white} />
-                ) : (
-                  <Text style={styles.buttonText}>Change Password</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
             </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-        </TouchableOpacity>
-      </Modal>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </BottomSheet>
       <AlertComponent />
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
   keyboardAvoidingView: {
     flex: 1,
-    justifyContent: 'flex-end',
   },
   scrollContainer: {
     flexGrow: 1,
@@ -237,7 +217,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    height: '65%',
+    height: '100%',
   },
   header: {
     flexDirection: 'row',
@@ -245,8 +225,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightgrey,
   },
   closeButton: {
     padding: 4,

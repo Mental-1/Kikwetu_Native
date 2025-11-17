@@ -3,11 +3,12 @@ import { Colors } from '@/src/constants/constant';
 import { showErrorToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { forwardRef, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -15,10 +16,11 @@ import {
 import * as Haptics from 'expo-haptics';
 import { z } from 'zod';
 import { TextInput } from 'react-native-paper';
-import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import BottomSheet from '@/components/BottomSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ForgotPasswordProps {
+  visible: boolean;
   onClose: () => void;
   onSwitchToSignIn: () => void;
 }
@@ -29,16 +31,11 @@ const forgotPasswordSchema = z.object({
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
-const ForgotPasswordScreen = forwardRef<BottomSheetModal, ForgotPasswordProps>((
-    { onClose, onSwitchToSignIn }, 
-    ref
-) => {
+const ForgotPasswordScreen: React.FC<ForgotPasswordProps> = ({ visible, onClose, onSwitchToSignIn }) => {
   const { resetPassword } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const { bottom } = useSafeAreaInsets();
-
-  const snapPoints = useMemo(() => ['60%', '85%'], []);
 
   const {
     control,
@@ -77,18 +74,8 @@ const ForgotPasswordScreen = forwardRef<BottomSheetModal, ForgotPasswordProps>((
   };
 
   return (
-    <BottomSheetModal
-        ref={ref}
-        index={-1}
-        snapPoints={snapPoints}
-        onDismiss={onClose}
-        backgroundStyle={styles.modalContainer}
-        handleIndicatorStyle={{ backgroundColor: Colors.lightgrey }}
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
-      >
-        <BottomSheetScrollView 
-            style={styles.modalContent}
+    <BottomSheet visible={visible} onClose={onClose}>
+        <ScrollView 
             contentContainerStyle={{ paddingBottom: bottom > 0 ? bottom + 12 : 24, flexGrow: 1, justifyContent: 'center' }}
             keyboardShouldPersistTaps="handled"
         >
@@ -154,22 +141,12 @@ const ForgotPasswordScreen = forwardRef<BottomSheetModal, ForgotPasswordProps>((
                 <Text style={styles.backToSignInText}>Back to Sign In</Text>
                 </Pressable>
             </View>
-        </BottomSheetScrollView>
-    </BottomSheetModal>
+        </ScrollView>
+    </BottomSheet>
   );
-});
-
-ForgotPasswordScreen.displayName = 'ForgotPasswordScreen';
+};
 
 const styles = StyleSheet.create({
-    modalContainer: {
-        backgroundColor: Colors.white,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-    },
-    modalContent: {
-        padding: 20,
-    },
     title: {
         fontSize: 24,
         fontWeight: 'bold',

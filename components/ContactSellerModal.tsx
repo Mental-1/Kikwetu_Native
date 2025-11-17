@@ -5,12 +5,12 @@ import React from 'react';
 import {
   Alert,
   Linking,
-  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import BottomSheet from './BottomSheet';
 
 interface ContactSellerModalProps {
   visible: boolean;
@@ -130,138 +130,116 @@ export default function ContactSellerModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity 
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <TouchableOpacity 
-          style={styles.contactModal}
-          activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
-        >
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Contact Seller</Text>
+    <BottomSheet visible={visible} onClose={onClose}>
+      <View style={styles.contactModal}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Contact Seller</Text>
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={onClose}
+          >
+            <Ionicons name="close" size={24} color={Colors.black} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.contactOptions}>
+          {/* Call Option */}
+          {seller.phone && (
             <TouchableOpacity 
-              style={styles.closeButton}
-              onPress={onClose}
-            >
-              <Ionicons name="close" size={24} color={Colors.black} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.contactOptions}>
-            {/* Call Option */}
-            {seller.phone && (
-              <TouchableOpacity 
-                style={[styles.contactOption, (isProcessing || !seller.phone) && styles.disabledOption]}
-                onPress={handleCallSeller} 
-                disabled={isProcessing || !seller.phone}
-                accessibilityRole="button"
-                accessibilityLabel="Call seller"
-                accessibilityHint="Opens the dialer to call the seller"
-                testID="contact-call-btn"
-              >
-                <View style={styles.contactIconContainer}>
-                  <Ionicons name="call" size={24} color={Colors.primary} />
-                </View>
-                <View style={styles.contactDetails}>
-                  <Text style={styles.contactTitle}>Call</Text>
-                  <Text style={styles.contactSubtitle}>{seller.phone}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
-              </TouchableOpacity>
-            )}
-
-            {/* WhatsApp Option */}
-            {seller.whatsapp && (
-              <TouchableOpacity 
-                style={[styles.contactOption, (isProcessing || !seller.whatsapp) && styles.disabledOption]} 
-                onPress={handleWhatsAppSeller} 
-                disabled={isProcessing || !seller.whatsapp}
-                accessibilityRole="button"
-                accessibilityLabel="WhatsApp seller"
-                accessibilityHint="Opens WhatsApp to message the seller"
-                testID="contact-whatsapp-btn"
-              >
-                <View style={styles.contactIconContainer}>
-                  <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
-                </View>
-                <View style={styles.contactDetails}>
-                  <Text style={styles.contactTitle}>WhatsApp</Text>
-                  <Text style={styles.contactSubtitle}>Send a message</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
-              </TouchableOpacity>
-            )}
-
-            {/* Email Option */}
-            {seller.email && (
-              <TouchableOpacity 
-                style={[styles.contactOption, (isProcessing || !seller.email) && styles.disabledOption]} 
-                onPress={handleEmailSeller} 
-                disabled={isProcessing || !seller.email}
-                accessibilityRole="button"
-                accessibilityLabel="Email seller"
-                accessibilityHint="Opens the email client to email the seller"
-                testID="contact-email-btn"
-              >
-                <View style={styles.contactIconContainer}>
-                  <Ionicons name="mail" size={24} color={Colors.red} />
-                </View>
-                <View style={styles.contactDetails}>
-                  <Text style={styles.contactTitle}>Email</Text>
-                  <Text style={styles.contactSubtitle}>{seller.email}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
-              </TouchableOpacity>
-            )}
-
-            {/* In-App Messaging Option */}
-            <TouchableOpacity 
-              style={[styles.contactOption, isProcessing && styles.disabledOption]} 
-              onPress={handleInAppMessage} 
-              disabled={isProcessing}
+              style={[styles.contactOption, (isProcessing || !seller.phone) && styles.disabledOption]}
+              onPress={handleCallSeller} 
+              disabled={isProcessing || !seller.phone}
               accessibilityRole="button"
-              accessibilityLabel="Open in-app chat"
-              accessibilityHint="Opens the in-app chat to message the seller"
-              testID="contact-chat-btn"
+              accessibilityLabel="Call seller"
+              accessibilityHint="Opens the dialer to call the seller"
+              testID="contact-call-btn"
             >
               <View style={styles.contactIconContainer}>
-                <Ionicons name="chatbubble" size={24} color={Colors.primary} />
+                <Ionicons name="call" size={24} color={Colors.primary} />
               </View>
               <View style={styles.contactDetails}>
-                <Text style={styles.contactTitle}>In-App Chat</Text>
-                <Text style={styles.contactSubtitle}>Send a message within the app</Text>
+                <Text style={styles.contactTitle}>Call</Text>
+                <Text style={styles.contactSubtitle}>{seller.phone}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
             </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+          )}
+
+          {/* WhatsApp Option */}
+          {seller.whatsapp && (
+            <TouchableOpacity 
+              style={[styles.contactOption, (isProcessing || !seller.whatsapp) && styles.disabledOption]} 
+              onPress={handleWhatsAppSeller} 
+              disabled={isProcessing || !seller.whatsapp}
+              accessibilityRole="button"
+              accessibilityLabel="WhatsApp seller"
+              accessibilityHint="Opens WhatsApp to message the seller"
+              testID="contact-whatsapp-btn"
+            >
+              <View style={styles.contactIconContainer}>
+                <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+              </View>
+              <View style={styles.contactDetails}>
+                <Text style={styles.contactTitle}>WhatsApp</Text>
+                <Text style={styles.contactSubtitle}>Send a message</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+            </TouchableOpacity>
+          )}
+
+          {/* Email Option */}
+          {seller.email && (
+            <TouchableOpacity 
+              style={[styles.contactOption, (isProcessing || !seller.email) && styles.disabledOption]} 
+              onPress={handleEmailSeller} 
+              disabled={isProcessing || !seller.email}
+              accessibilityRole="button"
+              accessibilityLabel="Email seller"
+              accessibilityHint="Opens the email client to email the seller"
+              testID="contact-email-btn"
+            >
+              <View style={styles.contactIconContainer}>
+                <Ionicons name="mail" size={24} color={Colors.red} />
+              </View>
+              <View style={styles.contactDetails}>
+                <Text style={styles.contactTitle}>Email</Text>
+                <Text style={styles.contactSubtitle}>{seller.email}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+            </TouchableOpacity>
+          )}
+
+          {/* In-App Messaging Option */}
+          <TouchableOpacity 
+            style={[styles.contactOption, isProcessing && styles.disabledOption]} 
+            onPress={handleInAppMessage} 
+            disabled={isProcessing}
+            accessibilityRole="button"
+            accessibilityLabel="Open in-app chat"
+            accessibilityHint="Opens the in-app chat to message the seller"
+            testID="contact-chat-btn"
+          >
+            <View style={styles.contactIconContainer}>
+              <Ionicons name="chatbubble" size={24} color={Colors.primary} />
+            </View>
+            <View style={styles.contactDetails}>
+              <Text style={styles.contactTitle}>In-App Chat</Text>
+              <Text style={styles.contactSubtitle}>Send a message within the app</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
   contactModal: {
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-    maxHeight: '75%',
+    paddingBottom: 20,
   },
   modalHeader: {
     flexDirection: 'row',

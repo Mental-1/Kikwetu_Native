@@ -8,7 +8,7 @@ import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
 import ForgotPasswordScreen from '@/src/app/(screens)/(auth)/forgot-password';
 import SignIn from '@/src/app/(screens)/(auth)/signin';
 import SignUp from '@/src/app/(screens)/(auth)/signup';
-import { Colors, getCategoryImage } from '@/src/constants/constant';
+import { Colors} from '@/src/constants/constant';
 import { useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
 import { useListings } from '@/src/hooks/useListings';
 import { useNotifications } from '@/src/hooks/useNotifications';
@@ -16,10 +16,9 @@ import { useFeaturedVideos } from '@/src/hooks/useVideos';
 import { useAppStore } from '@/stores/useAppStore';
 import { showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,10 +35,10 @@ const Home = (props: Props) => {
     const { searchQuery, setSearchQuery } = useAppStore();
     const [loadingCategoryId, setLoadingCategoryId] = useState<number | null>(null);
 
-    const signInRef = useRef<BottomSheetModal>(null);
-    const signUpRef = useRef<BottomSheetModal>(null);
-    const forgotPasswordRef = useRef<BottomSheetModal>(null);
-    const avatarDropdownRef = useRef<BottomSheetModal>(null);
+    const [isSignInVisible, setIsSignInVisible] = useState(false);
+    const [isSignUpVisible, setIsSignUpVisible] = useState(false);
+    const [isForgotPasswordVisible, setIsForgotPasswordVisible] = useState(false);
+    const [isAvatarSheetVisible, setIsAvatarSheetVisible] = useState(false);
 
     const { data: categories, isLoading: categoriesLoading } = useCategories();
     const { prefetchSubcategories } = useCategoryMutations();
@@ -57,19 +56,19 @@ const Home = (props: Props) => {
     
     const handleAccountPress = useCallback(() => {
         if (user) {
-            avatarDropdownRef.current?.present();
+            setIsAvatarSheetVisible(true);
         } else {
-            signInRef.current?.present();
+            setIsSignInVisible(true);
         }
     }, [user]);
 
     const handleDashboard = useCallback(() => {
-        avatarDropdownRef.current?.dismiss();
+        setIsAvatarSheetVisible(false);
         router.push('/(screens)/(dashboard)');
     }, [router]);
 
     const handleSignOut = useCallback(() => {
-        avatarDropdownRef.current?.dismiss();
+        setIsAvatarSheetVisible(false);
         setActiveModal('signOutDialog');
     }, []);
 
@@ -89,25 +88,25 @@ const Home = (props: Props) => {
     }, [signOut]);
 
     const handleSwitchToSignUp = () => {
-        signInRef.current?.dismiss();
-        signUpRef.current?.present();
+        setIsSignInVisible(false);
+        setIsSignUpVisible(true);
     };
 
     const handleSwitchToSignIn = () => {
-        signUpRef.current?.dismiss();
-        forgotPasswordRef.current?.dismiss();
-        signInRef.current?.present();
+        setIsSignUpVisible(false);
+        setIsForgotPasswordVisible(false);
+        setIsSignInVisible(true);
     };
 
     const handleSwitchToForgotPassword = () => {
-        signInRef.current?.dismiss();
-        forgotPasswordRef.current?.present();
+        setIsSignInVisible(false);
+        setIsForgotPasswordVisible(true);
     };
 
     const handleCloseAuth = () => {
-        signInRef.current?.dismiss();
-        signUpRef.current?.dismiss();
-        forgotPasswordRef.current?.dismiss();
+        setIsSignInVisible(false);
+        setIsSignUpVisible(false);
+        setIsForgotPasswordVisible(false);
     };
 
     const handleSearchSubmit = () => {
@@ -330,25 +329,25 @@ const Home = (props: Props) => {
             </ScrollView>
             
             <SignIn
-                ref={signInRef}
+                visible={isSignInVisible}
                 onClose={handleCloseAuth}
                 onSwitchToSignUp={handleSwitchToSignUp}
                 onSwitchToForgotPassword={handleSwitchToForgotPassword}
             />
             <SignUp
-                ref={signUpRef}
+                visible={isSignUpVisible}
                 onClose={handleCloseAuth}
                 onSwitchToSignIn={handleSwitchToSignIn}
             />
             <ForgotPasswordScreen
-                ref={forgotPasswordRef}
+                visible={isForgotPasswordVisible}
                 onClose={handleCloseAuth}
                 onSwitchToSignIn={handleSwitchToSignIn}
             />
 
             <AvatarSheet
-                ref={avatarDropdownRef}
-                onClose={() => avatarDropdownRef.current?.dismiss()}
+                visible={isAvatarSheetVisible}
+                onClose={() => setIsAvatarSheetVisible(false)}
                 onDashboard={handleDashboard}
                 onSignOut={handleSignOut}
                 userName={user?.full_name}

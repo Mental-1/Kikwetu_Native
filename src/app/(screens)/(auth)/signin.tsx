@@ -2,38 +2,34 @@ import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
 import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { forwardRef, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
 import { z } from 'zod';
 import GoogleIcon from '@/components/ui/GoogleIcon';
-import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import BottomSheet from '@/components/BottomSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface SignInProps {
+    visible: boolean;
     onClose: () => void;
     onSwitchToSignUp: () => void;
     onSwitchToForgotPassword: () => void;
 }
 
 const signInSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: z.email('Please enter a valid email address'),
   password: z.string().min(1, 'Password is required'),
 });
 
 type SignInFormData = z.infer<typeof signInSchema>;
 
-const SignIn = forwardRef<BottomSheetModal, SignInProps>((
-    { onClose, onSwitchToSignUp, onSwitchToForgotPassword }, 
-    ref
-) => {
+const SignIn: React.FC<SignInProps> = ({ visible, onClose, onSwitchToSignUp, onSwitchToForgotPassword }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
   const { bottom } = useSafeAreaInsets();
-
-  const snapPoints = useMemo(() => ['60%', '85%'], []);
 
   const {
     control,
@@ -63,18 +59,8 @@ const SignIn = forwardRef<BottomSheetModal, SignInProps>((
   };
 
   return (
-    <BottomSheetModal
-        ref={ref}
-        index={-1}
-        snapPoints={snapPoints}
-        onDismiss={onClose}
-        backgroundStyle={styles.modalContainer}
-        handleIndicatorStyle={{ backgroundColor: Colors.lightgrey }}
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
-      >
-        <BottomSheetScrollView 
-            style={styles.modalContent}
+    <BottomSheet visible={visible} onClose={onClose}>
+        <ScrollView 
             contentContainerStyle={{ paddingBottom: bottom > 0 ? bottom + 12 : 24 }}
             keyboardShouldPersistTaps="handled"
         >
@@ -181,22 +167,12 @@ const SignIn = forwardRef<BottomSheetModal, SignInProps>((
                 <Text style={styles.legalLink}>Privacy Policy</Text>
                 </Pressable>
             </View>
-        </BottomSheetScrollView>
-    </BottomSheetModal>
+        </ScrollView>
+    </BottomSheet>
   );
-});
-
-SignIn.displayName = 'SignIn';
+};
 
 const styles = StyleSheet.create({
-    modalContainer: {
-        backgroundColor: Colors.white,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-    },
-    modalContent: {
-        padding: 20,
-    },
     subtitle: {
         fontSize: 18,
         color: Colors.grey,

@@ -1,11 +1,12 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetBackdrop, BottomSheetModal } from '@gorhom/bottom-sheet';
-import React, { forwardRef, useCallback, useMemo } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import BottomSheet from './BottomSheet';
 
 interface AvatarSheetProps {
+  visible: boolean;
   onClose: () => void;
   onDashboard: () => void;
   onSignOut: () => void;
@@ -13,36 +14,13 @@ interface AvatarSheetProps {
   userEmail?: string;
 }
 
-const AvatarSheet = forwardRef<BottomSheetModal, AvatarSheetProps>((
-  { onClose, onDashboard, onSignOut, userName, userEmail },
-  ref
+const AvatarSheet: React.FC<AvatarSheetProps> = (
+  { visible, onClose, onDashboard, onSignOut, userName, userEmail }
 ) => {
-  const snapPoints = useMemo(() => [280], []);
   const { bottom } = useSafeAreaInsets();
 
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-        onPress={onClose}
-      />
-    ),
-    [onClose]
-  );
-
   return (
-    <BottomSheetModal
-      ref={ref}
-      index={-1}
-      snapPoints={snapPoints}
-      onDismiss={onClose}
-      backdropComponent={renderBackdrop}
-      backgroundStyle={styles.bottomSheetBackground}
-      handleIndicatorStyle={styles.handleIndicator}
-    >
+    <BottomSheet visible={visible} onClose={onClose}>
       <View style={[styles.dropdown, { paddingBottom: bottom > 0 ? bottom : 20 }]}>
         {/* User Info Header */}
         <View style={styles.userHeader}>
@@ -82,22 +60,11 @@ const AvatarSheet = forwardRef<BottomSheetModal, AvatarSheetProps>((
           </Pressable>
         </View>
       </View>
-    </BottomSheetModal>
+    </BottomSheet>
   );
-});
-
-AvatarSheet.displayName = 'AvatarSheet';
+};
 
 const styles = StyleSheet.create({
-  bottomSheetBackground: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  handleIndicator: {
-    backgroundColor: Colors.lightgrey,
-    width: 40,
-  },
   dropdown: {
     flex: 1,
     backgroundColor: Colors.white,

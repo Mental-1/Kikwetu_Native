@@ -3,8 +3,7 @@ import ForgotPasswordScreen from '@/src/app/(screens)/(auth)/forgot-password';
 import SignIn from '@/src/app/(screens)/(auth)/signin';
 import SignUp from '@/src/app/(screens)/(auth)/signup';
 import { Colors } from '@/src/constants/constant';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -18,40 +17,38 @@ interface AuthGuardProps {
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const { user, loading } = useAuth();
-  const signInRef = useRef<BottomSheetModal>(null);
-  const signUpRef = useRef<BottomSheetModal>(null);
-  const forgotPasswordRef = useRef<BottomSheetModal>(null);
+  const [isSignInVisible, setIsSignInVisible] = useState(false);
+  const [isSignUpVisible, setIsSignUpVisible] = useState(false);
+  const [isForgotPasswordVisible, setIsForgotPasswordVisible] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
-        signInRef.current?.present();
+        setIsSignInVisible(true);
     } else {
-        signInRef.current?.dismiss();
-        signUpRef.current?.dismiss();
-        forgotPasswordRef.current?.dismiss();
+        handleClose();
     }
   }, [loading, user]);
 
   const handleSwitchToSignUp = () => {
-    signInRef.current?.dismiss();
-    signUpRef.current?.present();
+    setIsSignInVisible(false);
+    setIsSignUpVisible(true);
   };
 
   const handleSwitchToSignIn = () => {
-    signUpRef.current?.dismiss();
-    forgotPasswordRef.current?.dismiss();
-    signInRef.current?.present();
+    setIsSignUpVisible(false);
+    setIsForgotPasswordVisible(false);
+    setIsSignInVisible(true);
   };
 
   const handleSwitchToForgotPassword = () => {
-      signInRef.current?.dismiss();
-      forgotPasswordRef.current?.present();
+      setIsSignInVisible(false);
+      setIsForgotPasswordVisible(true);
   };
 
   const handleClose = () => {
-    signInRef.current?.dismiss();
-    signUpRef.current?.dismiss();
-    forgotPasswordRef.current?.dismiss();
+    setIsSignInVisible(false);
+    setIsSignUpVisible(false);
+    setIsForgotPasswordVisible(false);
   };
 
   if (loading) {
@@ -70,18 +67,18 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   return (
     <View style={styles.loadingContainer}>
         <SignIn
-            ref={signInRef}
+            visible={isSignInVisible}
             onClose={handleClose}
             onSwitchToSignUp={handleSwitchToSignUp}
             onSwitchToForgotPassword={handleSwitchToForgotPassword}
         />
         <SignUp
-            ref={signUpRef}
+            visible={isSignUpVisible}
             onClose={handleClose}
             onSwitchToSignIn={handleSwitchToSignIn}
         />
         <ForgotPasswordScreen
-            ref={forgotPasswordRef}
+            visible={isForgotPasswordVisible}
             onClose={handleClose}
             onSwitchToSignIn={handleSwitchToSignIn}
         />

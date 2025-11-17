@@ -2,13 +2,13 @@ import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
 import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { forwardRef, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
 import { z } from 'zod';
 import GoogleIcon from '@/components/ui/GoogleIcon';
-import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import BottomSheet from '@/components/BottomSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const signUpSchema = z.object({
@@ -27,21 +27,17 @@ const signUpSchema = z.object({
 type SignUpFormData = z.infer<typeof signUpSchema>;
 
 interface SignUpProps {
+    visible: boolean;
     onClose: () => void;
     onSwitchToSignIn: () => void;
 }
 
-const SignUp = forwardRef<BottomSheetModal, SignUpProps>((
-    { onClose, onSwitchToSignIn },
-    ref
-) => {
+const SignUp: React.FC<SignUpProps> = ({ visible, onClose, onSwitchToSignIn }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
   const { bottom } = useSafeAreaInsets();
-
-  const snapPoints = useMemo(() => ['75%', '90%'], []);
 
   const {
     control,
@@ -80,18 +76,8 @@ const SignUp = forwardRef<BottomSheetModal, SignUpProps>((
   };
 
   return (
-    <BottomSheetModal
-        ref={ref}
-        index={-1}
-        snapPoints={snapPoints}
-        onDismiss={onClose}
-        backgroundStyle={styles.modalContainer}
-        handleIndicatorStyle={{ backgroundColor: Colors.lightgrey }}
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
-    >
-        <BottomSheetScrollView 
-            style={styles.modalContent}
+    <BottomSheet visible={visible} onClose={onClose}>
+        <ScrollView 
             contentContainerStyle={{ paddingBottom: bottom > 0 ? bottom + 12 : 24 }}
             keyboardShouldPersistTaps="handled"
         >
@@ -262,22 +248,12 @@ const SignUp = forwardRef<BottomSheetModal, SignUpProps>((
                 <Text style={styles.legalLink}>Privacy Policy</Text>
                 </Pressable>
             </View>
-        </BottomSheetScrollView>
-    </BottomSheetModal>
+        </ScrollView>
+    </BottomSheet>
   );
-});
-
-SignUp.displayName = 'SignUp';
+};
 
 const styles = StyleSheet.create({
-    modalContainer: {
-        backgroundColor: Colors.white,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-    },
-    modalContent: {
-        padding: 20,
-    },
     subtitle: {
         fontSize: 18,
         color: Colors.grey,

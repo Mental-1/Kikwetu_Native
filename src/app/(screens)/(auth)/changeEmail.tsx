@@ -6,13 +6,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
 import { z } from 'zod';
+import BottomSheet from '@/components/BottomSheet';
 
 // Form validation schema
 const changeEmailSchema = z.object({
-    newEmail: z.string().email('Please enter a valid email address'),
+    newEmail: z.email('Please enter a valid email address'),
     currentPassword: z.string().min(1, 'Current password is required'),
 });
 
@@ -72,17 +73,7 @@ const ChangeEmailModal: React.FC<ChangeEmailModalProps> = ({ visible, onClose })
 
   return (
     <>
-      <Modal
-        visible={visible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={handleClose}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={handleClose}
-        >
+      <BottomSheet visible={visible} onClose={handleClose}>
           <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
@@ -160,21 +151,15 @@ const ChangeEmailModal: React.FC<ChangeEmailModalProps> = ({ visible, onClose })
             </View>
           </ScrollView>
           </View>
-        </TouchableOpacity>
-      </Modal>
+      </BottomSheet>
       <AlertComponent />
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
   container: {
-    height: '65%',
+    height: '100%',
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -184,10 +169,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightgrey,
   },
   closeButton: {
     padding: 4,

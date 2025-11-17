@@ -9,6 +9,7 @@ export const Colors = {
   red: '#ed0707',
   green: '#22c55e',
   badgeRed: '#ff4444',
+  darkgrey: '#181818'
 };
 export type Color = keyof typeof Colors;
 

@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Pressable,
   ScrollView,
   Share,
   StyleSheet,
@@ -294,8 +295,12 @@ export default function ListingDetails() {
 
         {/* Product Info */}
         <View style={styles.productInfo}>
-          {/* Rating, Location, and Views */}
-          <View style={styles.ratingContainer}>
+         
+          {/* Title */}
+          <Text style={styles.productTitle}>{listing.title}</Text>
+
+           {/* Rating, Location, and Views */}
+           <View style={styles.ratingContainer}>
             <View style={styles.ratingLeft}>
               <View style={styles.starsContainer}>
                 {renderStars(sellerInfo?.rating || 0)}
@@ -315,9 +320,6 @@ export default function ListingDetails() {
               </View>
             </View>
           </View>
-
-          {/* Title */}
-          <Text style={styles.productTitle}>{listing.title}</Text>
 
           {/* Price */}
           <View style={styles.priceContainer}>
@@ -387,19 +389,21 @@ export default function ListingDetails() {
             {/* Action Buttons */}
             <View style={styles.sellerActions}>
               <Animated.View 
-                style={{
+                style={[{
+                  flex: 1,
                   transform: [{
                     rotate: wiggleAnim.interpolate({
                       inputRange: [-1, 1],
                       outputRange: ['-5deg', '5deg'],
                     }),
                   }],
-                }}
+                }]}
               >
-                <TouchableOpacity 
-                  style={[
+                <Pressable 
+                  style={({ pressed }) => [
                     styles.actionButton,
-                    isFollowing ? styles.followingButton : styles.followButtonStyle
+                    isFollowing ? styles.followingButton : styles.followButtonStyle,
+                    pressed && { opacity: 0.7 }
                   ]}
                   onPress={handleFollow}
                 >
@@ -413,16 +417,20 @@ export default function ListingDetails() {
                   ]}>
                     {isFollowing ? "Following" : "Follow"}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </Animated.View>
               
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.viewProfileButton]}
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.actionButton, 
+                  styles.viewProfileButton,
+                  pressed && { opacity: 0.7 }
+                ]}
                 onPress={handleViewProfile}
               >
                 <Ionicons name="person" size={16} color={Colors.white} />
                 <Text style={styles.viewProfileButtonText}>View Profile</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
 
@@ -440,13 +448,10 @@ export default function ListingDetails() {
           </View>
 
           {/* Report Listing */}
-          <TouchableOpacity style={styles.reportSection} onPress={handleReportListing} activeOpacity={0.7}>
-            <View style={styles.reportButton}>
-              <Ionicons name="flag-outline" size={20} color={Colors.grey} />
-              <Text style={styles.reportButtonText}>Report this listing</Text>
-              <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
-            </View>
-          </TouchableOpacity>
+          <Pressable style={styles.reportButton} onPress={handleReportListing}>
+            <Ionicons name="flag-outline" size={20} color={Colors.red} />
+            <Text style={styles.reportButtonText}>Report this listing</Text>
+          </Pressable>
 
           {/* Safety Tips */}
           <View style={styles.safetyTips}>
@@ -455,10 +460,10 @@ export default function ListingDetails() {
               <Text style={styles.safetyTitle}>Safety Tips</Text>
             </View>
             <Text style={styles.safetyText}>
-              • Meet in a public place for transactions{'\n'}
-              • Inspect the item before payment{'\n'}
-              • Use secure payment methods{'\n'}
-              • Trust your instincts - if something feels off, walk away{'\n'}
+              • Meet in a public place for transactions
+              • Inspect the item before payment
+              • Use secure payment methods
+              • Trust your instincts - if something feels off, walk away
               • Keep all communication within the app
             </Text>
           </View>
@@ -630,7 +635,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: width,
-    height: 300,
+    height: 350,
   },
   mainImage: {
     width: '100%',
@@ -699,6 +704,9 @@ const styles = StyleSheet.create({
   productInfo: {
     padding: 16,
     backgroundColor: Colors.white,
+    marginTop: -20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -942,31 +950,30 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: '500',
   },
-  reportSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: 0.5,
-    borderTopColor: Colors.lightgrey,
-    backgroundColor: Colors.white,
-  },
   reportButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.red,
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    gap: 8,
   },
   reportButtonText: {
     fontSize: 14,
-    color: Colors.grey,
-    fontWeight: '400',
-    marginLeft: 8,
-    flex: 1,
+    color: Colors.red,
+    fontWeight: '600',
   },
   safetyTips: {
     backgroundColor: '#F0F8FF',
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
+    marginHorizontal: 16,
     borderWidth: 1,
     borderColor: '#E6F3FF',
   },

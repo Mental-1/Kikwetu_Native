@@ -1,4 +1,4 @@
-import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '@/contexts/authContext';
 import '@/global.css';
 import '@fontsource/montserrat';
@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import OfflineScreen from '@/components/OfflineScreen';
