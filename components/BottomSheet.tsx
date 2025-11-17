@@ -67,7 +67,7 @@ export default function BottomSheet({ visible, onClose, children }: BottomSheetP
     } else {
       translateY.value = withTiming(height, { duration: 250 });
     }
-  }, [visible]);
+  }, [visible, translateY]);
 
   return (
     <Modal
