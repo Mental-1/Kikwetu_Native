@@ -1,12 +1,12 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomSheet from './BottomSheet';
 
-interface PremiumFeatureModalProps {
+export interface PremiumFeatureModalProps {
   visible: boolean;
   onClose: () => void;
   featureName: string;

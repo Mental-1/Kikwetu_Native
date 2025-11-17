@@ -5,7 +5,7 @@ import { Store } from '@/src/services/storesService';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
     Alert,
     Image,
@@ -24,6 +24,7 @@ const StoresScreen = () => {
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const menuButtonRefs = useRef<{ [key: string]: any }>({});
   const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   // API hooks
   const { data: storesResponse, isLoading: loading, error } = useStores();
@@ -162,7 +163,7 @@ const StoresScreen = () => {
             onPress={() => showMenu(store.id)} 
             style={styles.menuButton}
           >
-            <Ionicons name="ellipsis-vertical" size={20} color={theme.black} />
+            <Ionicons name="ellipsis-vertical" size={20} color={theme.text} />
           </TouchableOpacity>
         </View>
 
@@ -208,7 +209,7 @@ const StoresScreen = () => {
       <SafeAreaView style={styles.header} edges={['top']}>
         <View style={styles.headerContent}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Ionicons name="chevron-back" size={24} color={theme.black} />
+            <Ionicons name="chevron-back" size={24} color={theme.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>My Stores</Text>
           <View style={styles.placeholder} />
@@ -270,7 +271,7 @@ const StoresScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme.black,
+    color: theme.text,
   },
   placeholder: {
     width: 40, // (padding 8 * 2) + (icon size 24) = 40
@@ -319,7 +320,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: theme.black,
+    color: theme.text,
     marginTop: 16,
     marginBottom: 8,
   },
@@ -360,7 +361,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.black,
+    color: theme.text,
     marginBottom: 8,
   },
   emptySubtitle: {
@@ -449,7 +450,7 @@ const styles = StyleSheet.create({
   storeName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: theme.black,
+    color: theme.text,
     flex: 1,
   },
   menuButton: {

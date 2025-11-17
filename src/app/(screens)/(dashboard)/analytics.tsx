@@ -3,11 +3,10 @@ import { Colors } from '@/src/constants/constant';
 import { useDashboardAnalytics, useListingAnalytics } from '@/src/hooks/useApiAnalytics';
 import { useSubscriptions } from '@/src/hooks/useSubscriptions';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Dimensions,
   RefreshControl,
@@ -53,7 +52,7 @@ export default function Analytics() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
-  const premiumModalRef = useRef<BottomSheetModal>(null);
+  const [isPremiumModalVisible, setIsPremiumModalVisible] = useState(false);
 
   const { data: dashboardData, isLoading, refetch, isError } = useDashboardAnalytics(selectedPeriod);
   const { data: listingData, isLoading: listingLoading, isError: isListingError } = useListingAnalytics(selectedPeriod);
@@ -77,7 +76,7 @@ export default function Analytics() {
 
   const handleRefresh = async () => {
     if (!isPremium) {
-      premiumModalRef.current?.present();
+      setIsPremiumModalVisible(true);
       return;
     }
     setRefreshing(true);
@@ -86,11 +85,11 @@ export default function Analytics() {
   };
 
   const handlePremiumModalOpen = () => {
-    premiumModalRef.current?.present();
+    setIsPremiumModalVisible(true);
   };
 
   const handlePremiumModalClose = () => {
-    premiumModalRef.current?.dismiss();
+    setIsPremiumModalVisible(false);
   };
 
   const PremiumSection = ({ children, style }: { children: React.ReactNode; style?: any }) => {
@@ -517,7 +516,7 @@ export default function Analytics() {
 
       {/* Premium Feature Modal */}
       <PremiumFeatureModal
-        ref={premiumModalRef}
+        visible={isPremiumModalVisible}
         onClose={handlePremiumModalClose}
         featureName="Advanced Analytics"
         featureDescription="Unlock detailed insights into your listing performance, revenue trends, and optimization opportunities with our premium analytics dashboard."

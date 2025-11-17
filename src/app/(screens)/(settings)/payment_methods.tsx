@@ -283,7 +283,7 @@ const PaymentMethods = () => {
             <Text style={styles.emptyTitle}>No Payment Methods</Text>
             <Text style={styles.emptySubtitle}>Add a payment method to get started</Text>
             <TouchableOpacity style={styles.emptyButton} onPress={handleAddPaymentMethod}>
-              <Text style={styles.emptyButtonText}>Add Payment Method</Text>
+              <Text style={styles.emptyButton}>Add Payment Method</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -559,7 +559,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
-.
     color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
