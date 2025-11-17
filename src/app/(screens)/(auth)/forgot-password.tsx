@@ -6,18 +6,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-  ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { z } from 'zod';
-import { TextInput } from 'react-native-paper';
+import { Button, TextInput } from 'react-native-paper';
 import BottomSheet from '@/components/BottomSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 interface ForgotPasswordProps {
   visible: boolean;
@@ -26,7 +25,7 @@ interface ForgotPasswordProps {
 }
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: z.email('Please enter a valid email address'),
 });
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
@@ -75,8 +74,8 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordProps> = ({ visible, onClose,
 
   return (
     <BottomSheet visible={visible} onClose={onClose}>
-        <ScrollView 
-            contentContainerStyle={{ paddingBottom: bottom > 0 ? bottom + 12 : 24, flexGrow: 1, justifyContent: 'center' }}
+        <KeyboardAwareScrollView 
+            contentContainerStyle={{ paddingBottom: bottom > 0 ? bottom + 12 : 24, flexGrow: 1, justifyContent: 'center', paddingHorizontal: 16 }}
             keyboardShouldPersistTaps="handled"
         >
             <Text style={styles.title}>Reset Your Password</Text>
@@ -101,7 +100,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordProps> = ({ visible, onClose,
                     style={styles.textInput}
                     theme={{
                         roundness: 12,
-                        colors: { primary: Colors.primary, background: Colors.white },
+                        colors: { primary: Colors.primary, background: Colors.white, text: Colors.black },
                     }}
                     left={<TextInput.Icon icon="email" />}
                     />
@@ -111,23 +110,17 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordProps> = ({ visible, onClose,
                 <Text style={styles.errorText}>{errors.email.message}</Text>
                 )}
 
-                <Pressable
-                style={({ pressed }) => [
-                    styles.submitButton,
-                    { backgroundColor: isSuccess ? Colors.green : Colors.primary },
-                    { opacity: pressed ? 0.8 : 1 },
-                ]}
-                onPress={handleSubmit(onSubmit)}
-                disabled={isLoading || isSuccess}
+                <Button
+                    mode="contained"
+                    onPress={handleSubmit(onSubmit)}
+                    style={styles.submitButton}
+                    labelStyle={styles.buttonLabel}
+                    loading={isLoading}
+                    disabled={isLoading || isSuccess}
+                    icon={isSuccess ? () => <Ionicons name="checkmark-circle" size={24} color={Colors.white} /> : undefined}
                 >
-                {isLoading ? (
-                    <ActivityIndicator color={Colors.white} />
-                ) : isSuccess ? (
-                    <Ionicons name="checkmark-circle" size={24} color={Colors.white} />
-                ) : (
-                    <Text style={styles.buttonLabel}>Send Reset Link</Text>
-                )}
-                </Pressable>
+                    {isSuccess ? 'Sent' : 'Send Reset Link'}
+                </Button>
 
                 <Pressable
                 style={({ pressed }) => [styles.backToSignIn, { opacity: pressed ? 0.7 : 1 }]}
@@ -141,7 +134,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordProps> = ({ visible, onClose,
                 <Text style={styles.backToSignInText}>Back to Sign In</Text>
                 </Pressable>
             </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
     </BottomSheet>
   );
 };
@@ -175,16 +168,13 @@ const styles = StyleSheet.create({
     },
     submitButton: {
         borderRadius: 12,
-        paddingVertical: 14,
         marginTop: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: 50,
     },
     buttonLabel: {
         fontSize: 16,
         fontWeight: '600',
         color: Colors.white,
+        paddingVertical: 8,
     },
     backToSignIn: {
         flexDirection: 'row',

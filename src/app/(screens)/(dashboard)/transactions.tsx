@@ -1,3 +1,4 @@
+import CustomLoader from '@/components/ui/CustomLoader';
 import { Colors } from '@/src/constants/constant';
 import { useDownloadReceipt, useExportTransactions, useTransactions } from '@/src/hooks/useApiTransactions';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
@@ -6,7 +7,6 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -33,19 +33,6 @@ interface Transaction {
   reference: string;
 }
 
-
-interface Transaction {
-  id: string;
-  date: string;
-  description: string;
-  amount: number;
-  currency: string;
-  status: 'completed' | 'pending' | 'failed' | 'refunded';
-  type: 'subscription' | 'one-time' | 'refund' | 'payout';
-  category: 'plan' | 'listing' | 'feature' | 'refund' | 'withdrawal';
-  paymentMethod: string;
-  reference: string;
-}
 
 const Transactions = () => {
   const router = useRouter();
@@ -395,7 +382,7 @@ const Transactions = () => {
             <View style={styles.transactionsSection}>
               {isLoading ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={Colors.primary} />
+                  <CustomLoader />
                   <Text style={styles.loadingText}>Loading transactions...</Text>
                 </View>
               ) : fetchError ? (

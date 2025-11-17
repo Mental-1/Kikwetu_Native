@@ -1,6 +1,7 @@
 import { categoryIcons, Colors } from '@/src/constants/constant';
 import React, { memo, useCallback } from 'react';
-import { ActivityIndicator, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import CustomLoader from "./ui/CustomLoader";
 
 interface CategoryItemProps {
   id: number;
@@ -48,7 +49,7 @@ const CategoryItem = memo(({
     >
       <View style={styles.categoryIconContainer}>
         {isLoading ? (
-          <ActivityIndicator size="small" color={Colors.primary} />
+          <CustomLoader />
         ) : (
           <Image
             source={getCategoryIcon(name)}

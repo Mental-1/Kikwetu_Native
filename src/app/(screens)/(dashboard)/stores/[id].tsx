@@ -8,7 +8,6 @@ import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
 import React from 'react';
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   Image,
@@ -19,6 +18,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CustomLoader from "@/components/ui/CustomLoader";
 
 
 
@@ -136,7 +136,7 @@ const StoreDetails = () => {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {storeLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+            <CustomLoader />
             <Text style={styles.loadingText}>Loading store details...</Text>
           </View>
         ) : storeError ? (
@@ -242,7 +242,7 @@ const StoreDetails = () => {
 
           {listingsLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
+              <CustomLoader />
               <Text style={styles.loadingText}>Loading listings...</Text>
             </View>
           ) : listingsError ? (

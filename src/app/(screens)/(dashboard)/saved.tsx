@@ -7,9 +7,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlashList, FlashListProps } from '@shopify/flash-list';
-import { ActivityIndicator, Dimensions, Image, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import { Dimensions, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CustomLoader from "@/components/ui/CustomLoader";
+import { Image } from 'expo-image';
 
 interface SavedListing {
   id: string;
@@ -450,7 +452,7 @@ const Saved = () => {
         >
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
+              <CustomLoader />
               <Text style={styles.loadingText}>Loading saved items...</Text>
             </View>
           ) : fetchError ? (

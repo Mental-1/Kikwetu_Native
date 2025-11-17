@@ -2,6 +2,7 @@ import AvatarSheet from '@/components/AvatarSheet';
 import ListingCard from '@/components/ListingCard';
 import NotificationBadge from '@/components/NotificationBadge';
 import CustomDialog from '@/components/ui/CustomDialog';
+import CustomLoader from '@/components/ui/CustomLoader';
 import VideoCard from '@/components/VideoCard';
 import { useAuth } from '@/contexts/authContext';
 import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
@@ -19,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CategoryItem from '@/components/CategoryItem';
@@ -233,7 +234,7 @@ const Home = (props: Props) => {
                     
                     {categoriesLoading ? (
                         <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="large" color={Colors.primary} />
+                            <CustomLoader />
                             <Text style={styles.loadingText}>Loading categories...</Text>
                         </View>
                     ) : (
@@ -265,7 +266,7 @@ const Home = (props: Props) => {
                     
                     {videosLoading ? (
                         <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="small" color={Colors.primary} />
+                            <CustomLoader />
                             <Text style={styles.loadingText}>Loading videos...</Text>
                         </View>
                     ) : (
@@ -299,7 +300,7 @@ const Home = (props: Props) => {
                     
                     {listingsLoading ? (
                         <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="small" color={Colors.primary} />
+                            <CustomLoader />
                             <Text style={styles.loadingText}>Loading listings...</Text>
                         </View>
                     ) : (

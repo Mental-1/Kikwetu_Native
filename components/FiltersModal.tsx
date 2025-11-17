@@ -1,13 +1,13 @@
 import { useSubcategoriesByCategory } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import React, { forwardRef, useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, runOnJS } from 'react-native-reanimated';
+import BottomSheet from './BottomSheet';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - 80;
@@ -22,6 +23,8 @@ const SLIDER_WIDTH = width - 80;
 type Category = { id: number; name: string; emoji?: string };
 
 interface FiltersModalProps {
+  visible: boolean;
+  onClose: () => void;
   onApplyFilters: (filters: FilterOptions) => void;
   categories: Category[];
   isLoading: boolean;
@@ -38,9 +41,8 @@ interface FilterOptions {
   distance: number;
 }
 
-const FiltersModal = forwardRef<BottomSheetModal, FiltersModalProps>((
-  { onApplyFilters, categories, isLoading },
-  ref
+const FiltersModal: React.FC<FiltersModalProps> = (
+  { visible, onClose, onApplyFilters, categories, isLoading },
 ) => {
   const [filters, setFilters] = useState<FilterOptions>({
     priceRange: { min: 0, max: 1000000 },
@@ -177,22 +179,8 @@ const FiltersModal = forwardRef<BottomSheetModal, FiltersModalProps>((
     </View>
   );
 
-  const snapPoints = useMemo(() => ['75%', '90%'], []);
-
-  const handleClose = useCallback(() => {
-    if (ref && typeof ref !== 'function') {
-      ref.current?.dismiss();
-    }
-  }, [ref]);
-
   return (
-    <BottomSheetModal
-      ref={ref}
-      snapPoints={snapPoints}
-      index={-1}
-      backgroundStyle={styles.modalContainer}
-      handleIndicatorStyle={styles.handleIndicator}
-    >
+    <BottomSheet visible={visible} onClose={onClose}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -200,7 +188,7 @@ const FiltersModal = forwardRef<BottomSheetModal, FiltersModalProps>((
       >
         {/* Header */}
         <View style={styles.modalHeader}>
-          <Pressable onPress={handleClose} style={({ pressed }) => [styles.closeButton, { opacity: pressed ? 0.7 : 1 }]}>
+          <Pressable onPress={onClose} style={({ pressed }) => [styles.closeButton, { opacity: pressed ? 0.7 : 1 }]}>
             <Ionicons name="close" size={24} color={Colors.primary} />
           </Pressable>
           <Text style={styles.modalTitle}>Filters</Text>
@@ -209,7 +197,7 @@ const FiltersModal = forwardRef<BottomSheetModal, FiltersModalProps>((
           </Pressable>
         </View>
 
-        <BottomSheetScrollView 
+        <ScrollView 
           style={styles.modalContent} 
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -377,7 +365,7 @@ const FiltersModal = forwardRef<BottomSheetModal, FiltersModalProps>((
               </View>
             </View>
           </View>
-        </BottomSheetScrollView>
+        </ScrollView>
 
         {/* Apply Button */}
         <View style={styles.applyButtonContainer}>
@@ -386,21 +374,11 @@ const FiltersModal = forwardRef<BottomSheetModal, FiltersModalProps>((
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </BottomSheetModal>
+    </BottomSheet>
   );
-});
-
-FiltersModal.displayName = 'FiltersModal';
+};
 
 const styles = StyleSheet.create({
-  modalContainer: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  handleIndicator: {
-    backgroundColor: Colors.lightgrey,
-  },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',

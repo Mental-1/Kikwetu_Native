@@ -1,4 +1,5 @@
 import CustomDialog from '@/components/ui/CustomDialog';
+import CustomLoader from '@/components/ui/CustomLoader';
 import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
 import { useProfile, useUpdateAvatar, useUpdateProfile } from '@/src/hooks/useProfile';
@@ -8,8 +9,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 
 const Account = () => {
   const router = useRouter();
@@ -166,7 +168,7 @@ const Account = () => {
               disabled={updateAvatarMutation.isPending}
             >
               {updateAvatarMutation.isPending ? (
-                <ActivityIndicator size="small" color={Colors.white} />
+                <CustomLoader />
               ) : (
                 <Ionicons name="camera-outline" size={16} color={Colors.white} />
               )}
@@ -301,7 +303,7 @@ const Account = () => {
               disabled={updateProfileMutation.isPending}
             >
               {updateProfileMutation.isPending ? (
-                <ActivityIndicator color={Colors.white} />
+                <CustomLoader />
               ) : (
                 <Text style={styles.saveButtonText}>Save Changes</Text>
               )}

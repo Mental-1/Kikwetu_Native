@@ -13,10 +13,8 @@ import {
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
 import Animated, {
-  useAnimatedKeyboard,
-  useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -32,7 +30,6 @@ interface BottomSheetProps {
 export default function BottomSheet({ visible, onClose, children }: BottomSheetProps) {
   const translateY = useSharedValue(height);
   const offset = useSharedValue(0);
-  const keyboard = useAnimatedKeyboard();
 
   const gesture = Gesture.Pan()
     .onStart(() => {
@@ -48,22 +45,19 @@ export default function BottomSheet({ visible, onClose, children }: BottomSheetP
           scheduleOnRN(onClose);
         });
       } else {
-        translateY.value = withSpring(0, { damping: 15, stiffness: 100 });
+        translateY.value = withTiming(0, { duration: 200 });
       }
     });
 
   const animatedStyle = useAnimatedStyle(() => {
-    const keyboardHeight = keyboard.height.value;
-    const adjustedTranslateY = translateY.value - (keyboardHeight > 0 ? keyboardHeight - (Platform.OS === 'ios' ? 34 : 0) : 0);
-
     return {
-      transform: [{ translateY: adjustedTranslateY }],
+      transform: [{ translateY: translateY.value }],
     };
   });
 
   useEffect(() => {
     if (visible) {
-      translateY.value = withSpring(0, { damping: 15, stiffness: 100 });
+      translateY.value = withTiming(0, { duration: 300 });
     } else {
       translateY.value = withTiming(height, { duration: 250 });
     }
@@ -93,12 +87,9 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
   container: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

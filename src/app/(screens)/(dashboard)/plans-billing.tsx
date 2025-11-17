@@ -1,14 +1,14 @@
 import PaymentConfirmationSheet from '@/components/PaymentConfirmationSheet';
+import CustomLoader from '@/components/ui/CustomLoader';
 import { Colors } from '@/src/constants/constant';
 import { useCancelSubscription, useCurrentSubscription, useSubscriptionHistory, useSubscriptionPlans } from '@/src/hooks/useApiSubscriptions';
 import { ApiSubscription, ApiSubscriptionPlan } from '@/src/types/api.types';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SubscriptionPlan {
@@ -47,8 +47,8 @@ const PlansBilling = () => {
   const { success } = createAlertHelpers(showAlert);
 
   const [selectedPlanDetails, setSelectedPlanDetails] = useState<SubscriptionPlan | null>(null);
+  const [isPaymentSheetVisible, setIsPaymentSheetVisible] = useState(false);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-  const paymentSheetRef = useRef<BottomSheetModal>(null);
 
   const { data: plansData, isLoading: plansLoading, error: plansError } = useSubscriptionPlans();
   const { data: currentSubscription, isLoading: subscriptionLoading } = useCurrentSubscription();
@@ -119,13 +119,13 @@ const PlansBilling = () => {
     } else if (plan.id === 'free') {
       success('Free Plan', 'You are already on the free plan!');
     } else {
-      paymentSheetRef.current?.present();
+      setIsPaymentSheetVisible(true);
     }
   };
 
   const handleProceedToPayment = () => {
     if (!selectedPlanDetails) return;
-    paymentSheetRef.current?.dismiss();
+    setIsPaymentSheetVisible(false);
     router.push({
       pathname: '/(screens)/(dashboard)/payment',
       params: {
@@ -360,7 +360,7 @@ const PlansBilling = () => {
           <Text style={styles.sectionTitle}>Current Plan</Text>
           {subscriptionLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={Colors.primary} />
+              <CustomLoader />
               <Text style={styles.loadingText}>Loading subscription...</Text>
             </View>
           ) : currentSubscription ? (
@@ -471,7 +471,7 @@ const PlansBilling = () => {
           <View style={styles.plansContainer}>
             {plansLoading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={Colors.primary} />
+                <CustomLoader />
                 <Text style={styles.loadingText}>Loading plans...</Text>
               </View>
             ) : plansError ? (
@@ -481,7 +481,9 @@ const PlansBilling = () => {
                 <Text style={styles.errorSubtext}>Please try again later</Text>
               </View>
             ) : (
-              subscriptionPlans.map(renderPlanCard)
+              <View style={{alignItems: 'center'}}>
+                {subscriptionPlans.map(renderPlanCard)}
+              </View>
             )}
           </View>
         </View>
@@ -498,7 +500,7 @@ const PlansBilling = () => {
           <View style={styles.transactionsContainer}>
             {historyLoading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={Colors.primary} />
+                <CustomLoader />
                 <Text style={styles.loadingText}>Loading history...</Text>
               </View>
             ) : historyError ? (
@@ -527,12 +529,12 @@ const PlansBilling = () => {
       {/* Payment Confirmation Sheet */}
       {selectedPlanDetails && (
         <PaymentConfirmationSheet
-            ref={paymentSheetRef}
+            visible={isPaymentSheetVisible}
+            onClose={() => setIsPaymentSheetVisible(false)}
             planName={selectedPlanDetails.name}
             price={billingCycle === 'monthly' ? selectedPlanDetails.price : selectedPlanDetails.annualPrice}
             billingCycle={billingCycle}
             onProceed={handleProceedToPayment}
-            onClose={() => paymentSheetRef.current?.dismiss()}
         />
       )}
     </View>
@@ -718,10 +720,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
     position: 'relative',
+    width: '100%',
   },
   selectedPlan: {
     borderColor: Colors.primary,
     elevation: 3,
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   popularPlan: {
     borderColor: '#FF9800',

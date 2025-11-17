@@ -5,8 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CustomLoader from "@/components/ui/CustomLoader";
 
 const Dashboard = () => {
   const router = useRouter();
@@ -82,7 +83,7 @@ const Dashboard = () => {
         {/* Quick Stats */}
         {statsLoading ? (
           <View style={styles.statsLoading}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+            <CustomLoader />
           </View>
         ) : statsError ? (
           <View style={styles.statsError}>

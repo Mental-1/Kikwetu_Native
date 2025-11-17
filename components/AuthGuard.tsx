@@ -5,11 +5,11 @@ import SignUp from '@/src/app/(screens)/(auth)/signup';
 import { Colors } from '@/src/constants/constant';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   StyleSheet,
   Text,
   View
 } from 'react-native';
+import CustomLoader from './ui/CustomLoader';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -54,7 +54,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <CustomLoader />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );

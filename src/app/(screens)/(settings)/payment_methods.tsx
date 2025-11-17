@@ -16,9 +16,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
+import CustomLoader from "@/components/ui/CustomLoader";
 
 interface PaymentMethod {
   id: string;
@@ -273,7 +274,7 @@ const PaymentMethods = () => {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {methodsLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+            <CustomLoader />
             <Text style={styles.loadingText}>Loading payment methods...</Text>
           </View>
         ) : paymentMethods.length === 0 ? (
@@ -558,8 +559,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
-  },
-  emptyButtonText: {
+.
     color: Colors.white,
     fontSize: 16,
     fontWeight: '600',

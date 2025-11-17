@@ -9,8 +9,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { FlashList } from '@shopify/flash-list';
-import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CustomLoader from "@/components/ui/CustomLoader";
+import { Image } from 'expo-image';
 
 const Profile = () => {
   const router = useRouter();
@@ -66,7 +68,7 @@ const Profile = () => {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <CustomLoader />
         <Text style={styles.loadingText}>Loading profile...</Text>
       </View>
     );
@@ -189,7 +191,7 @@ const Profile = () => {
           <View style={styles.tabContent}>
             {activeTab === 'listings' ? (
               listingsLoading ? (
-                <ActivityIndicator size="small" color={Colors.primary} />
+                <CustomLoader />
               ) : listingsError ? (
                 <View style={styles.emptyStateContainer}>
                   <Ionicons name="alert-circle-outline" size={48} color={Colors.grey} />
@@ -213,7 +215,7 @@ const Profile = () => {
               )
             ) : (
               storesLoading ? (
-                <ActivityIndicator size="small" color={Colors.primary} />
+                <CustomLoader />
               ) : storesError ? (
                 <View style={styles.emptyStateContainer}>
                   <Ionicons name="alert-circle-outline" size={48} color={Colors.grey} />

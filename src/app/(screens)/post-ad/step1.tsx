@@ -13,7 +13,6 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Keyboard,
   KeyboardAvoidingView,
@@ -27,6 +26,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CustomLoader from "@/components/ui/CustomLoader";
 
 export default function Step1() {
   const router = useRouter();
@@ -534,7 +534,7 @@ export default function Step1() {
                   disabled={isLoadingLocation}
                 >
                   {isLoadingLocation ? (
-                    <ActivityIndicator size='small' color={Colors.primary} />
+                    <CustomLoader />
                   ) : (
                     <Ionicons
                       name='location-outline'

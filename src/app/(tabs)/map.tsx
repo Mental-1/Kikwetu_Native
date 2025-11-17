@@ -1,5 +1,6 @@
 import MapViewComponent from '@/components/MapView';
 import ListingCard from '@/components/ListingCard';
+import CustomLoader from '@/components/ui/CustomLoader';
 import { Colors } from '@/src/constants/constant';
 import { getLocationWithAddress, LocationData } from '@/utils/locationUtils';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +8,6 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Platform,
   StyleSheet,
@@ -128,7 +128,7 @@ class MapErrorBoundary extends React.Component<{ children: React.ReactNode }, { 
 // Loading fallback component
 const MapLoading = () => (
   <View style={styles.loadingContainer}>
-    <ActivityIndicator size="large" color={Colors.primary} />
+    <CustomLoader />
     <Text style={styles.loadingText}>Loading map...</Text>
   </View>
 );

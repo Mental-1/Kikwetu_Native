@@ -8,7 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { VideoView } from 'expo-video';
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, RefreshControl, Share, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, FlatList, RefreshControl, Share, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import CustomLoader from "@/components/ui/CustomLoader";
 
 const LazyWriteReviewModal = lazy(() => import('@/components/WriteReviewModal'));
 
@@ -16,7 +17,7 @@ const { width, height } = Dimensions.get('window');
 
 const DiscoverLoading = () => (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.black }}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <CustomLoader />
     </View>
 );
 
@@ -409,7 +410,7 @@ const DiscoverContent = () => {
                                         </View>
                                     ) : feedLoading ? (
                                         <View pointerEvents="none">
-                                            <ActivityIndicator size="large" color={Colors.primary} />
+                                            <CustomLoader />
                                         </View>
                                     ) : (
                                         <Text style={styles.emptyStateText} pointerEvents="none">Oops. Nothing here</Text>
@@ -445,7 +446,7 @@ const DiscoverContent = () => {
                 ListFooterComponent={() => 
                     isFetchingNextPage ? (
                         <View style={styles.loadingFooter}>
-                            <ActivityIndicator size="small" color={Colors.primary} />
+                            <CustomLoader />
                         </View>
                     ) : null
                 }

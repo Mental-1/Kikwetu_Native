@@ -4,12 +4,13 @@ import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
 import { z } from 'zod';
 import GoogleIcon from '@/components/ui/GoogleIcon';
 import BottomSheet from '@/components/BottomSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 const signUpSchema = z.object({
     fullName: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -77,8 +78,8 @@ const SignUp: React.FC<SignUpProps> = ({ visible, onClose, onSwitchToSignIn }) =
 
   return (
     <BottomSheet visible={visible} onClose={onClose}>
-        <ScrollView 
-            contentContainerStyle={{ paddingBottom: bottom > 0 ? bottom + 12 : 24 }}
+        <KeyboardAwareScrollView 
+            contentContainerStyle={{ paddingBottom: bottom > 0 ? bottom + 12 : 24, paddingHorizontal: 16 }}
             keyboardShouldPersistTaps="handled"
         >
             <Text style={styles.subtitle}>Create your account</Text>
@@ -98,7 +99,7 @@ const SignUp: React.FC<SignUpProps> = ({ visible, onClose, onSwitchToSignIn }) =
                     style={styles.textInput}
                     theme={{
                         roundness: 12,
-                        colors: { primary: Colors.primary, background: Colors.white },
+                        colors: { primary: Colors.primary, background: Colors.white, text: Colors.black },
                     }}
                     />
                 )}
@@ -121,7 +122,7 @@ const SignUp: React.FC<SignUpProps> = ({ visible, onClose, onSwitchToSignIn }) =
                     style={styles.textInput}
                     theme={{
                         roundness: 12,
-                        colors: { primary: Colors.primary, background: Colors.white },
+                        colors: { primary: Colors.primary, background: Colors.white, text: Colors.black },
                     }}
                     />
                 )}
@@ -143,7 +144,7 @@ const SignUp: React.FC<SignUpProps> = ({ visible, onClose, onSwitchToSignIn }) =
                     style={styles.textInput}
                     theme={{
                         roundness: 12,
-                        colors: { primary: Colors.primary, background: Colors.white },
+                        colors: { primary: Colors.primary, background: Colors.white, text: Colors.black },
                     }}
                     />
                 )}
@@ -165,7 +166,7 @@ const SignUp: React.FC<SignUpProps> = ({ visible, onClose, onSwitchToSignIn }) =
                     style={styles.textInput}
                     theme={{
                         roundness: 12,
-                        colors: { primary: Colors.primary, background: Colors.white },
+                        colors: { primary: Colors.primary, background: Colors.white, text: Colors.black },
                     }}
                     right={
                         <TextInput.Icon
@@ -193,7 +194,7 @@ const SignUp: React.FC<SignUpProps> = ({ visible, onClose, onSwitchToSignIn }) =
                     style={styles.textInput}
                     theme={{
                         roundness: 12,
-                        colors: { primary: Colors.primary, background: Colors.white },
+                        colors: { primary: Colors.primary, background: Colors.white, text: Colors.black },
                     }}
                     right={
                         <TextInput.Icon
@@ -227,9 +228,7 @@ const SignUp: React.FC<SignUpProps> = ({ visible, onClose, onSwitchToSignIn }) =
             </View>
 
             <Pressable style={({ pressed }) => [styles.authButton, { opacity: pressed ? 0.7 : 1 }]} onPress={() => {}}>
-                <View style={styles.authButtonIconContainer}>
                 <GoogleIcon size={24} />
-                </View>
                 <Text style={styles.authButtonText}>Continue with Google</Text>
             </Pressable>
 
@@ -248,7 +247,7 @@ const SignUp: React.FC<SignUpProps> = ({ visible, onClose, onSwitchToSignIn }) =
                 <Text style={styles.legalLink}>Privacy Policy</Text>
                 </Pressable>
             </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
     </BottomSheet>
   );
 };
@@ -310,13 +309,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         borderRadius: 12,
         marginBottom: 16,
-        position: 'relative',
         borderWidth: 1,
         borderColor: Colors.black,
-    },
-    authButtonIconContainer: {
-        position: 'absolute',
-        left: 16,
+        gap: 12,
     },
     authButtonText: {
         color: Colors.black,

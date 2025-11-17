@@ -12,7 +12,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Animated,
   Dimensions,
   Pressable,
@@ -25,6 +24,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CustomLoader from '@/components/ui/CustomLoader';
 
 const { width } = Dimensions.get('window');
 
@@ -158,7 +158,7 @@ export default function ListingDetails() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <CustomLoader />
         <Text style={styles.loadingText}>Loading listing details...</Text>
       </View>
     );
@@ -480,7 +480,7 @@ export default function ListingDetails() {
             </View>
             {relatedLoading ? (
               <View style={styles.relatedEmptyState}>
-                <ActivityIndicator size="small" color={Colors.primary} />
+                <CustomLoader />
                 <Text style={styles.relatedEmptyText}>Loading related listings...</Text>
               </View>
             ) : relatedError ? (
@@ -732,11 +732,11 @@ const styles = StyleSheet.create({
     color: Colors.grey,
   },
   productTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: Colors.black,
     marginBottom: 12,
-    lineHeight: 28,
+    lineHeight: 32,
   },
   priceContainer: {
     flexDirection: 'row',

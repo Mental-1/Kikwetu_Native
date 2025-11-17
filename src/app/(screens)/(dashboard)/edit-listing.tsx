@@ -9,10 +9,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -25,23 +23,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-interface ListingImage {
-  id: string;
-  uri: string;
-  isNew?: boolean;
-}
-
-interface EditListingData {
-  title: string;
-  description: string;
-  price: string;
-  location: string;
-  category_id: number | null;
-  condition: string;
-  features: string[];
-}
-
+import CustomLoader from '@/components/ui/CustomLoader';
+import { Image } from 'expo-image';
 interface ListingImage {
   id: string;
   uri: string;
@@ -465,7 +448,7 @@ const EditListing = () => {
           {/* Loading State */}
           {listingLoading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size='large' color={Colors.primary} />
+              <CustomLoader />
               <Text style={styles.loadingText}>Loading listing...</Text>
             </View>
           )}

@@ -1,34 +1,26 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import React, { forwardRef, useMemo } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import BottomSheet from './BottomSheet';
 
 interface PaymentConfirmationSheetProps {
+  visible: boolean;
+  onClose: () => void;
   planName: string;
   price: number;
   billingCycle: 'monthly' | 'annual';
   onProceed: () => void;
-  onClose: () => void;
 }
 
-const PaymentConfirmationSheet = forwardRef<BottomSheetModal, PaymentConfirmationSheetProps>((
-  { planName, price, billingCycle, onProceed, onClose },
-  ref
+const PaymentConfirmationSheet: React.FC<PaymentConfirmationSheetProps> = (
+  { visible, onClose, planName, price, billingCycle, onProceed },
 ) => {
   const { bottom } = useSafeAreaInsets();
-  const snapPoints = useMemo(() => ['40%', '50%'], []);
 
   return (
-    <BottomSheetModal
-      ref={ref}
-      index={-1} // Start closed
-      snapPoints={snapPoints}
-      onDismiss={onClose}
-      backgroundStyle={styles.modal}
-      handleIndicatorStyle={{ backgroundColor: Colors.lightgrey }}
-    >
+    <BottomSheet visible={visible} onClose={onClose}>
       <View style={[styles.container, { paddingBottom: bottom > 0 ? bottom : 24 }]}>
         <View style={styles.content}>
             <Ionicons name="card-outline" size={64} color={Colors.primary} />
@@ -43,18 +35,11 @@ const PaymentConfirmationSheet = forwardRef<BottomSheetModal, PaymentConfirmatio
             <Text style={styles.proceedButtonText}>Proceed to Payment</Text>
         </Pressable>
       </View>
-    </BottomSheetModal>
+    </BottomSheet>
   );
-});
-
-PaymentConfirmationSheet.displayName = 'PaymentConfirmationSheet';
+};
 
 const styles = StyleSheet.create({
-  modal: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
   container: {
     flex: 1,
     justifyContent: 'space-between',

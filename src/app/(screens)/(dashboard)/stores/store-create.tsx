@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/authContext';
 import CustomAlert from '@/components/ui/CustomAlert';
+import CustomLoader from '@/components/ui/CustomLoader';
 import { useCategories } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { useCreateStore } from '@/src/hooks/useStores';
@@ -9,7 +10,6 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Dimensions,
   Image,
@@ -31,17 +31,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-interface StoreFormData {
-  name: string;
-  description: string;
-  categoryId: number | null;
-  website: string;
-  instagram: string;
-  facebook: string;
-  twitter: string;
-  tiktok: string;
-}
 
 interface StoreFormData {
   name: string;
@@ -626,7 +615,7 @@ const StoreCreate = () => {
                 disabled={saving}
               >
                 {saving ? (
-                  <ActivityIndicator size='small' color={Colors.white} />
+                  <CustomLoader />
                 ) : (
                   <Text style={styles.createButtonText}>Create</Text>
                 )}

@@ -10,16 +10,16 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo, useState } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import {
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
   RefreshControl,
   GestureResponderEvent
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
+import CustomLoader from "@/components/ui/CustomLoader";
 
 interface Conversation {
   id: string;
@@ -196,7 +196,7 @@ const Conversations = () => {
 
   const renderContent = () => {
     if (isLoading && !conversations) {
-      return <ActivityIndicator style={{ marginTop: 50 }} size="large" color={Colors.primary} />;
+      return <CustomLoader />;
     }
 
     if (fetchError && errorDismissed) {

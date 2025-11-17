@@ -7,7 +7,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Linking,
@@ -20,7 +19,8 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';;
+import { SafeAreaView } from 'react-native-safe-area-context';
+import CustomLoader from "@/components/ui/CustomLoader";
 
 interface PaymentMethod {
   id: string;
@@ -383,7 +383,7 @@ const Payment = () => {
 
               {methodsLoading ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <CustomLoader />
                   <Text style={styles.loadingText}>Loading payment methods...</Text>
                 </View>
               ) : (
@@ -469,7 +469,7 @@ const Payment = () => {
                 </Text>
                 {statusLoading && (
                   <View style={styles.statusLoadingContainer}>
-                    <ActivityIndicator size="small" color={Colors.primary} />
+                    <CustomLoader />
                     <Text style={styles.statusLoadingText}>Checking status...</Text>
                   </View>
                 )}

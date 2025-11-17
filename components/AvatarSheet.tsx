@@ -42,20 +42,20 @@ const AvatarSheet: React.FC<AvatarSheetProps> = (
         {/* Menu Options */}
         <View style={styles.menuOptions}>
           <Pressable style={({ pressed }) => [styles.menuItem, { opacity: pressed ? 0.7 : 1 }]} onPress={onDashboard}>
-            <View style={styles.menuIconContainer}>
+            <View style={styles.menuItemContent}>
               <Ionicons name="grid-outline" size={20} color={Colors.primary} />
+              <Text style={styles.menuText}>Dashboard</Text>
             </View>
-            <Text style={styles.menuText}>Dashboard</Text>
             <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
           </Pressable>
 
           <View style={styles.divider} />
 
           <Pressable style={({ pressed }) => [styles.menuItem, { opacity: pressed ? 0.7 : 1 }]} onPress={onSignOut}>
-            <View style={styles.menuIconContainer}>
+            <View style={styles.menuItemContent}>
               <Ionicons name="log-out-outline" size={20} color={Colors.red} />
+              <Text style={[styles.menuText, { color: Colors.red }]}>Sign Out</Text>
             </View>
-            <Text style={[styles.menuText, { color: Colors.red }]}>Sign Out</Text>
             <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
           </Pressable>
         </View>
@@ -66,7 +66,6 @@ const AvatarSheet: React.FC<AvatarSheetProps> = (
 
 const styles = StyleSheet.create({
   dropdown: {
-    flex: 1,
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -111,20 +110,16 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
-  menuIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.background,
-    justifyContent: 'center',
+  menuItemContent: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    gap: 16,
   },
   menuText: {
-    flex: 1,
     fontSize: 16,
     color: Colors.black,
     fontWeight: '500',

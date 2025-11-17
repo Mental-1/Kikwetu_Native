@@ -1,16 +1,17 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
-import React, { forwardRef, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import BottomSheet from './BottomSheet';
 
 interface PremiumFeatureModalProps {
+  visible: boolean;
+  onClose: () => void;
   featureName: string;
   featureDescription: string;
   benefits?: string[];
-  onClose: () => void;
 }
 
 const defaultBenefits = [
@@ -20,32 +21,20 @@ const defaultBenefits = [
   'Advanced reporting'
 ]
 
-const PremiumFeatureModal = forwardRef<BottomSheetModal, PremiumFeatureModalProps>((
-  { featureName, featureDescription, benefits = defaultBenefits, onClose },
-  ref
+const PremiumFeatureModal: React.FC<PremiumFeatureModalProps> = (
+  { visible, onClose, featureName, featureDescription, benefits = defaultBenefits },
 ) => {
   const router = useRouter();
   const { bottom } = useSafeAreaInsets();
 
-  const snapPoints = useMemo(() => ['60%', '85%'], []);
-
   const handleUpgrade = () => {
-    if (ref && typeof ref !== 'function') {
-      ref.current?.dismiss();
-    }
+    onClose();
     router.push('/(screens)/(dashboard)/plans-billing');
   };
 
   return (
-    <BottomSheetModal
-        ref={ref}
-        index={-1}
-        snapPoints={snapPoints}
-        onDismiss={onClose}
-        backgroundStyle={styles.modal}
-        handleIndicatorStyle={{ backgroundColor: Colors.lightgrey }}
-      >
-        <BottomSheetScrollView contentContainerStyle={[styles.modalContainer, { paddingBottom: bottom > 0 ? bottom + 12 : 24 }]}>
+    <BottomSheet visible={visible} onClose={onClose}>
+        <ScrollView contentContainerStyle={[styles.modalContainer, { paddingBottom: bottom > 0 ? bottom + 12 : 24 }]}>
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.iconContainer}>
@@ -88,22 +77,15 @@ const PremiumFeatureModal = forwardRef<BottomSheetModal, PremiumFeatureModalProp
                 <Text style={styles.cancelButtonText}>Maybe Later</Text>
               </Pressable>
             </View>
-        </BottomSheetScrollView>
-    </BottomSheetModal>
+        </ScrollView>
+    </BottomSheet>
   );
-});
-
-PremiumFeatureModal.displayName = 'PremiumFeatureModal';
+};
 
 const styles = StyleSheet.create({
   modalContainer: {
     paddingHorizontal: 24,
     paddingTop: 24,
-  },
-  modal: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
   },
   header: {
     alignItems: 'center',

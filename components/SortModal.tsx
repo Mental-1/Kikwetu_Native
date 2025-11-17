@@ -1,14 +1,12 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
-import React, { forwardRef, useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  useBottomSheetModal,
-} from '@gorhom/bottom-sheet';
+import React, { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import BottomSheet from './BottomSheet';
 
 interface SortModalProps {
+  visible: boolean;
+  onClose: () => void;
   currentSortBy: string;
   onSortChange: (sortBy: string) => void;
 }
@@ -24,49 +22,27 @@ const sortOptions = [
   { value: 'rating', label: 'Highest Rated' },
 ];
 
-export type Ref = BottomSheetModal;
-
-const SortModal = forwardRef<Ref, SortModalProps>(
-  ({ currentSortBy, onSortChange }, ref) => {
+const SortModal: React.FC<SortModalProps> = (
+  { visible, onClose, currentSortBy, onSortChange },
+) => {
     const [tempSortBy, setTempSortBy] = useState(currentSortBy);
-    const { dismiss } = useBottomSheetModal();
-
-    const snapPoints = useMemo(() => ['50%'], []);
 
     const handleApply = () => {
       onSortChange(tempSortBy);
-      dismiss();
+      onClose();
     };
 
     const handleReset = () => {
       setTempSortBy(DEFAULT_SORT);
     };
 
-    const renderBackdrop = useCallback(
-      (props: any) => (
-        <BottomSheetBackdrop
-          appearsOnIndex={0}
-          disappearsOnIndex={-1}
-          {...props}
-        />
-      ),
-      []
-    );
-
     return (
-      <BottomSheetModal
-        ref={ref}
-        snapPoints={snapPoints}
-        backdropComponent={renderBackdrop}
-        enablePanDownToClose
-        handleIndicatorStyle={{ backgroundColor: Colors.lightgrey }}
-        backgroundStyle={{ backgroundColor: Colors.white }}
-      >
+      <BottomSheet visible={visible} onClose={onClose}>
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.modalHeader}>
             <Pressable
-              onPress={() => dismiss()}
+              onPress={onClose}
               style={({ pressed }) => [styles.closeButton, { opacity: pressed ? 0.7 : 1 }]}
             >
               <Ionicons name="close" size={24} color={Colors.primary} />
@@ -78,30 +54,24 @@ const SortModal = forwardRef<Ref, SortModalProps>(
           </View>
 
           {/* Sort Options */}
-          <View style={styles.modalContent}>
-            <View style={styles.pillsContainer}>
-              {sortOptions.map((option) => (
-                <Pressable
-                  key={option.value}
-                  style={({ pressed }) => [
-                    styles.pill,
-                    tempSortBy === option.value && styles.selectedPill,
-                    { opacity: pressed ? 0.7 : 1 },
-                  ]}
-                  onPress={() => setTempSortBy(option.value)}
-                >
-                  <Text
-                    style={[
-                      styles.pillText,
-                      tempSortBy === option.value && styles.selectedPillText,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
+          <ScrollView 
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.sortOptionsContainer}
+          >
+            {sortOptions.map((option) => (
+              <Pressable
+                key={option.value}
+                style={styles.radioButtonContainer}
+                onPress={() => setTempSortBy(option.value)}
+              >
+                <View style={[styles.radioButton, tempSortBy === option.value && styles.radioButtonSelected]}>
+                  {tempSortBy === option.value && <View style={styles.radioButtonInner} />}
+                </View>
+                <Text style={styles.radioButtonLabel}>{option.label}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
 
           {/* Apply Button */}
           <View style={styles.applyButtonContainer}>
@@ -110,12 +80,9 @@ const SortModal = forwardRef<Ref, SortModalProps>(
             </Pressable>
           </View>
         </View>
-      </BottomSheetModal>
+      </BottomSheet>
     );
   }
-);
-
-SortModal.displayName = 'SortModal';
 
 const styles = StyleSheet.create({
   modalContainer: {
@@ -150,35 +117,39 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: '600',
   },
-  modalContent: {
-    flex: 1,
+  sortOptionsContainer: {
     padding: 20,
-  },
-  pillsContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 16,
+  },
+  radioButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
-  pill: {
-    backgroundColor: Colors.white,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: Colors.lightgrey,
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: Colors.grey,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  selectedPill: {
-    backgroundColor: Colors.primary,
+  radioButtonSelected: {
     borderColor: Colors.primary,
   },
-  pillText: {
+  radioButtonInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.primary,
+  },
+  radioButtonLabel: {
     fontSize: 14,
     color: Colors.black,
     fontWeight: '500',
-  },
-  selectedPillText: {
-    color: Colors.white,
-    fontWeight: '600',
   },
   applyButtonContainer: {
     paddingHorizontal: 20,

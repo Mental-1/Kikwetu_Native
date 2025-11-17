@@ -3,6 +3,7 @@ import FiltersModal from '@/components/FiltersModal';
 import ListingCard from '@/components/ListingCard';
 import ListingsSkeleton from '@/components/ListingsSkeleton';
 import SortModal from '@/components/SortModal';
+import CustomLoader from '@/components/ui/CustomLoader';
 import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
@@ -11,12 +12,10 @@ import { useAppStore } from '@/stores/useAppStore';
 import type { ListingItem } from '@/types/types';
 import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   Pressable,
   StyleSheet,
@@ -60,8 +59,8 @@ function ListingsContent() {
   const unsaveListingMutation = useUnsaveListing();
 
   const flatListRef = useRef<React.ComponentRef<typeof FlashList<ListingItem>>>(null);
-    const filtersModalRef = useRef<BottomSheetModal>(null);
-  const sortModalRef = useRef<BottomSheetModal>(null);
+  const [isFiltersModalVisible, setIsFiltersModalVisible] = useState(false);
+  const [isSortModalVisible, setIsSortModalVisible] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -145,22 +144,23 @@ function ListingsContent() {
   };
 
   const handleSort = useCallback(() => {
-    sortModalRef.current?.present();
+    setIsSortModalVisible(true);
   }, []);
 
   const handleFilterToggle = useCallback(() => {
     prefetchSubcategories();
-    filtersModalRef.current?.present();
+    setIsFiltersModalVisible(true);
   }, [prefetchSubcategories]);
 
   const handleApplyFilters = useCallback((filters: any) => {
     setAppliedFilters(filters);
-    filtersModalRef.current?.dismiss();
+    setIsFiltersModalVisible(false);
     console.log('Applied filters:', filters);
   }, []);
 
   const handleSortChange = useCallback((newSortBy: string) => {
     setSortBy(newSortBy);
+    setIsSortModalVisible(false);
     console.log('Sort changed to:', newSortBy);
   }, []);
 
@@ -202,7 +202,7 @@ function ListingsContent() {
       image={item.images && item.images.length > 0 ? item.images[0] : 'https://via.placeholder.com/200x140'}
       description={item.description || undefined}
       views={item.views || 0}
-      isFavorite={false} // TODO: Implement favorites functionality
+      isFavorite={false}
       viewMode="list"
       onPress={handleListingPress}
       onFavoritePress={handleListingFavoritePress}
@@ -211,7 +211,7 @@ function ListingsContent() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       
       {/* Header */}
       <SafeAreaView style={styles.header} edges={['top']}>
@@ -251,22 +251,20 @@ function ListingsContent() {
 
       {/* Filter and Results Info */}
       <View style={styles.filterSection}>
-        <View style={styles.filterRow}>
-          {/* Filter Pill */}
-          <Pressable style={({ pressed }) => [styles.filterPill, { opacity: pressed ? 0.7 : 1 }]} onPress={handleFilterToggle}>
-            <Text style={styles.filterPillText}>Filters</Text>
-            <Ionicons name="options-outline" size={16} color={Colors.white} />
-          </Pressable>
+        {/* Filter Pill */}
+        <Pressable style={({ pressed }) => [styles.filterPill, { opacity: pressed ? 0.7 : 1 }]} onPress={handleFilterToggle}>
+          <Text style={styles.filterPillText}>Filters</Text>
+          <Ionicons name="options-outline" size={16} color={Colors.white} />
+        </Pressable>
 
-          {/* Results and Sort Info */}
-          <View style={styles.resultsInfo}>
-            <Text style={styles.resultsText}>
-              Found Results: {getSearchDisplayText()} ({listings.length})
-            </Text>
-            <Text style={styles.sortText}>
-              Sort By: {sortBy}
-            </Text>
-          </View>
+        {/* Results and Sort Info */}
+        <View style={styles.resultsInfo}>
+          <Text style={styles.resultsText}>
+            Found Results: {getSearchDisplayText()} ({listings.length})
+          </Text>
+          <Text style={styles.sortText}>
+            Sort By: {sortBy}
+          </Text>
         </View>
       </View>
 
@@ -315,7 +313,7 @@ function ListingsContent() {
             ListFooterComponent={() => 
               isFetchingNextPage ? (
                 <View style={styles.loadingFooter}>
-                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <CustomLoader />
                   <Text style={styles.loadingFooterText}>Loading more...</Text>
                 </View>
               ) : null
@@ -341,7 +339,7 @@ function ListingsContent() {
             ListFooterComponent={() => 
               isFetchingNextPage ? (
                 <View style={styles.loadingFooter}>
-                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <CustomLoader />
                   <Text style={styles.loadingFooterText}>Loading more...</Text>
                 </View>
               ) : null
@@ -352,7 +350,8 @@ function ListingsContent() {
 
       {/* Filters Modal */}
       <FiltersModal
-        ref={filtersModalRef}
+        visible={isFiltersModalVisible}
+        onClose={() => setIsFiltersModalVisible(false)}
         onApplyFilters={handleApplyFilters}
         categories={categories || []}
         isLoading={categoriesLoading}
@@ -360,7 +359,8 @@ function ListingsContent() {
 
       {/* Sort Modal */}
       <SortModal
-        ref={sortModalRef}
+        visible={isSortModalVisible}
+        onClose={() => setIsSortModalVisible(false)}
         currentSortBy={sortBy}
         onSortChange={handleSortChange}
       />
@@ -436,11 +436,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     paddingHorizontal: 16,
     paddingVertical: 12,
-  },
-  filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    zIndex: 1,
   },
   filterPill: {
     backgroundColor: Colors.primary,

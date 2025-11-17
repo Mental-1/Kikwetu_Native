@@ -4,7 +4,6 @@ import { useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -15,6 +14,7 @@ import {
     View,
 } from 'react-native';
 import BottomSheet from '@/components/BottomSheet';
+import CustomLoader from '@/components/ui/CustomLoader';
 
 interface ChangePasswordModalProps {
   visible: boolean;
@@ -186,7 +186,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onCl
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <ActivityIndicator color={Colors.white} />
+                    <CustomLoader />
                   ) : (
                     <Text style={styles.buttonText}>Change Password</Text>
                   )}

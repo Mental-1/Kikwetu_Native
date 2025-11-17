@@ -5,8 +5,6 @@ import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,6 +15,8 @@ import {
 import { copyToClipboard } from '@/utils/clipboardUtils';
 import { Button } from 'react-native-paper';
 import QRCode from 'react-native-qrcode-svg';
+import BottomSheet from '@/components/BottomSheet';
+import CustomLoader from '@/components/ui/CustomLoader';
 
 interface TwoFactorAuthModalProps {
   visible: boolean;
@@ -189,21 +189,9 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
     onClose();
   };
 
-  if (!visible) return null;
-
   return (
     <>
-      <Modal
-        visible={visible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={handleClose}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={handleClose}
-        >
+      <BottomSheet visible={visible} onClose={handleClose}>
           <View style={styles.modalContainer}>
             {/* Header */}
             <View style={styles.modalHeader}>
@@ -247,7 +235,7 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
 
                   {isLoading ? (
                     <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="large" color={Colors.primary} />
+                      <CustomLoader />
                       <Text style={styles.loadingText}>Setting up 2FA...</Text>
                     </View>
                    ) : (
@@ -339,7 +327,7 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
                     disabled={isLoading}
                   >
                     {isLoading ? (
-                      <ActivityIndicator color={Colors.white} />
+                      <CustomLoader />
                     ) : (
                       <Text style={styles.buttonText}>Enable 2FA</Text>
                     )}
@@ -352,25 +340,18 @@ const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = ({ visible, onClos
               )}
             </ScrollView>
           </View>
-        </TouchableOpacity>
-      </Modal>
+      </BottomSheet>
       <AlertComponent />
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
   modalContainer: {
-    height: '65%',
+    height: '100%',
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: 34,
   },
   modalHeader: {
     flexDirection: 'row',

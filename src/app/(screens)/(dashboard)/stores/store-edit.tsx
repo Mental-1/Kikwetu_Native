@@ -8,7 +8,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Keyboard,
@@ -23,6 +22,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CustomLoader from "@/components/ui/CustomLoader";
 
 interface StoreFormData {
   name: string;
@@ -519,7 +519,7 @@ const StoreEdit = () => {
                 disabled={saving}
               >
                 {saving ? (
-                  <ActivityIndicator size='small' color={Colors.primary} />
+                  <CustomLoader />
                 ) : (
                   <Text style={styles.saveButtonText}>Save</Text>
                 )}
@@ -533,7 +533,7 @@ const StoreEdit = () => {
           >
             {storeLoading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size='large' color={Colors.primary} />
+                <CustomLoader />
                 <Text style={styles.loadingText}>Loading store details...</Text>
               </View>
             ) : storeError ? (

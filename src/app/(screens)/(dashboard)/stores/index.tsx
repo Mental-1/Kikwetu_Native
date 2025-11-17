@@ -1,5 +1,5 @@
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu';
-import { Colors } from '@/src/constants/constant';
+import { useTheme } from "@/contexts/theme/ThemeProvider";
 import { useDeleteStore, useStores, useToggleStoreStatus } from '@/src/hooks/useStores';
 import { Store } from '@/src/services/storesService';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +7,6 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState } from 'react';
 import {
-    ActivityIndicator,
     Alert,
     Image,
     ScrollView,
@@ -17,13 +16,14 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import CustomLoader from "@/components/ui/CustomLoader";
 
 const StoresScreen = () => {
   const router = useRouter();
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const menuButtonRefs = useRef<{ [key: string]: any }>({});
+  const { theme } = useTheme();
 
   // API hooks
   const { data: storesResponse, isLoading: loading, error } = useStores();
@@ -134,7 +134,7 @@ const StoresScreen = () => {
         <Image source={{ uri: store.banner_url }} style={styles.banner} resizeMode="cover" />
       ) : (
         <View style={[styles.banner, styles.bannerPlaceholder]}>
-          <Ionicons name="storefront-outline" size={48} color={Colors.grey} />
+          <Ionicons name="storefront-outline" size={48} color={theme.grey} />
         </View>
       )}
 
@@ -143,7 +143,7 @@ const StoresScreen = () => {
           <Image source={{ uri: store.profile_url }} style={styles.profileImage} />
         ) : (
           <View style={styles.profileImagePlaceholder}>
-            <Ionicons name="storefront" size={24} color={Colors.white} />
+            <Ionicons name="storefront" size={24} color={theme.white} />
           </View>
         )}
       </View>
@@ -153,7 +153,7 @@ const StoresScreen = () => {
           <View style={styles.storeTitleContainer}>
             <Text style={styles.storeName} numberOfLines={1}>{store.name}</Text>
             {store.is_verified && (
-              <Ionicons name="checkmark-circle" size={18} color={Colors.primary} />
+              <Ionicons name="checkmark-circle" size={18} color={theme.primary} />
             )}
           </View>
           
@@ -162,7 +162,7 @@ const StoresScreen = () => {
             onPress={() => showMenu(store.id)} 
             style={styles.menuButton}
           >
-            <Ionicons name="ellipsis-vertical" size={20} color={Colors.black} />
+            <Ionicons name="ellipsis-vertical" size={20} color={theme.black} />
           </TouchableOpacity>
         </View>
 
@@ -178,15 +178,15 @@ const StoresScreen = () => {
 
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Ionicons name="cube-outline" size={16} color={Colors.grey} />
+            <Ionicons name="cube-outline" size={16} color={theme.grey} />
             <Text style={styles.statText}>{store.total_products} Products</Text>
           </View>
           <View style={styles.statItem}>
-            <Ionicons name="people-outline" size={16} color={Colors.grey} />
+            <Ionicons name="people-outline" size={16} color={theme.grey} />
             <Text style={styles.statText}>{store.follower_count} Followers</Text>
           </View>
           <View style={styles.statItem}>
-            <Ionicons name="cart-outline" size={16} color={Colors.grey} />
+            <Ionicons name="cart-outline" size={16} color={theme.grey} />
             <Text style={styles.statText}>{store.total_sales} Sales</Text>
           </View>
         </View>
@@ -208,7 +208,7 @@ const StoresScreen = () => {
       <SafeAreaView style={styles.header} edges={['top']}>
         <View style={styles.headerContent}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Ionicons name="chevron-back" size={24} color={Colors.black} />
+            <Ionicons name="chevron-back" size={24} color={theme.black} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>My Stores</Text>
           <View style={styles.placeholder} />
@@ -222,12 +222,12 @@ const StoresScreen = () => {
       >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+            <CustomLoader />
             <Text style={styles.loadingText}>Loading your stores...</Text>
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={64} color={Colors.grey} />
+            <Ionicons name="alert-circle-outline" size={64} color={theme.grey} />
             <Text style={styles.errorTitle}>Failed to Load Stores</Text>
             <Text style={styles.errorText}>
               {error?.message || 'Something went wrong while loading your stores'}
@@ -239,14 +239,14 @@ const StoresScreen = () => {
         ) : stores.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name="storefront-outline" size={64} color={Colors.grey} />
+              <Ionicons name="storefront-outline" size={64} color={theme.grey} />
             </View>
             <Text style={styles.emptyTitle}>No Stores Yet</Text>
             <Text style={styles.emptySubtitle}>
               Create your first store to start selling and reach more customers
             </Text>
             <TouchableOpacity style={styles.createButton} onPress={handleCreateStore}>
-              <Ionicons name="add-circle" size={20} color={Colors.white} />
+              <Ionicons name="add-circle" size={20} color={theme.white} />
               <Text style={styles.createButtonText}>Create Your First Store</Text>
             </TouchableOpacity>
           </View>
@@ -273,14 +273,14 @@ const StoresScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
   },
   header: {
-    backgroundColor: Colors.white,
+    backgroundColor: theme.white,
     paddingTop: 10,
     paddingBottom: 16,
     borderBottomWidth: 0.3,
-    borderBottomColor: Colors.lightgrey,
+    borderBottomColor: theme.lightgrey,
   },
   headerContent: {
     flexDirection: 'row',
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.black,
+    color: theme.black,
   },
   placeholder: {
     width: 40, // (padding 8 * 2) + (icon size 24) = 40
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 14,
-    color: Colors.grey,
+    color: theme.grey,
   },
   errorContainer: {
     paddingVertical: 60,
@@ -319,25 +319,25 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.black,
+    color: theme.black,
     marginTop: 16,
     marginBottom: 8,
   },
   errorText: {
     fontSize: 14,
-    color: Colors.grey,
+    color: theme.grey,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: theme.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: Colors.white,
+    color: theme.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: Colors.lightgrey,
+    backgroundColor: theme.lightgrey,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -360,12 +360,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.black,
+    color: theme.black,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.grey,
+    color: theme.grey,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
@@ -373,14 +373,14 @@ const styles = StyleSheet.create({
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primary,
+    backgroundColor: theme.primary,
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
   },
   createButtonText: {
-    color: Colors.white,
+    color: theme.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   storeCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: theme.white,
     borderRadius: 16,
     overflow: 'hidden',
     elevation: 2,
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     height: 140,
   },
   bannerPlaceholder: {
-    backgroundColor: Colors.lightgrey,
+    backgroundColor: theme.lightgrey,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -418,15 +418,15 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 4,
-    borderColor: Colors.white,
+    borderColor: theme.white,
   },
   profileImagePlaceholder: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.primary,
+    backgroundColor: theme.primary,
     borderWidth: 4,
-    borderColor: Colors.white,
+    borderColor: theme.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   storeName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.black,
+    color: theme.black,
     flex: 1,
   },
   menuButton: {
@@ -457,13 +457,13 @@ const styles = StyleSheet.create({
   },
   storeDescription: {
     fontSize: 14,
-    color: Colors.grey,
+    color: theme.grey,
     lineHeight: 20,
     marginBottom: 12,
   },
   categoryBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 12,
-    color: Colors.primary,
+    color: theme.primary,
     fontWeight: '600',
   },
   statsContainer: {
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 13,
-    color: Colors.grey,
+    color: theme.grey,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -528,4 +528,3 @@ const styles = StyleSheet.create({
 });
 
 export default StoresScreen;
-

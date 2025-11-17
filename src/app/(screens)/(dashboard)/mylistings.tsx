@@ -11,11 +11,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useMemo, useState } from 'react';
-import { FlashList, FlashListProps } from '@shopify/flash-list';
+import { FlashList} from '@shopify/flash-list';
 import {
-  ActivityIndicator,
   Dimensions,
-  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -28,7 +26,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import CustomLoader from "@/components/ui/CustomLoader";
+import { Image } from 'expo-image';
 const MyListings = () => {
   const router = useRouter();
   const { user } = useAuth();
@@ -561,7 +560,7 @@ const MyListings = () => {
             >
               {isLoading ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size='large' color={Colors.primary} />
+                  <CustomLoader />
                   <Text style={styles.loadingText}>
                     Loading your listings...
                   </Text>

@@ -13,6 +13,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import OfflineScreen from '@/components/OfflineScreen';
 import { useConnectivity } from '@/src/hooks/useConnectivity';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { ThemeProvider } from "@/contexts/theme/ThemeProvider";
 
 Sentry.init({
   dsn: 'https://c670fa4991891b62dc670c9e71806185@o4509619077382144.ingest.us.sentry.io/4510064800169984',
@@ -72,6 +73,7 @@ function RootLayout() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
+              <ThemeProvider>
                 <QueryClientProvider client={queryClient}>
                     <PaperProvider>
                         <AuthProvider>
@@ -81,6 +83,7 @@ function RootLayout() {
                         </AuthProvider>
                     </PaperProvider>
                 </QueryClientProvider>
+              </ThemeProvider>
             </SafeAreaProvider>
         </GestureHandlerRootView>
     );
