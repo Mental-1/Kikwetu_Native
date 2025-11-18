@@ -94,7 +94,7 @@ export default function WriteReviewModal({
   );
 
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <BottomSheet visible={visible} onClose={onClose} enableDynamicSizing>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}

@@ -60,7 +60,7 @@ const SignIn: React.FC<SignInProps> = ({ visible, onClose, onSwitchToSignUp, onS
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <BottomSheet visible={visible} onClose={onClose} enableDynamicSizing>
         <KeyboardAwareScrollView 
             contentContainerStyle={{ paddingBottom: bottom > 0 ? bottom + 12 : 24, paddingHorizontal: 16 }}
             keyboardShouldPersistTaps="handled"

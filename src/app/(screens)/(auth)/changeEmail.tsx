@@ -73,7 +73,7 @@ const ChangeEmailModal: React.FC<ChangeEmailModalProps> = ({ visible, onClose })
 
   return (
     <>
-      <BottomSheet visible={visible} onClose={handleClose}>
+      <BottomSheet visible={visible} onClose={handleClose} enableDynamicSizing>
           <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>

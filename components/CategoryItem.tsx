@@ -49,7 +49,7 @@ const CategoryItem = memo(({
     >
       <View style={styles.categoryIconContainer}>
         {isLoading ? (
-          <CustomLoader />
+          <CustomLoader size={'small'} />
         ) : (
           <Image
             source={getCategoryIcon(name)}

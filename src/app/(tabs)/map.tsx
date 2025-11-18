@@ -21,79 +21,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetFlashList } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Location from 'expo-location';
+import { useListing } from '@/src/hooks/useApiListings';
 
 const { height: INITIAL_SCREEN_HEIGHT } = Dimensions.get('window');
-
-interface MockListing {
-  id: string;
-  title: string;
-  price: string;
-  coordinate: {
-    latitude: number;
-    longitude: number;
-  };
-  description: string;
-  category: string;
-}
-
-// Stable mockListings outside component to prevent recreation
-const mockListings: MockListing[] = [
-  {
-    id: '1',
-    title: 'iPhone 14 Pro',
-    price: 'Kes 120,000',
-    coordinate: {
-      latitude: -1.2921,
-      longitude: 36.8219,
-    },
-    description: 'Like new iPhone 14 Pro',
-    category: 'Electronics',
-  },
-  {
-    id: '2',
-    title: 'MacBook Air M2',
-    price: 'Kes 150,000',
-    coordinate: {
-      latitude: -1.3000,
-      longitude: 36.8300,
-    },
-    description: 'Brand new MacBook Air',
-    category: 'Electronics',
-  },
-  {
-    id: '3',
-    title: 'Samsung Galaxy S23',
-    price: 'Kes 95,000',
-    coordinate: {
-      latitude: -1.2800,
-      longitude: 36.8100,
-    },
-    description: 'Latest Samsung Galaxy',
-    category: 'Mobile',
-  },
-  {
-    id: '4',
-    title: 'Gaming Chair',
-    price: 'Kes 25,000',
-    coordinate: {
-      latitude: -1.2850,
-      longitude: 36.8150,
-    },
-    description: 'Ergonomic gaming chair',
-    category: 'Furniture',
-  },
-  {
-    id: '5',
-    title: 'PlayStation 5',
-    price: 'Kes 80,000',
-    coordinate: {
-      latitude: -1.2750,
-      longitude: 36.8250,
-    },
-    description: 'PS5 Console with games',
-    category: 'Gaming',
-  },
-];
 
 // Simple Error Boundary for the component
 class MapErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -143,11 +73,12 @@ const MapScreenContent = () => {
   const [dimensions, setDimensions] = useState({ width: INITIAL_SCREEN_HEIGHT, height: INITIAL_SCREEN_HEIGHT });
   const [itemHeight, setItemHeight] = useState(150);
 
+  const { data: listingsData, isLoading: listingsLoading } = useListing({});
+
   const snapPoints = useMemo(() => ['25%', dimensions.height - 80], [dimensions.height]);
 
   const [currentLocationText, setCurrentLocationText] = useState('Loading location...');
 
-  // Handle orientation changes
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
       setDimensions({ width: window.width, height: window.height });
@@ -240,25 +171,25 @@ const MapScreenContent = () => {
   }, []);
 
   const markers = useMemo(() => 
-    mockListings.map(listing => ({
+    (listingsData?.pages.flatMap(page => page.data) || []).map(listing => ({
       id: listing.id,
-      coordinate: listing.coordinate,
+      coordinate: { latitude: listing.latitude, longitude: listing.longitude },
       title: listing.title,
-      description: `${listing.description} • ${listing.price}`,
+      description: `${listing.description} • KES ${listing.price}`,
     })),
-    []
+    [listingsData]
   );
 
-  const renderListingCard = useCallback(({ item }: { item: MockListing }) => (
+  const renderListingCard = useCallback(({ item }: { item: any }) => (
     <ListingCard
       id={item.id}
       title={item.title}
-      price={item.price}
-      condition="Used"
-      location="Nairobi"
-      image="https://via.placeholder.com/150"
+      price={`Kes ${item.price.toLocaleString()}`}
+      condition={item.condition || "Used"}
+      location={item.location}
+      image={item.images?.[0] || "https://via.placeholder.com/150"}
       description={item.description}
-      views={100}
+      views={item.views}
       viewMode="list"
       onPress={(listingId: string) => {
         bottomSheetRef.current?.close();
@@ -391,8 +322,8 @@ const MapScreenContent = () => {
               Listings in: {currentLocationText}
             </Text>
             <BottomSheetFlashList
-              data={mockListings}
-              keyExtractor={(item: MockListing) => item.id}
+              data={listingsData?.pages.flatMap(page => page.data) || []}
+              keyExtractor={(item: any) => item.id}
               renderItem={renderListingCard}
               estimatedItemSize={itemHeight}
               removeClippedSubviews={true}

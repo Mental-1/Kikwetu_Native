@@ -20,7 +20,7 @@ const PaymentConfirmationSheet: React.FC<PaymentConfirmationSheetProps> = (
   const { bottom } = useSafeAreaInsets();
 
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <BottomSheet visible={visible} onClose={onClose} enableDynamicSizing>
       <View style={[styles.container, { paddingBottom: bottom > 0 ? bottom : 24 }]}>
         <View style={styles.content}>
             <Ionicons name="card-outline" size={64} color={Colors.primary} />

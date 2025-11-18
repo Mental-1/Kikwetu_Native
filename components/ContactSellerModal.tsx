@@ -130,7 +130,7 @@ export default function ContactSellerModal({
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <BottomSheet visible={visible} onClose={onClose} enableDynamicSizing>
       <View style={styles.contactModal}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Contact Seller</Text>
@@ -223,8 +223,8 @@ export default function ContactSellerModal({
               <Ionicons name="chatbubble" size={24} color={Colors.primary} />
             </View>
             <View style={styles.contactDetails}>
-              <Text style={styles.contactTitle}>In-App Chat</Text>
-              <Text style={styles.contactSubtitle}>Send a message within the app</Text>
+                <Text style={styles.contactTitle}>In-App Chat</Text>
+                <Text style={styles.contactSubtitle}>Send a message within the app</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
           </TouchableOpacity>

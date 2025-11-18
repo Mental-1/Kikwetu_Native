@@ -33,7 +33,7 @@ const PremiumFeatureModal: React.FC<PremiumFeatureModalProps> = (
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <BottomSheet visible={visible} onClose={onClose} enableDynamicSizing>
         <ScrollView contentContainerStyle={[styles.modalContainer, { paddingBottom: bottom > 0 ? bottom + 12 : 24 }]}>
             {/* Header */}
             <View style={styles.header}>

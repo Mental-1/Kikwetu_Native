@@ -73,7 +73,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordProps> = ({ visible, onClose,
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <BottomSheet visible={visible} onClose={onClose} enableDynamicSizing>
         <KeyboardAwareScrollView 
             contentContainerStyle={{ paddingBottom: bottom > 0 ? bottom + 12 : 24, flexGrow: 1, justifyContent: 'center', paddingHorizontal: 16 }}
             keyboardShouldPersistTaps="handled"
@@ -113,7 +113,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordProps> = ({ visible, onClose,
                 <Button
                     mode="contained"
                     onPress={handleSubmit(onSubmit)}
-                    style={styles.submitButton}
+                    style={[styles.submitButton, { backgroundColor: Colors.primary }]}
                     labelStyle={styles.buttonLabel}
                     loading={isLoading}
                     disabled={isLoading || isSuccess}

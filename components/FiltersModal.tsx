@@ -180,7 +180,7 @@ const FiltersModal: React.FC<FiltersModalProps> = (
   );
 
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <BottomSheet visible={visible} onClose={onClose} snapPoints={['85%']} enableDynamicSizing>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}

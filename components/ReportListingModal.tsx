@@ -77,7 +77,7 @@ const ReportListingModal: React.FC<ReportListingModalProps> = ({
   };
 
   return (
-    <BottomSheet visible={visible} onClose={handleClose}>
+    <BottomSheet visible={visible} onClose={handleClose} enableDynamicSizing>
       <View style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>

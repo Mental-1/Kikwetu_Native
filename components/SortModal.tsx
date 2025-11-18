@@ -37,7 +37,7 @@ const SortModal: React.FC<SortModalProps> = (
     };
 
     return (
-      <BottomSheet visible={visible} onClose={onClose}>
+      <BottomSheet visible={visible} onClose={onClose} snapPoints={['50%']} enableDynamicSizing>
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.modalHeader}>
@@ -55,8 +55,7 @@ const SortModal: React.FC<SortModalProps> = (
 
           {/* Sort Options */}
           <ScrollView 
-            horizontal
-            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.sortOptionsContainer}
           >
             {sortOptions.map((option) => (
@@ -119,14 +118,13 @@ const styles = StyleSheet.create({
   },
   sortOptionsContainer: {
     padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
     gap: 16,
   },
   radioButtonContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
   radioButton: {
     width: 20,
@@ -147,13 +145,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   radioButtonLabel: {
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.black,
     fontWeight: '500',
   },
   applyButtonContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.lightgrey,
   },
   applyButton: {
     backgroundColor: Colors.primary,

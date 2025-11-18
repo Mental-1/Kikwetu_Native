@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -11,12 +11,36 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Colors } from '@/src/constants/constant';
 
-const DOT_SIZE = 10;
-const DOT_SPACING = 12;
-const ANIMATION_DURATION = 300;
-const WAVE_DELAY = 100;
+const sizeConfig = {
+  small: {
+    dotSize: 6,
+    dotSpacing: 8,
+    animationDuration: 250,
+    waveDelay: 80,
+  },
+  medium: {
+    dotSize: 10,
+    dotSpacing: 12,
+    animationDuration: 300,
+    waveDelay: 100,
+  },
+  large: {
+    dotSize: 14,
+    dotSpacing: 16,
+    animationDuration: 350,
+    waveDelay: 120,
+  },
+};
 
-const CustomLoader = () => {
+interface CustomLoaderProps {
+  size?: 'small' | 'medium' | 'large';
+  color?: string;
+  style?: StyleProp<ViewStyle>;
+}
+
+const CustomLoader: React.FC<CustomLoaderProps> = ({ size = 'medium', color = Colors.primary, style }) => {
+  const { dotSize, dotSpacing, animationDuration, waveDelay } = useMemo(() => sizeConfig[size], [size]);
+
   const dot1 = useSharedValue(0);
   const dot2 = useSharedValue(0);
   const dot3 = useSharedValue(0);
@@ -26,19 +50,19 @@ const CustomLoader = () => {
 
     dot1.value = withRepeat(
       withSequence(
-        withTiming(-DOT_SIZE, { duration: ANIMATION_DURATION, easing }),
-        withTiming(0, { duration: ANIMATION_DURATION, easing })
+        withTiming(-dotSize, { duration: animationDuration, easing }),
+        withTiming(0, { duration: animationDuration, easing })
       ),
       -1,
       true
     );
 
     dot2.value = withDelay(
-      WAVE_DELAY,
+      waveDelay,
       withRepeat(
         withSequence(
-          withTiming(-DOT_SIZE, { duration: ANIMATION_DURATION, easing }),
-          withTiming(0, { duration: ANIMATION_DURATION, easing })
+          withTiming(-dotSize, { duration: animationDuration, easing }),
+          withTiming(0, { duration: animationDuration, easing })
         ),
         -1,
         true
@@ -46,17 +70,17 @@ const CustomLoader = () => {
     );
 
     dot3.value = withDelay(
-      WAVE_DELAY * 2,
+      waveDelay * 2,
       withRepeat(
         withSequence(
-          withTiming(-DOT_SIZE, { duration: ANIMATION_DURATION, easing }),
-          withTiming(0, { duration: ANIMATION_DURATION, easing })
+          withTiming(-dotSize, { duration: animationDuration, easing }),
+          withTiming(0, { duration: animationDuration, easing })
         ),
         -1,
         true
       )
     );
-  }, [dot1, dot2, dot3]);
+  }, [dot1, dot2, dot3, dotSize, animationDuration, waveDelay]);
 
   const animatedStyle1 = useAnimatedStyle(() => ({
     transform: [{ translateY: dot1.value }],
@@ -68,11 +92,18 @@ const CustomLoader = () => {
     transform: [{ translateY: dot3.value }],
   }));
 
+  const dotStyle = {
+    width: dotSize,
+    height: dotSize,
+    borderRadius: dotSize / 2,
+    backgroundColor: color,
+  };
+
   return (
-    <View style={styles.container}>
-      <Animated.View style={[styles.dot, animatedStyle1]} />
-      <Animated.View style={[styles.dot, animatedStyle2]} />
-      <Animated.View style={[styles.dot, animatedStyle3]} />
+    <View style={[styles.container, { gap: dotSpacing }, style]}>
+      <Animated.View style={[dotStyle, animatedStyle1]} />
+      <Animated.View style={[dotStyle, animatedStyle2]} />
+      <Animated.View style={[dotStyle, animatedStyle3]} />
     </View>
   );
 };
@@ -82,13 +113,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: DOT_SPACING,
-  },
-  dot: {
-    width: DOT_SIZE,
-    height: DOT_SIZE,
-    borderRadius: DOT_SIZE / 2,
-    backgroundColor: Colors.primary,
   },
 });
 
