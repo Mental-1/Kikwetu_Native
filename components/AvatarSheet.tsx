@@ -20,7 +20,7 @@ const AvatarSheet: React.FC<AvatarSheetProps> = (
   const { bottom } = useSafeAreaInsets();
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} enableDynamicSizing>
+    <BottomSheet visible={visible} onClose={onClose} snapPoints={['25%']}enableDynamicSizing>
       <View style={[styles.dropdown, { paddingBottom: bottom > 0 ? bottom : 20 }]}>
         {/* User Info Header */}
         <View style={styles.userHeader}>

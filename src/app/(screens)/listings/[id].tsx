@@ -33,6 +33,7 @@ import Reanimated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
@@ -54,7 +55,7 @@ export default function ListingDetails() {
   
   const { data: listing, isLoading, error } = useListingDetails(id || '');
   const { data: categories } = useCategories();
-  const { data: sellerInfo } = useProfileById(listing?.user_id || '');
+  const { data: sellerInfo, isLoading: sellerLoading } = useProfileById(listing?.user_id || '');
   const { data: relatedListings = [], isLoading: relatedLoading, error: relatedError } = useSimilarListings(id || '', 8);
   
   // Saved listings functionality
@@ -150,10 +151,8 @@ export default function ListingDetails() {
       if (event.translationX < -threshold || velocity < -500) {
         // Swipe left - next image
         const nextIndex = (currentImageIndex + 1) % images.length;
-        translateX.value = withSpring(-SCREEN_WIDTH, {
-          velocity: velocity,
-          damping: 20,
-          stiffness: 90,
+        translateX.value = withTiming(-SCREEN_WIDTH, {
+          duration: 250,
         }, () => {
           scheduleOnRN(() => changeImage(nextIndex));
           translateX.value = 0;
@@ -161,17 +160,15 @@ export default function ListingDetails() {
       } else if (event.translationX > threshold || velocity > 500) {
         // Swipe right - previous image
         const prevIndex = (currentImageIndex - 1 + images.length) % images.length;
-        translateX.value = withSpring(SCREEN_WIDTH, {
-          velocity: velocity,
-          damping: 20,
-          stiffness: 90,
+        translateX.value = withTiming(SCREEN_WIDTH, {
+          duration: 250,
         }, () => {
           scheduleOnRN(() => changeImage(prevIndex));
           translateX.value = 0;
         });
       } else {
         // Return to center
-        translateX.value = withSpring(0);
+        translateX.value = withTiming(0, { duration: 200 });
       }
     });
 
@@ -751,7 +748,7 @@ export default function ListingDetails() {
             disabled={isLoadingDirections}
           >
             {isLoadingDirections ? (
-              <CustomLoader/>
+              <CustomLoader size="small" />
             ) : (
               <>
                 <Ionicons name="navigate-outline" size={20} color={Colors.primary} />

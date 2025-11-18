@@ -21,7 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetFlashList } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Location from 'expo-location';
-import { useListing } from '@/src/hooks/useApiListings';
+import { useListings } from '@/src/hooks/useListings';
 
 const { height: INITIAL_SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -73,7 +73,7 @@ const MapScreenContent = () => {
   const [dimensions, setDimensions] = useState({ width: INITIAL_SCREEN_HEIGHT, height: INITIAL_SCREEN_HEIGHT });
   const [itemHeight, setItemHeight] = useState(150);
 
-  const { data: listingsData, isLoading: listingsLoading } = useListing({});
+  const { data: listingsData, isLoading: listingsLoading } = useListings({});
 
   const snapPoints = useMemo(() => ['25%', dimensions.height - 80], [dimensions.height]);
 
@@ -171,7 +171,7 @@ const MapScreenContent = () => {
   }, []);
 
   const markers = useMemo(() => 
-    (listingsData?.pages.flatMap(page => page.data) || []).map(listing => ({
+    (listingsData?.pages.flatMap(page => page.data) || []).map((listing: any) => ({
       id: listing.id,
       coordinate: { latitude: listing.latitude, longitude: listing.longitude },
       title: listing.title,

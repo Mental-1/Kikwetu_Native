@@ -1,9 +1,12 @@
+
 import { Colors } from '@/src/constants/constant';
 import { FeedVideo } from '@/src/services/videos.service';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LikeButton from '../../animated/LikeButton';
+import SaveButton from '../../animated/SaveButton';
 
 // const { width, height } = Dimensions.get('window');
 
@@ -173,19 +176,13 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                     </View>
 
                     {/* Like */}
-                    <TouchableOpacity
-                        style={styles.actionItem}
-                        onPress={() => onLike(video.id)}
-                    >
-                        <View style={styles.actionIcon}>
-                            <Ionicons
-                                name={video.engagement.isLiked ? "heart" : "heart-outline"}
-                                size={24}
-                                color={video.engagement.isLiked ? "#ff4444" : Colors.white}
-                            />
-                        </View>
+                    <View style={styles.actionItem}>
+                        <LikeButton
+                            isLiked={video.engagement.isLiked}
+                            onPress={() => onLike(video.id)}
+                        />
                         <Text style={styles.actionCount}>{formatNumber(video.likes)}</Text>
-                    </TouchableOpacity>
+                    </View>
 
                     {/* Review */}
                     <TouchableOpacity
@@ -220,18 +217,12 @@ const DiscoverOverlay: React.FC<DiscoverOverlayProps> = ({
                     </TouchableOpacity>
 
                     {/* Save */}
-                    <TouchableOpacity
-                        style={styles.actionItem}
-                        onPress={() => onSave(video.id)}
-                    >
-                        <View style={styles.actionIcon}>
-                            <Ionicons
-                                name={video.engagement.isSaved ? "bookmark" : "bookmark-outline"}
-                                size={24}
-                                color={video.engagement.isSaved ? Colors.primary : Colors.white}
-                            />
-                        </View>
-                    </TouchableOpacity>
+                    <View style={styles.actionItem}>
+                        <SaveButton
+                            isSaved={video.engagement.isSaved}
+                            onPress={() => onSave(video.id)}
+                        />
+                    </View>
 
                     {/* Mute/Unmute */}
                     {onToggleMute && (
