@@ -5,12 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { z } from 'zod';
 import { Button, TextInput } from 'react-native-paper';
@@ -30,7 +25,11 @@ const forgotPasswordSchema = z.object({
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
-const ForgotPasswordScreen: React.FC<ForgotPasswordProps> = ({ visible, onClose, onSwitchToSignIn }) => {
+const ForgotPasswordScreen: React.FC<ForgotPasswordProps> = ({
+  visible,
+  onClose,
+  onSwitchToSignIn,
+}) => {
   const { resetPassword } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -74,120 +73,144 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordProps> = ({ visible, onClose,
 
   return (
     <BottomSheet visible={visible} onClose={onClose} enableDynamicSizing>
-        <KeyboardAwareScrollView 
-            contentContainerStyle={{ paddingBottom: bottom > 0 ? bottom + 12 : 24, flexGrow: 1, justifyContent: 'center', paddingHorizontal: 16 }}
-            keyboardShouldPersistTaps="handled"
-        >
-            <Text style={styles.title}>Reset Your Password</Text>
-            <Text style={styles.description}>
-                Enter your email address and we&apos;ll send you a link to reset your password.
-            </Text>
+      <KeyboardAwareScrollView
+        contentContainerStyle={{
+          paddingBottom: bottom > 0 ? bottom + 12 : 24,
+          flexGrow: 1,
+          justifyContent: 'center',
+          paddingHorizontal: 16,
+        }}
+        keyboardShouldPersistTaps='handled'
+        bottomOffset={bottom}
+        overScrollMode='never'
+      >
+        <Text style={styles.title}>Reset Your Password</Text>
+        <Text style={styles.description}>
+          Enter your email address and we&apos;ll send you a link to reset your
+          password.
+        </Text>
 
-            <View style={styles.formContainer}>
-                <Controller
-                control={control}
-                name="email"
-                render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
-                    label="Email"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.email}
-                    mode="outlined"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    style={styles.textInput}
-                    theme={{
-                        roundness: 12,
-                        colors: { primary: Colors.primary, background: Colors.white, text: Colors.black },
-                    }}
-                    left={<TextInput.Icon icon="email" />}
+        <View style={styles.formContainer}>
+          <Controller
+            control={control}
+            name='email'
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                label='Email'
+                value={value}
+                onBlur={onBlur}
+                onChangeText={onChange}
+                error={!!errors.email}
+                mode='outlined'
+                keyboardType='email-address'
+                autoCapitalize='none'
+                style={styles.textInput}
+                theme={{
+                  roundness: 12,
+                  colors: {
+                    primary: Colors.primary,
+                    background: Colors.white,
+                    text: Colors.black,
+                  },
+                }}
+                left={<TextInput.Icon icon='email' />}
+              />
+            )}
+          />
+          {errors.email && (
+            <Text style={styles.errorText}>{errors.email.message}</Text>
+          )}
+
+          <Button
+            mode='contained'
+            onPress={handleSubmit(onSubmit)}
+            style={[styles.submitButton, { backgroundColor: Colors.primary }]}
+            labelStyle={styles.buttonLabel}
+            loading={isLoading}
+            disabled={isLoading || isSuccess}
+            icon={
+              isSuccess
+                ? () => (
+                    <Ionicons
+                      name='checkmark-circle'
+                      size={24}
+                      color={Colors.white}
                     />
-                )}
-                />
-                {errors.email && (
-                <Text style={styles.errorText}>{errors.email.message}</Text>
-                )}
+                  )
+                : undefined
+            }
+          >
+            {isSuccess ? 'Sent' : 'Send Reset Link'}
+          </Button>
 
-                <Button
-                    mode="contained"
-                    onPress={handleSubmit(onSubmit)}
-                    style={[styles.submitButton, { backgroundColor: Colors.primary }]}
-                    labelStyle={styles.buttonLabel}
-                    loading={isLoading}
-                    disabled={isLoading || isSuccess}
-                    icon={isSuccess ? () => <Ionicons name="checkmark-circle" size={24} color={Colors.white} /> : undefined}
-                >
-                    {isSuccess ? 'Sent' : 'Send Reset Link'}
-                </Button>
-
-                <Pressable
-                style={({ pressed }) => [styles.backToSignIn, { opacity: pressed ? 0.7 : 1 }]}
-                onPress={onSwitchToSignIn}
-                >
-                <Ionicons
-                    name="arrow-back"
-                    size={16}
-                    color={Colors.primary}
-                />
-                <Text style={styles.backToSignInText}>Back to Sign In</Text>
-                </Pressable>
-            </View>
-        </KeyboardAwareScrollView>
+          <Pressable
+            style={({ pressed }) => [
+              styles.backToSignIn,
+              { opacity: pressed ? 0.7 : 1 },
+            ]}
+            onPress={onSwitchToSignIn}
+          >
+            <Ionicons name='arrow-back' size={16} color={Colors.primary} />
+            <Text style={styles.backToSignInText}>Back to Sign In</Text>
+          </Pressable>
+        </View>
+      </KeyboardAwareScrollView>
     </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: Colors.black,
-        textAlign: 'center',
-        marginBottom: 12,
-    },
-    description: {
-        fontSize: 16,
-        color: Colors.grey,
-        textAlign: 'center',
-        marginBottom: 32,
-        lineHeight: 24,
-    },
-    formContainer: {
-        gap: 16,
-    },
-    textInput: {
-        backgroundColor: Colors.white,
-    },
-    errorText: {
-        color: '#F44336',
-        fontSize: 12,
-        marginTop: -8,
-        marginLeft: 12,
-    },
-    submitButton: {
-        borderRadius: 12,
-        marginTop: 8,
-    },
-    buttonLabel: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: Colors.white,
-        paddingVertical: 8,
-    },
-    backToSignIn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 12,
-    },
-    backToSignInText: {
-        fontSize: 14,
-        color: Colors.primary,
-        fontWeight: '500',
-    },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.black,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  description: {
+    fontSize: 16,
+    color: Colors.grey,
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 24,
+  },
+  formContainer: {
+    gap: 16,
+    width: '100%',
+  },
+  textInput: {
+    backgroundColor: Colors.white,
+  },
+  errorText: {
+    color: '#F44336',
+    fontSize: 12,
+    marginTop: -8,
+    marginLeft: 12,
+  },
+  submitButton: {
+    borderRadius: 12,
+    marginTop: 8,
+    width: '100%',
+  },
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.white,
+    paddingVertical: 8,
+  },
+  backToSignIn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    width: '100%',
+  },
+  backToSignInText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '500',
+  },
 });
 
 export default ForgotPasswordScreen;

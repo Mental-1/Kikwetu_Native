@@ -41,7 +41,6 @@ const PaymentConfirmationSheet: React.FC<PaymentConfirmationSheetProps> = (
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     justifyContent: 'space-between',
   },
   content: {

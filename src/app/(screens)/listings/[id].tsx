@@ -20,45 +20,31 @@ import {
   StyleSheet,
   Text,
   View,
+  ViewToken,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CustomLoader from '@/components/ui/CustomLoader';
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
-} from 'react-native-gesture-handler';
-import Reanimated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
+import { FlashList } from '@shopify/flash-list';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const IMAGE_HEIGHT = 370;
 
 const LazyContactSellerModal = lazy(() => import('@/components/ContactSellerModal'));
 const LazyWriteReviewModal = lazy(() => import('@/components/WriteReviewModal'));
 const LazyReportListingModal = lazy(() => import('@/components/ReportListingModal'));
 
-/**
- * Main listing details screen component
- * Displays comprehensive product information, seller details, and related listings
- * with optimized gesture handling and performance
- */
 export default function ListingDetails() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   
   const { data: listing, isLoading, error } = useListingDetails(id || '');
   const { data: categories } = useCategories();
-  const { data: sellerInfo, isLoading: sellerLoading } = useProfileById(listing?.user_id || '');
-  const { data: relatedListings = [], isLoading: relatedLoading, error: relatedError } = useSimilarListings(id || '', 8);
+  const { data: sellerInfo } = useProfileById(listing?.user_id || '');
+  const { data: relatedListings = [], isLoading: relatedLoading } = useSimilarListings(id || '', 8);
   
-  // Saved listings functionality
   const { data: savedStatus } = useCheckIfSaved(id || '');
   const saveListing = useSaveListing();
   const unsaveListing = useUnsaveListing();
@@ -72,128 +58,42 @@ export default function ListingDetails() {
   const [isLoadingDirections, setIsLoadingDirections] = useState(false);
   
   const wiggleAnim = useRef(new Animated.Value(0)).current;
-  const scrollViewRef = useRef<ScrollView>(null);
   
   const { showAlert, AlertComponent } = useCustomAlert();
   const { success: showSuccessAlert } = createAlertHelpers(showAlert);
 
-  // Reanimated values for image carousel
-  const translateX = useSharedValue(0);
-  const imageOffset = useSharedValue(0);
-
-  /**
-   * Memoized images array with fallback
-   */
   const images = useMemo(() => 
     listing?.images?.length ? listing.images : ['https://via.placeholder.com/400x300'], 
     [listing?.images]
   );
   
-  /**
-   * Memoized formatted price
-   */
   const price = useMemo(() => 
     listing?.price ? `KES ${listing.price.toLocaleString()}` : 'Price not set',
     [listing?.price]
   );
 
-  /**
-   * Memoized saved status
-   */
   const isSaved = useMemo(() => 
     savedStatus?.isSaved || false,
     [savedStatus?.isSaved]
   );
 
-  /**
-   * Preload adjacent images for smoother transitions
-   */
-  const preloadAdjacentImages = useCallback((index: number) => {
-    const nextIndex = (index + 1) % images.length;
-    const prevIndex = (index - 1 + images.length) % images.length;
-    
-    if (images[nextIndex]) {
-      Image.prefetch(images[nextIndex]);
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    if (viewableItems.length > 0 && viewableItems[0].index !== null) {
+      setCurrentImageIndex(viewableItems[0].index);
     }
-    if (images[prevIndex]) {
-      Image.prefetch(images[prevIndex]);
-    }
-  }, [images]);
+  }, []);
 
-  /**
-   * Changes the current image with animation and haptic feedback
-   */
-  const changeImage = useCallback((newIndex: number) => {
-    if (newIndex === currentImageIndex) return;
-    
-    setCurrentImageIndex(newIndex);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    preloadAdjacentImages(newIndex);
-  }, [currentImageIndex, preloadAdjacentImages]);
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,
+  }).current;
 
-  /**
-   * Pan gesture for horizontal image swiping
-   * Properly constrained to prevent conflict with vertical ScrollView
-   */
-  const panGesture = Gesture.Pan()
-    .activeOffsetX([-10, 10])
-    .failOffsetY([-10, 10])
-    .onStart(() => {
-      imageOffset.value = translateX.value;
-    })
-    .onUpdate((event) => {
-      translateX.value = imageOffset.value + event.translationX;
-    })
-    .onEnd((event) => {
-      const threshold = SCREEN_WIDTH * 0.3;
-      const velocity = event.velocityX;
-
-      if (event.translationX < -threshold || velocity < -500) {
-        // Swipe left - next image
-        const nextIndex = (currentImageIndex + 1) % images.length;
-        translateX.value = withTiming(-SCREEN_WIDTH, {
-          duration: 250,
-        }, () => {
-          scheduleOnRN(() => changeImage(nextIndex));
-          translateX.value = 0;
-        });
-      } else if (event.translationX > threshold || velocity > 500) {
-        // Swipe right - previous image
-        const prevIndex = (currentImageIndex - 1 + images.length) % images.length;
-        translateX.value = withTiming(SCREEN_WIDTH, {
-          duration: 250,
-        }, () => {
-          scheduleOnRN(() => changeImage(prevIndex));
-          translateX.value = 0;
-        });
-      } else {
-        // Return to center
-        translateX.value = withTiming(0, { duration: 200 });
-      }
-    });
-
-  /**
-   * Animated style for image carousel
-   */
-  const animatedImageStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
-
-  /**
-   * Navigates back to previous screen
-   */
   const handleBack = useCallback(() => {
     router.back();
   }, [router]);
 
-  /**
-   * Toggles favorite status with optimistic UI update
-   */
   const handleFavorite = useCallback(async () => {
     if (!id) return;
-    
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
     try {
       if (savedStatus?.isSaved) {
         await unsaveListing.mutateAsync(id);
@@ -203,63 +103,34 @@ export default function ListingDetails() {
         showSuccessAlert('Saved!', 'Listing added to your saved items');
       }
     } catch (error) {
-      showAlert({
-        title: 'Error',
-        message: 'Failed to update saved status. Please try again.',
-        buttons: [{ text: 'OK', color: Colors.red }],
-        icon: 'alert-circle-outline',
-        iconColor: Colors.red,
-      });
     }
-  }, [id, savedStatus?.isSaved, unsaveListing, saveListing, showSuccessAlert, showAlert]);
+  }, [id, savedStatus?.isSaved, unsaveListing, saveListing, showSuccessAlert]);
 
-  /**
-   * Shares the listing via native share sheet
-   */
   const handleShare = useCallback(async () => {
-    if (!listing) {
-      showAlert({
-        title: 'Share Unavailable',
-        message: 'Listing details are not available for sharing.',
-        buttons: [{ text: 'OK', color: '#F44336' }],
-        icon: 'alert-circle-outline',
-        iconColor: '#F44336',
-      });
-      return;
-    }
-    
+    if (!listing) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
     try {
       const shareUrl = `https://ki-kwetu.com/listings/${listing.id}`;
       const shareMessage = `Check out this ${listing.title} for KES ${listing.price?.toLocaleString()} on Kikwetu! ${shareUrl}`;
-
       await Share.share({
         message: shareMessage,
         url: shareUrl,
         title: listing.title,
       });
     } catch (error) {
-      // User cancelled share - no need to show error
+      // User cancelled share
     }
-  }, [listing, showAlert]);
+  }, [listing]);
 
-  /**
-   * Opens contact seller modal
-   */
   const handleContactSeller = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowContactModal(true);
   }, []);
 
-  /**
-   * Toggles follow status with wiggle animation
-   */
   const handleFollow = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsFollowing(!isFollowing);
     
-    // Wiggle animation
     Animated.sequence([
       Animated.timing(wiggleAnim, {
         toValue: 1,
@@ -279,9 +150,6 @@ export default function ListingDetails() {
     ]).start();
   }, [isFollowing, wiggleAnim]);
 
-  /**
-   * Navigates to seller profile
-   */
   const handleViewProfile = useCallback(() => {
     if (listing?.user_id) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -289,30 +157,20 @@ export default function ListingDetails() {
     }
   }, [listing?.user_id, router]);
 
-  /**
-   * Opens report listing modal
-   */
   const handleReportListing = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowReportModal(true);
   }, []);
 
-  /**
-   * Handles report submission
-   */
   const handleReportSubmit = useCallback((reason: string) => {
     console.log('Report submitted:', { listingId: listing?.id, reason });
     showSuccessAlert('Listing Reported', 'Thank you for reporting this listing. We will review it shortly.');
   }, [listing?.id, showSuccessAlert]);
 
-  /**
-   * Opens directions to listing location
-   */
   const handleGetDirections = useCallback(async () => {
     if (listing?.latitude && listing?.longitude) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setIsLoadingDirections(true);
-      
       try {
         await openDirections(
           { latitude: listing.latitude, longitude: listing.longitude },
@@ -332,43 +190,34 @@ export default function ListingDetails() {
     }
   }, [listing, showAlert]);
 
-  /**
-   * Renders star rating display
-   */
   const renderStars = useCallback((rating: number) => {
     const stars = [];
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 !== 0;
-
     for (let i = 0; i < fullStars; i++) {
-      stars.push(
-        <Ionicons key={i} name="star" size={16} color="#FFD700" />
-      );
+      stars.push(<Ionicons key={i} name="star" size={16} color="#FFD700" />);
     }
-
     if (hasHalfStar) {
-      stars.push(
-        <Ionicons key="half" name="star-half" size={16} color="#FFD700" />
-      );
+      stars.push(<Ionicons key="half" name="star-half" size={16} color="#FFD700" />);
     }
-
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
-      stars.push(
-        <Ionicons key={`empty-${i}`} name="star-outline" size={16} color="#FFD700" />
-      );
+      stars.push(<Ionicons key={`empty-${i}`} name="star-outline" size={16} color="#FFD700" />);
     }
-
     return stars;
   }, []);
 
-  /**
-   * Handles navigation to listing from related items
-   */
-  const handleRelatedListingPress = useCallback((listingId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(`/listings/${listingId}`);
-  }, [router]);
+  const renderImageItem = useCallback(({ item }: { item: string }) => (
+    <View style={styles.imageContainer}>
+        <Image 
+            source={{ uri: item }} 
+            style={styles.mainImage}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            recyclingKey={item} 
+        />
+    </View>
+  ), []);
 
   if (isLoading) {
     return (
@@ -383,16 +232,8 @@ export default function ListingDetails() {
     return (
       <View style={styles.errorContainer}>
         <Ionicons name="alert-circle-outline" size={64} color={Colors.grey} />
-        <Text style={styles.errorText}>
-          {error?.message || 'Listing not found'}
-        </Text>
-        <Pressable 
-          style={({ pressed }) => [
-            styles.retryButton,
-            pressed && styles.retryButtonPressed
-          ]} 
-          onPress={handleBack}
-        >
+        <Text style={styles.errorText}>{error?.message || 'Listing not found'}</Text>
+        <Pressable style={styles.retryButton} onPress={handleBack}>
           <Text style={styles.retryButtonText}>Go Back</Text>
         </Pressable>
       </View>
@@ -403,49 +244,20 @@ export default function ListingDetails() {
     <GestureHandlerRootView style={styles.container}>
       <StatusBar style="light" />
       
-      <ScrollView 
-        ref={scrollViewRef}
-        style={styles.content} 
-        showsVerticalScrollIndicator={false}
-        bounces={true}
-      >
-        {/* Image Carousel with Gesture Support */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} bounces={true}>
+        
+        {/* Image Section*/}
         <View style={styles.imageSection}>
-          <GestureDetector gesture={panGesture}>
-            <Reanimated.View style={[styles.imageContainer, animatedImageStyle]}>
-              <Image 
-                source={{ uri: images[currentImageIndex] }} 
-                style={styles.mainImage}
-                contentFit="cover"
-                priority="high"
-                cachePolicy="memory-disk"
-                recyclingKey={`listing-${id}-${currentImageIndex}`}
-                transition={200}
-              /> 
-            </Reanimated.View>
-          </GestureDetector>
-          
-          {/* Image Indicators with Better Spacing */}
-          {images.length > 1 && (
-            <View style={styles.imageIndicators}>
-              <View style={styles.dotsContainer}>
-                {images.map((_, index) => (
-                  <Pressable
-                    key={index}
-                    onPress={() => changeImage(index)}
-                    hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
-                  >
-                    <View 
-                      style={[
-                        styles.dot, 
-                        index === currentImageIndex && styles.activeDot
-                      ]} 
-                    />
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          )}
+          <FlashList
+            data={images}
+            renderItem={renderImageItem}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            keyExtractor={(_, index) => index.toString()}
+          />
           
           {/* Image Counter */}
           <View style={styles.imageCounterContainer}>
@@ -457,11 +269,8 @@ export default function ListingDetails() {
 
         {/* Product Info */}
         <View style={styles.productInfo}>
-         
-          {/* Title */}
           <Text style={styles.productTitle}>{listing.title}</Text>
 
-           {/* Rating, Location, and Views */}
            <View style={styles.ratingContainer}>
             <View style={styles.ratingLeft}>
               <View style={styles.starsContainer}>
@@ -485,14 +294,10 @@ export default function ListingDetails() {
             </View>
           </View>
 
-          {/* Price */}
           <View style={styles.priceContainer}>
             <Text style={styles.currentPrice}>{price}</Text>
             <Pressable 
-              style={({ pressed }) => [
-                styles.favoriteButton,
-                pressed && styles.favoriteButtonPressed
-              ]}
+              style={({ pressed }) => [styles.favoriteButton, pressed && styles.favoriteButtonPressed]}
               onPress={handleFavorite}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
@@ -504,7 +309,6 @@ export default function ListingDetails() {
             </Pressable>
           </View>
 
-          {/* Category and Condition Badges */}
           <View style={styles.badgesContainer}>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>
@@ -518,7 +322,6 @@ export default function ListingDetails() {
             </View>
           </View>
 
-          {/* Description */}
           <Text style={styles.description}>{listing.description || 'No description available'}</Text>
 
           {/* Seller Info */}
@@ -546,60 +349,45 @@ export default function ListingDetails() {
                         </Text>
                       </View>
                     </View>
-                    <View style={styles.sellerRight}>
-                      <Text style={styles.sellerStatsText}>Active seller</Text>
-                      <Text style={styles.sellerStatsText}>Verified</Text>
-                    </View>
                   </View>
                 </View>
               </View>
             </View>
             
-            {/* Action Buttons */}
             <View style={styles.sellerActions}>
-              <Animated.View 
-                style={[{
-                  flex: 1,
-                  transform: [{
-                    rotate: wiggleAnim.interpolate({
-                      inputRange: [-1, 1],
-                      outputRange: ['-5deg', '5deg'],
-                    }),
-                  }],
-                }]}
-              >
-                <Pressable 
-                  style={({ pressed }) => [
-                    styles.actionButton,
-                    isFollowing ? styles.followingButton : styles.followButtonStyle,
-                    pressed && styles.actionButtonPressed
-                  ]}
-                  onPress={handleFollow}
-                >
-                  <Ionicons 
-                    name={isFollowing ? "checkmark" : "person-add"} 
-                    size={16} 
-                    color={isFollowing ? Colors.white : Colors.primary} 
-                  />
-                  <Text style={[
-                    isFollowing ? styles.followingButtonText : styles.followButtonText
-                  ]}>
-                    {isFollowing ? "Following" : "Follow"}
-                  </Text>
-                </Pressable>
-              </Animated.View>
+                <Animated.View style={[{ flex: 1 }]}>
+                    <Pressable 
+                        style={({ pressed }) => [
+                            styles.actionButton,
+                            isFollowing ? styles.followingButton : styles.followButtonStyle,
+                            pressed && styles.actionButtonPressed
+                        ]}
+                        onPress={handleFollow}
+                    >
+                        <Ionicons 
+                            name={isFollowing ? "checkmark" : "person-add"} 
+                            size={16} 
+                            color={isFollowing ? Colors.white : Colors.primary} 
+                        />
+                        <Text style={[
+                            isFollowing ? styles.followingButtonText : styles.followButtonText
+                        ]}>
+                            {isFollowing ? "Following" : "Follow"}
+                        </Text>
+                    </Pressable>
+                </Animated.View>
               
-              <Pressable 
-                style={({ pressed }) => [
-                  styles.actionButton, 
-                  styles.viewProfileButton,
-                  pressed && styles.actionButtonPressed
-                ]}
-                onPress={handleViewProfile}
-              >
-                <Ionicons name="person" size={16} color={Colors.white} />
-                <Text style={styles.viewProfileButtonText}>View Profile</Text>
-              </Pressable>
+                <Pressable 
+                    style={({ pressed }) => [
+                        styles.actionButton, 
+                        styles.viewProfileButton,
+                        pressed && styles.actionButtonPressed
+                    ]}
+                    onPress={handleViewProfile}
+                >
+                    <Ionicons name="person" size={16} color={Colors.white} />
+                    <Text style={styles.viewProfileButtonText}>View Profile</Text>
+                </Pressable>
             </View>
           </View>
 
@@ -634,7 +422,7 @@ export default function ListingDetails() {
             <Text style={styles.reportButtonText}>Report this listing</Text>
           </Pressable>
 
-          {/* Collapsible Safety Tips */}
+          {/* Safety Tips */}
           <Pressable
             style={styles.safetyTips}
             onPress={() => {
@@ -663,7 +451,7 @@ export default function ListingDetails() {
             )}
           </Pressable>
 
-          {/* Related Listings - Fixed 2-column Grid */}
+          {/* Related Listings */}
           <View style={styles.relatedListings}>
             <View style={styles.relatedHeader}>
               <Text style={styles.relatedTitle}>Related Listings</Text>
@@ -673,22 +461,7 @@ export default function ListingDetails() {
                 </Pressable>
               )}
             </View>
-            {relatedLoading ? (
-              <View style={styles.relatedEmptyState}>
-                <CustomLoader />
-                <Text style={styles.relatedEmptyText}>Loading related listings...</Text>
-              </View>
-            ) : relatedError ? (
-              <View style={styles.relatedEmptyState}>
-                <Ionicons name="alert-circle-outline" size={48} color={Colors.grey} />
-                <Text style={styles.relatedEmptyText}>Couldn&apos;t fetch related listings</Text>
-              </View>
-            ) : relatedListings.length === 0 ? (
-              <View style={styles.relatedEmptyState}>
-                <Ionicons name="cube-outline" size={48} color={Colors.grey} />
-                <Text style={styles.relatedEmptyText}>No related listings</Text>
-              </View>
-            ) : (
+            {!relatedLoading && relatedListings.length > 0 && (
               <View style={styles.relatedGrid}>
                 {relatedListings.map((item) => (
                   <View key={item.id} style={styles.relatedCardWrapper}>
@@ -702,41 +475,27 @@ export default function ListingDetails() {
                       description={item.description}
                       views={item.views}
                       viewMode="grid"
-                      onPress={handleRelatedListingPress}
+                      onPress={(id) => router.push(`/listings/${id}`)}
                     />
                   </View>
                 ))}
               </View>
             )}
           </View>
-
         </View>
       </ScrollView>
 
       {/* Header Buttons */}
       <SafeAreaView style={styles.overlayHeader} edges={['top']}>
-        <Pressable 
-          style={({ pressed }) => [
-            styles.overlayButton,
-            pressed && styles.overlayButtonPressed
-          ]} 
-          onPress={handleBack}
-        >
+        <Pressable style={styles.overlayButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </Pressable>
-        <Pressable 
-          style={({ pressed }) => [
-            styles.overlayButton,
-            pressed && styles.overlayButtonPressed
-          ]} 
-          onPress={handleShare}
-        >
+        <Pressable style={styles.overlayButton} onPress={handleShare}>
           <Ionicons name="share-social-outline" size={24} color={Colors.black} />
         </Pressable>
       </SafeAreaView>
 
       {/* Bottom Action Bar */}
-      <SafeAreaView style={styles.bottomBarContainer} edges={['bottom']}>
         <View style={styles.bottomBar}>
           <Pressable 
             style={({ pressed }) => [
@@ -767,9 +526,8 @@ export default function ListingDetails() {
             <Text style={styles.contactButtonText}>Contact Seller</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
-
-      {/* Contact Seller Modal - Lazy Loaded */}
+      
+      {/* Modals */}
       {showContactModal && (
         <Suspense fallback={<View />}>
           <LazyContactSellerModal
@@ -786,7 +544,6 @@ export default function ListingDetails() {
         </Suspense>
       )}
 
-      {/* Write Review Modal - Lazy Loaded */}
       {showReviewModal && (
         <Suspense fallback={<View />}>
           <LazyWriteReviewModal
@@ -797,7 +554,6 @@ export default function ListingDetails() {
         </Suspense>
       )}
 
-      {/* Report Listing Modal - Lazy Loaded */}
       {showReportModal && (
         <Suspense fallback={<View />}>
           <LazyReportListingModal
@@ -808,7 +564,6 @@ export default function ListingDetails() {
         </Suspense>
       )}
 
-      {/* Custom Alert */}
       <AlertComponent />
     </GestureHandlerRootView>
   );
@@ -831,70 +586,33 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   overlayButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  overlayButtonPressed: {
-    opacity: 0.7,
-    transform: [{ scale: 0.95 }],
   },
   content: {
     flex: 1,
   },
   imageSection: {
     position: 'relative',
+    height: IMAGE_HEIGHT,
   },
   imageContainer: {
     width: SCREEN_WIDTH,
-    height: 370,
+    height: IMAGE_HEIGHT,
   },
   mainImage: {
     width: '100%',
     height: '100%',
   },
-  imageIndicators: {
-    position: 'absolute',
-    bottom: 28,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dotsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  dot: {
-    width: 18,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  activeDot: {
-    backgroundColor: Colors.primary,
-    width: 24,
-  },
   imageCounterContainer: {
     position: 'absolute',
-    top: 16,
+    bottom: 16,
     right: 16,
+    zIndex: 10,
   },
   imageCounter: {
     color: Colors.white,
@@ -904,6 +622,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 14,
+    overflow: 'hidden',
   },
   productInfo: {
     padding: 16,
@@ -1034,10 +753,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
-  sellerRight: {
-    alignItems: 'flex-end',
-    gap: 2,
-  },
   sellerName: {
     fontSize: 16,
     fontWeight: '600',
@@ -1052,14 +767,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.grey,
   },
-  sellerStatsText: {
-    fontSize: 12,
-    color: Colors.grey,
-  },
   sellerActions: {
     flexDirection: 'row',
     gap: 12,
     marginTop: 16,
+    width: '100%',
   },
   actionButton: {
     flex: 1,
@@ -1070,6 +782,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     gap: 6,
+    width: '100%',
   },
   actionButtonPressed: {
     opacity: 0.8,
@@ -1147,6 +860,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 8,
+    width: '100%',
   },
   reviewButtonPressed: {
     opacity: 0.7,
@@ -1167,6 +881,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
     gap: 8,
+    width: '100%',
   },
   reportButtonPressed: {
     opacity: 0.7,
@@ -1233,25 +948,6 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: '600',
   },
-  relatedEmptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 48,
-    paddingHorizontal: 16,
-  },
-  relatedEmptyText: {
-    fontSize: 14,
-    color: Colors.grey,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  bottomBarContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: Colors.white,
-  },
   bottomBar: {
     padding: 16,
     borderTopWidth: 1,
@@ -1259,6 +955,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     backgroundColor: Colors.white,
+    width: '100%',
   },
   directionsButton: {
     flex: 1,
@@ -1335,10 +1032,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
-  },
-  retryButtonPressed: {
-    opacity: 0.8,
-    transform: [{ scale: 0.98 }],
   },
   retryButtonText: {
     color: Colors.white,

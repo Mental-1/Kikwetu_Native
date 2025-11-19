@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { Colors } from '@/src/constants/constant';
 import CustomLoader from "@/components/ui/CustomLoader";
+import Step1 from '../(screens)/post-ad/step1';
 
 export default function PostAdTab() {
   const { user, loading } = useAuth();
@@ -17,19 +18,16 @@ export default function PostAdTab() {
   const [isForgotPasswordVisible, setIsForgotPasswordVisible] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) {
-      router.replace('/(screens)/post-ad/step1');
-    }
-    else if (!loading && !user) {
+  if (!loading && !user) {
       setIsSignInVisible(true);
     }
-  }, [user, loading, router]);
+  }, [user, loading]);
 
   const handleClose = () => {
     setIsSignInVisible(false);
     setIsSignUpVisible(false);
     setIsForgotPasswordVisible(false);
-    router.back();
+    router.push('/(tabs)/listings')
   };
 
   const handleSwitchToSignUp = () => {
@@ -55,6 +53,10 @@ export default function PostAdTab() {
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
+  }
+
+  if (user){
+    return <Step1/>
   }
 
   return (

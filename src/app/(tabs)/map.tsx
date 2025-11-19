@@ -25,7 +25,6 @@ import { useListings } from '@/src/hooks/useListings';
 
 const { height: INITIAL_SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Simple Error Boundary for the component
 class MapErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
@@ -55,7 +54,6 @@ class MapErrorBoundary extends React.Component<{ children: React.ReactNode }, { 
   }
 }
 
-// Loading fallback component
 const MapLoading = () => (
   <View style={styles.loadingContainer}>
     <CustomLoader />
@@ -71,7 +69,6 @@ const MapScreenContent = () => {
   const hasLoadedInitialLocation = useRef(false);
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [dimensions, setDimensions] = useState({ width: INITIAL_SCREEN_HEIGHT, height: INITIAL_SCREEN_HEIGHT });
-  const [itemHeight, setItemHeight] = useState(150);
 
   const { data: listingsData, isLoading: listingsLoading } = useListings({});
 
@@ -171,38 +168,34 @@ const MapScreenContent = () => {
   }, []);
 
   const markers = useMemo(() => 
-    (listingsData?.pages.flatMap(page => page.data) || []).map((listing: any) => ({
-      id: listing.id,
-      coordinate: { latitude: listing.latitude, longitude: listing.longitude },
-      title: listing.title,
-      description: `${listing.description} • KES ${listing.price}`,
-    })),
+    (listingsData?.pages.flatMap(page => page.data) || [])
+      .filter((listing: any) => listing.latitude && listing.longitude)
+      .map((listing: any) => ({
+        id: listing.id,
+        coordinate: { latitude: listing.latitude, longitude: listing.longitude },
+        title: listing.title,
+        description: `${listing.description} • KES ${listing.price}`,
+      })),
     [listingsData]
   );
 
   const renderListingCard = useCallback(({ item }: { item: any }) => (
     <ListingCard
       id={item.id}
-      title={item.title}
-      price={`Kes ${item.price.toLocaleString()}`}
+      title={item.title || 'No title'}
+      price={typeof item.price === 'number' ? `Kes ${item.price.toLocaleString()}` : 'Price On Request'}
       condition={item.condition || "Used"}
-      location={item.location}
+      location={item.location || 'Unknown location'}
       image={item.images?.[0] || "https://via.placeholder.com/150"}
-      description={item.description}
-      views={item.views}
+      description={item.description || 'No listing description'}
+      views={item.views || 0}
       viewMode="list"
       onPress={(listingId: string) => {
         bottomSheetRef.current?.close();
         router.push(`/listings/${listingId}`);
       }}
-      onLayout={(event) => {
-        const { height } = event.nativeEvent.layout;
-        if (Math.abs(height - itemHeight) > 10) {
-          setItemHeight(height);
-        }
-      }}
     />
-  ), [itemHeight, router]);
+    ),[router]);
 
   return (
     <MapErrorBoundary>
@@ -325,7 +318,6 @@ const MapScreenContent = () => {
               data={listingsData?.pages.flatMap(page => page.data) || []}
               keyExtractor={(item: any) => item.id}
               renderItem={renderListingCard}
-              estimatedItemSize={itemHeight}
               removeClippedSubviews={true}
               enableEmptySections={false}
               contentContainerStyle={styles.bottomSheetListContainer}
