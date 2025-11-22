@@ -1,4 +1,5 @@
 import AvatarSheet from '@/components/AvatarSheet';
+import CategoryItem from '@/components/CategoryItem';
 import ListingCard from '@/components/ListingCard';
 import NotificationBadge from '@/components/NotificationBadge';
 import CustomDialog from '@/components/ui/CustomDialog';
@@ -9,7 +10,7 @@ import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
 import ForgotPasswordScreen from '@/src/app/(screens)/(auth)/forgot-password';
 import SignIn from '@/src/app/(screens)/(auth)/signin';
 import SignUp from '@/src/app/(screens)/(auth)/signup';
-import { Colors} from '@/src/constants/constant';
+import { Colors } from '@/src/constants/constant';
 import { useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
 import { useListings } from '@/src/hooks/useListings';
 import { useNotifications } from '@/src/hooks/useNotifications';
@@ -17,13 +18,12 @@ import { useFeaturedVideos } from '@/src/hooks/useVideos';
 import { useAppStore } from '@/stores/useAppStore';
 import { showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import CategoryItem from '@/components/CategoryItem';
 
 type ActiveModal = 'none' | 'signOutDialog';
 
@@ -211,21 +211,22 @@ const Home = (props: Props) => {
                 </View>
             </SafeAreaView>
             
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                <View style={styles.searchContainer}>
-                    <View style={styles.searchBar}>
-                        <Ionicons name="search-outline" size={20} color={Colors.grey} style={styles.searchIcon} />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Search Kikwetu"
-                            placeholderTextColor={Colors.grey}
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                            onSubmitEditing={handleSearchSubmit}
-                            returnKeyType="search"
-                        />
-                    </View>
+            <View style={styles.searchContainer}>
+                <View style={styles.searchBar}>
+                    <Ionicons name="search-outline" size={20} color={Colors.grey} style={styles.searchIcon} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search Kikwetu"
+                        placeholderTextColor={Colors.grey}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        onSubmitEditing={handleSearchSubmit}
+                        returnKeyType="search"
+                    />
                 </View>
+            </View>
+            
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
 
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
@@ -438,8 +439,10 @@ const styles = StyleSheet.create({
     },
     searchContainer: {
         paddingHorizontal: 16,
-        paddingTop: 16,
-        paddingBottom: 8,
+        paddingTop: 12,
+        paddingBottom: 12,
+        backgroundColor: Colors.background,
+        zIndex: 10,
     },
     searchBar: {
         flexDirection: 'row',
@@ -447,7 +450,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.white,
         borderRadius: 25,
         paddingHorizontal: 16,
-        paddingVertical: 8,
+        paddingVertical: 6,
         elevation: 2,
         shadowColor: '#000',
         shadowOffset: {

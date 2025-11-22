@@ -85,7 +85,6 @@ const SortModal: React.FC<SortModalProps> = (
 
 const styles = StyleSheet.create({
   modalContainer: {
-    flex: 1,
     paddingBottom: 34,
   },
   modalHeader: {

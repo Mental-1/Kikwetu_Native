@@ -1,10 +1,11 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Pressable } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
+  withTiming,
+  withSequence,
+  Easing,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/src/constants/constant';
@@ -16,11 +17,6 @@ interface AnimatedIconProps {
 
 const LikeButton: React.FC<AnimatedIconProps> = ({ onPress, isLiked }) => {
   const scale = useSharedValue(1);
-  const [liked, setLiked] = useState(isLiked);
-
-  useEffect(() => {
-    setLiked(isLiked);
-  }, [isLiked]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -29,20 +25,27 @@ const LikeButton: React.FC<AnimatedIconProps> = ({ onPress, isLiked }) => {
   });
 
   const handlePress = () => {
-    scale.value = withSpring(1.5, { damping: 2, stiffness: 80 }, () => {
-      scale.value = withSpring(1);
-    });
-    setLiked(!liked);
-    onPress();
+    scale.value = withSequence(
+      withTiming(1.5, {
+        duration: 130,
+        easing: Easing.out(Easing.ease)
+      }),
+      withTiming(1, {
+        duration: 130,
+        easing: Easing.in(Easing.ease)
+      })
+    );
+    
+    onPress(); 
   };
 
   return (
     <Pressable onPress={handlePress}>
       <Animated.View style={animatedStyle}>
         <Ionicons
-          name={liked ? 'heart' : 'heart-outline'}
+          name={isLiked ? 'heart' : 'heart-outline'}
           size={24}
-          color={liked ? Colors.red : Colors.white}
+          color={isLiked ? Colors.red : Colors.white}
         />
       </Animated.View>
     </Pressable>

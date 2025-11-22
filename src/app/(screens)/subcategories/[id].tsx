@@ -4,15 +4,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlashList } from '@shopify/flash-list';
 
 const SubcategoriesScreen = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const categoryId = id ? parseInt(id, 10) : null;
 
-  // Fetch category and subcategories data with optimized loading
   const { data: category, isLoading: categoryLoading } = useCategory(categoryId);
   const { data: subcategories, isLoading: subcategoriesLoading } = useSubcategoriesByCategory(categoryId);
   const { prefetchCategories } = useCategoryMutations();
@@ -22,13 +22,11 @@ const SubcategoriesScreen = () => {
   }, [router]);
 
   const handleSubcategoryPress = useCallback((subcategoryId: number) => {
-    // Optimized navigation with requestAnimationFrame
     requestAnimationFrame(() => {
       router.push(`/(tabs)/listings?subcategory=${subcategoryId}`);
     });
   }, [router]);
 
-  // Preload categories for faster back navigation
   React.useEffect(() => {
     prefetchCategories();
   }, [prefetchCategories]);
@@ -79,25 +77,10 @@ const SubcategoriesScreen = () => {
           </View>
         ) : (
           <>
-            {/* Category Info */}
-            {category && (
-              <View style={styles.categoryInfo}>
-                <View style={styles.categoryIcon}>
-                  <Ionicons name="grid-outline" size={32} color={Colors.primary} />
-                </View>
-                <View style={styles.categoryDetails}>
-                  <Text style={styles.categoryName}>{category.name}</Text>
-                  <Text style={styles.categoryDescription}>
-                    {subcategories?.length || 0} subcategories available
-                  </Text>
-                </View>
-              </View>
-            )}
 
             {/* Subcategories List */}
             <View style={styles.subcategoriesContainer}>
-              <Text style={styles.sectionTitle}>Subcategories</Text>
-               <FlatList
+               <FlashList
                  data={subcategories}
                  renderItem={renderSubcategoryItem}
                  keyExtractor={(item) => item.id.toString()}
@@ -105,15 +88,6 @@ const SubcategoriesScreen = () => {
                  contentContainerStyle={styles.subcategoriesList}
                  ItemSeparatorComponent={() => <View style={styles.separator} />}
                  removeClippedSubviews={true}
-                 maxToRenderPerBatch={10}
-                 windowSize={10}
-                 initialNumToRender={10}
-                 updateCellsBatchingPeriod={50}
-                 getItemLayout={(data, index) => ({
-                   length: 72, // Approximate item height
-                   offset: 72 * index,
-                   index,
-                 })}
                />
             </View>
 
@@ -181,55 +155,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.grey,
   },
-  categoryInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  categoryIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-    borderWidth: 1,
-    borderColor: Colors.lightgrey,
-  },
-  categoryDetails: {
-    flex: 1,
-  },
-  categoryName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.black,
-    marginBottom: 4,
-  },
-  categoryDescription: {
-    fontSize: 14,
-    color: Colors.grey,
-  },
   subcategoriesContainer: {
     flex: 1,
     paddingHorizontal: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.black,
-    marginBottom: 16,
   },
   subcategoriesList: {
     paddingBottom: 20,

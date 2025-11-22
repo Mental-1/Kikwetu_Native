@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   categoryIconContainer: {
     width: CATEGORY_ICON_SIZE,
     height: CATEGORY_ICON_SIZE,
-    borderRadius: CATEGORY_ICON_SIZE / 2,
+    borderRadius: 20,
     backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',

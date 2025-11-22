@@ -1,10 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { Pressable } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
+  withTiming,
+  withSequence,
+  Easing,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/src/constants/constant';
@@ -30,11 +31,20 @@ const SaveButton: React.FC<AnimatedIconProps> = ({ onPress, isSaved }) => {
   });
 
   const handlePress = () => {
-    scale.value = withSpring(1.5, { damping: 2, stiffness: 80 }, () => {
-      scale.value = withSpring(1);
-    });
+    scale.value = withSequence(
+      withTiming(1.5, {
+        duration: 130, 
+        easing: Easing.out(Easing.ease)
+      }),
+      withTiming(1, {
+        duration: 130, 
+        easing: Easing.in(Easing.ease)
+      })
+    );
+
     setSaved(!saved);
     onPress();
+    
     if (!saved) {
       Toast.show({
         type: 'success',
@@ -49,7 +59,7 @@ const SaveButton: React.FC<AnimatedIconProps> = ({ onPress, isSaved }) => {
         <Ionicons
           name={saved ? 'bookmark' : 'bookmark-outline'}
           size={24}
-          color={saved ? Colors.primary : Colors.white}
+          color={saved ? Colors.highlight : Colors.white}
         />
       </Animated.View>
     </Pressable>

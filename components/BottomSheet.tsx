@@ -1,11 +1,11 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   Dimensions,
+  LayoutChangeEvent,
   Modal,
   Pressable,
   StyleSheet,
   View,
-  LayoutChangeEvent,
 } from 'react-native';
 import {
   Gesture,
@@ -13,14 +13,14 @@ import {
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  useAnimatedReaction,
   useAnimatedKeyboard,
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scheduleOnRN } from 'react-native-worklets';
 
 interface BottomSheetProps {
   visible: boolean;
@@ -69,25 +69,25 @@ export default function BottomSheet({
     'worklet';
     if (enableDynamicSizing && contentHeight.value > 0) {
       const available = windowHeight.value - insets.top - insets.bottom;
-      const needed = contentHeight.value + 80;
+      const needed = contentHeight.value + (handleStyle === 'default' ? 40 : 20);
       return windowHeight.value - Math.min(available, needed);
     }
 
     const percentage = parsePercentage(snapPoints[index]);
     const availableHeight = windowHeight.value - insets.top;
     return availableHeight * (1 - percentage);
-  }, [enableDynamicSizing, insets.top, insets.bottom, snapPoints, parsePercentage, contentHeight, windowHeight]);
+  }, [enableDynamicSizing, insets.top, insets.bottom, snapPoints, parsePercentage, contentHeight, windowHeight, handleStyle]);
 
-  const closeSheet = () => {
+  const closeSheet = useCallback(() => {
     'worklet';
     backdropOpacity.value = withTiming(0, { duration: 250 });
     translateY.value = withTiming(windowHeight.value, { duration: 300 }, () => {
       'worklet';
       scheduleOnRN(onClose);
     });
-  };
+  }, [backdropOpacity, translateY, windowHeight, onClose]);
 
-  const snapTo = (index: number) => {
+  const snapTo = useCallback((index: number) => {
     'worklet';
     currentSnapIndex.value = index;
     const target = getSnapPosition(index);
@@ -97,11 +97,20 @@ export default function BottomSheet({
         scheduleOnRN(onSnapPointChange, index);
       }
     });
-  };
+  }, [currentSnapIndex, getSnapPosition, translateY, onSnapPointChange]);
 
-  const findNearestSnapPoint = (position: number, velocity: number): number => {
+  const findNearestSnapPoint = useCallback((position: number, velocity: number): number => {
     'worklet';
-    if (velocity > 800 || position > windowHeight.value * 0.55) return -1;
+    if (velocity > 800) return -1;
+    
+    if (velocity < -800) return snapPoints.length - 1;
+
+    const currentTarget = getSnapPosition(currentSnapIndex.value);
+    const distanceFromCurrent = position - currentTarget;
+
+    // If dragged down significantly (e.g., > 1/3 of sheet height or > 150px), close
+    // For dynamic sizing, we use a fixed threshold because percentage might be misleading for short sheets
+    if (distanceFromCurrent > 150) return -1;
 
     let closest = 0;
     let minDist = Math.abs(position - getSnapPosition(0));
@@ -114,9 +123,8 @@ export default function BottomSheet({
       }
     }
 
-    if (velocity < -800) return snapPoints.length - 1;
     return closest;
-  };
+  }, [snapPoints.length, getSnapPosition, currentSnapIndex]);
 
   const gesture = Gesture.Pan()
     .onStart(() => {
@@ -131,7 +139,6 @@ export default function BottomSheet({
       else snapTo(targetIndex);
     });
 
-  // Keyboard avoidance
   useAnimatedReaction(
     () => keyboard.height.value,
     (height) => {
@@ -144,18 +151,25 @@ export default function BottomSheet({
     }
   );
 
-  // Open/close
   useEffect(() => {
     if (visible) {
       currentSnapIndex.value = initialSnapPoint;
-      const target = getSnapPosition(initialSnapPoint);
       backdropOpacity.value = withTiming(1, { duration: 300 });
-      translateY.value = withTiming(target, { duration: 350 });
+      
+      // If dynamic sizing, we wait for layout (contentHeight > 0) before animating up
+      // If not dynamic, or if we already have height (re-open), animate immediately
+      if (!enableDynamicSizing || contentHeight.value > 0) {
+        const target = getSnapPosition(initialSnapPoint);
+        translateY.value = withTiming(target, { duration: 350 });
+      }
     } else {
       backdropOpacity.value = withTiming(0, { duration: 250 });
       translateY.value = withTiming(windowHeight.value, { duration: 300 });
+      if (enableDynamicSizing) {
+        contentHeight.value = 0;
+      }
     }
-  }, [visible, initialSnapPoint, getSnapPosition, translateY, currentSnapIndex,windowHeight, backdropOpacity]);
+  }, [visible, initialSnapPoint, getSnapPosition, translateY, currentSnapIndex, windowHeight, backdropOpacity, enableDynamicSizing, contentHeight]);
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
@@ -165,7 +179,7 @@ export default function BottomSheet({
       }
     });
     return () => sub?.remove();
-  }, [visible, getSnapPosition, translateY, currentSnapIndex,windowHeight, backdropOpacity]);
+  }, [visible, getSnapPosition, translateY, currentSnapIndex, windowHeight]);
 
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
@@ -175,12 +189,17 @@ export default function BottomSheet({
     opacity: backdropOpacity.value,
   }));
 
-  const onContentLayout = (e: LayoutChangeEvent) => {
+  const onContentLayout = useCallback((e: LayoutChangeEvent) => {
     if (enableDynamicSizing) {
-      contentHeight.value = e.nativeEvent.layout.height;
-      if (visible) translateY.value = withTiming(getSnapPosition(currentSnapIndex.value));
+      const height = e.nativeEvent.layout.height;
+      if (Math.abs(contentHeight.value - height) > 1 || contentHeight.value === 0) {
+        contentHeight.value = height;
+        if (visible) {
+          translateY.value = withTiming(getSnapPosition(currentSnapIndex.value));
+        }
+      }
     }
-  };
+  }, [enableDynamicSizing, contentHeight, visible, translateY, getSnapPosition, currentSnapIndex]);
 
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={closeSheet}>
