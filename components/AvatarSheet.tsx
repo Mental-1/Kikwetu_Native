@@ -20,11 +20,11 @@ const AvatarSheet: React.FC<AvatarSheetProps> = (
   const { bottom } = useSafeAreaInsets();
 
   return (
-    <BottomSheet 
-      visible={visible} 
-      onClose={onClose} 
+    <BottomSheet
+      visible={visible}
+      onClose={onClose}
       enableDynamicSizing={false}
-      snapPoints={['40%']}
+      snapPoints={['45%']}
     >
       <View style={[styles.dropdown, { paddingBottom: bottom > 0 ? bottom : 20 }]}>
         {/* User Info Header */}
@@ -46,8 +46,8 @@ const AvatarSheet: React.FC<AvatarSheetProps> = (
 
         {/* Menu Options */}
         <View style={styles.menuOptions}>
-          <TouchableOpacity 
-            style={styles.menuItem} 
+          <TouchableOpacity
+            style={styles.menuItem}
             onPress={onDashboard}
             activeOpacity={0.7}
           >
@@ -60,8 +60,8 @@ const AvatarSheet: React.FC<AvatarSheetProps> = (
 
           <View style={styles.divider} />
 
-          <TouchableOpacity 
-            style={styles.menuItem} 
+          <TouchableOpacity
+            style={styles.menuItem}
             onPress={onSignOut}
             activeOpacity={0.7}
           >

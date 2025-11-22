@@ -102,7 +102,7 @@ export default function BottomSheet({
   const findNearestSnapPoint = useCallback((position: number, velocity: number): number => {
     'worklet';
     if (velocity > 800) return -1;
-    
+
     if (velocity < -800) return snapPoints.length - 1;
 
     const currentTarget = getSnapPosition(currentSnapIndex.value);
@@ -155,7 +155,7 @@ export default function BottomSheet({
     if (visible) {
       currentSnapIndex.value = initialSnapPoint;
       backdropOpacity.value = withTiming(1, { duration: 300 });
-      
+
       // If dynamic sizing, we wait for layout (contentHeight > 0) before animating up
       // If not dynamic, or if we already have height (re-open), animate immediately
       if (!enableDynamicSizing || contentHeight.value > 0) {

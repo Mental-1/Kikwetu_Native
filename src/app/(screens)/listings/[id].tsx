@@ -1,4 +1,6 @@
 import ListingCard from '@/components/ListingCard';
+import LikeButton from '@/components/animated/LikeButton';
+import CustomLoader from '@/components/ui/CustomLoader';
 import { useCategories } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { useSimilarListings } from '@/src/hooks/useApiListings';
@@ -8,9 +10,12 @@ import { useProfileById } from '@/src/hooks/useProfile';
 import { openDirections } from '@/src/utils/directionUtils';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
+import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -19,36 +24,27 @@ import {
   Share,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
   ViewToken,
 } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import CustomLoader from '@/components/ui/CustomLoader';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import * as Haptics from 'expo-haptics';
-import { FlashList } from '@shopify/flash-list';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IMAGE_HEIGHT = 370;
-
 const LazyContactSellerModal = lazy(() => import('@/components/ContactSellerModal'));
 const LazyWriteReviewModal = lazy(() => import('@/components/WriteReviewModal'));
 const LazyReportListingModal = lazy(() => import('@/components/ReportListingModal'));
-
 export default function ListingDetails() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  
   const { data: listing, isLoading, error } = useListingDetails(id || '');
   const { data: categories } = useCategories();
   const { data: sellerInfo } = useProfileById(listing?.user_id || '');
   const { data: relatedListings = [], isLoading: relatedLoading } = useSimilarListings(id || '', 8);
-  
   const { data: savedStatus } = useCheckIfSaved(id || '');
   const saveListing = useSaveListing();
   const unsaveListing = useUnsaveListing();
-  
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -56,41 +52,33 @@ export default function ListingDetails() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [showSafetyTips, setShowSafetyTips] = useState(false);
   const [isLoadingDirections, setIsLoadingDirections] = useState(false);
-  
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const wiggleAnim = useRef(new Animated.Value(0)).current;
-  
   const { showAlert, AlertComponent } = useCustomAlert();
   const { success: showSuccessAlert } = createAlertHelpers(showAlert);
-
-  const images = useMemo(() => 
-    listing?.images?.length ? listing.images : ['https://via.placeholder.com/400x300'], 
+  const images = useMemo(() =>
+    listing?.images?.length ? listing.images : ['https://via.placeholder.com/400x300'],
     [listing?.images]
   );
-  
-  const price = useMemo(() => 
+  const price = useMemo(() =>
     listing?.price ? `KES ${listing.price.toLocaleString()}` : 'Price not set',
     [listing?.price]
   );
-
-  const isSaved = useMemo(() => 
+  const isSaved = useMemo(() =>
     savedStatus?.isSaved || false,
     [savedStatus?.isSaved]
   );
-
   const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems.length > 0 && viewableItems[0].index !== null) {
       setCurrentImageIndex(viewableItems[0].index);
     }
   }, []);
-
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50,
   }).current;
-
   const handleBack = useCallback(() => {
     router.back();
   }, [router]);
-
   const handleFavorite = useCallback(async () => {
     if (!id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -105,7 +93,6 @@ export default function ListingDetails() {
     } catch (error) {
     }
   }, [id, savedStatus?.isSaved, unsaveListing, saveListing, showSuccessAlert]);
-
   const handleShare = useCallback(async () => {
     if (!listing) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -121,52 +108,28 @@ export default function ListingDetails() {
       // User cancelled share
     }
   }, [listing]);
-
   const handleContactSeller = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowContactModal(true);
   }, []);
-
   const handleFollow = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsFollowing(!isFollowing);
-    
-    Animated.sequence([
-      Animated.timing(wiggleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(wiggleAnim, {
-        toValue: -1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(wiggleAnim, {
-        toValue: 0,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [isFollowing, wiggleAnim]);
-
+  }, [isFollowing]);
   const handleViewProfile = useCallback(() => {
     if (listing?.user_id) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       router.push(`/(screens)/(profile)/profile?id=${listing.user_id}`);
     }
   }, [listing?.user_id, router]);
-
   const handleReportListing = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowReportModal(true);
   }, []);
-
   const handleReportSubmit = useCallback((reason: string) => {
     console.log('Report submitted:', { listingId: listing?.id, reason });
     showSuccessAlert('Listing Reported', 'Thank you for reporting this listing. We will review it shortly.');
   }, [listing?.id, showSuccessAlert]);
-
   const handleGetDirections = useCallback(async () => {
     if (listing?.latitude && listing?.longitude) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -189,36 +152,17 @@ export default function ListingDetails() {
       }
     }
   }, [listing, showAlert]);
-
-  const renderStars = useCallback((rating: number) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(<Ionicons key={i} name="star" size={16} color="#FFD700" />);
-    }
-    if (hasHalfStar) {
-      stars.push(<Ionicons key="half" name="star-half" size={16} color="#FFD700" />);
-    }
-    const emptyStars = 5 - Math.ceil(rating);
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(<Ionicons key={`empty-${i}`} name="star-outline" size={16} color="#FFD700" />);
-    }
-    return stars;
-  }, []);
-
   const renderImageItem = useCallback(({ item }: { item: string }) => (
     <View style={styles.imageContainer}>
-        <Image 
-            source={{ uri: item }} 
-            style={styles.mainImage}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            recyclingKey={item} 
-        />
+      <Image
+        source={{ uri: item }}
+        style={styles.mainImage}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        recyclingKey={item}
+      />
     </View>
   ), []);
-
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -227,7 +171,6 @@ export default function ListingDetails() {
       </View>
     );
   }
-
   if (error || !listing) {
     return (
       <View style={styles.errorContainer}>
@@ -239,13 +182,10 @@ export default function ListingDetails() {
       </View>
     );
   }
-
   return (
     <GestureHandlerRootView style={styles.container}>
       <StatusBar style="light" />
-      
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} bounces={true}>
-        
         {/* Image Section*/}
         <View style={styles.imageSection}>
           <FlashList
@@ -258,7 +198,6 @@ export default function ListingDetails() {
             viewabilityConfig={viewabilityConfig}
             keyExtractor={(_, index) => index.toString()}
           />
-          
           {/* Image Counter */}
           <View style={styles.imageCounterContainer}>
             <Text style={styles.imageCounter}>
@@ -266,21 +205,11 @@ export default function ListingDetails() {
             </Text>
           </View>
         </View>
-
         {/* Product Info */}
         <View style={styles.productInfo}>
           <Text style={styles.productTitle}>{listing.title}</Text>
-
-           <View style={styles.ratingContainer}>
-            <View style={styles.ratingLeft}>
-              <View style={styles.starsContainer}>
-                {renderStars(sellerInfo?.rating || 0)}
-              </View>
-              <Text style={styles.ratingText}>
-                {sellerInfo?.rating?.toFixed(1) || '0.0'} (0)
-              </Text>
-            </View>
-            <View style={styles.ratingRight}>
+          <View style={styles.statsRow}>
+            <View style={styles.statsLeft}>
               <View style={styles.locationContainer}>
                 <Ionicons name="location-outline" size={16} color={Colors.grey} />
                 <Text style={styles.locationText} numberOfLines={1}>
@@ -292,27 +221,19 @@ export default function ListingDetails() {
                 <Text style={styles.viewsText}>{listing.views || 0} views</Text>
               </View>
             </View>
+            <LikeButton
+              isLiked={isSaved}
+              onPress={handleFavorite}
+              iconColor={Colors.grey}
+            />
           </View>
-
           <View style={styles.priceContainer}>
             <Text style={styles.currentPrice}>{price}</Text>
-            <Pressable 
-              style={({ pressed }) => [styles.favoriteButton, pressed && styles.favoriteButtonPressed]}
-              onPress={handleFavorite}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons 
-                name={isSaved ? "heart" : "heart-outline"} 
-                size={24} 
-                color={isSaved ? "#FF0000" : Colors.grey} 
-              />
-            </Pressable>
           </View>
-
           <View style={styles.badgesContainer}>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>
-                {listing.category_id 
+                {listing.category_id
                   ? categories?.find(cat => cat.id === listing.category_id)?.name || 'Category'
                   : 'Category'}
               </Text>
@@ -321,18 +242,27 @@ export default function ListingDetails() {
               <Text style={styles.badgeText}>{listing.condition || 'Condition'}</Text>
             </View>
           </View>
-
-          <Text style={styles.description}>{listing.description || 'No description available'}</Text>
-
+          <View>
+            <Text
+              style={styles.description}
+              numberOfLines={isDescriptionExpanded ? undefined : 4}
+            >
+              {listing.description || 'No description available'}
+            </Text>
+            {listing.description && listing.description.length > 200 && (
+              <TouchableOpacity onPress={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+                <Text style={styles.readMoreText}>
+                  {isDescriptionExpanded ? 'Read Less' : 'Read More'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
           {/* Seller Info */}
           <View style={styles.sellerInfo}>
-            <View style={styles.sellerHeader}>
-              <Text style={styles.sellerTitle}>Seller Information</Text>
-            </View>
             <View style={styles.sellerDetails}>
               <View style={styles.sellerMain}>
-                <Image 
-                  source={{ uri: sellerInfo?.avatar_url || 'https://via.placeholder.com/50x50' }} 
+                <Image
+                  source={{ uri: sellerInfo?.avatar_url || 'https://via.placeholder.com/50x50' }}
                   style={styles.sellerAvatar}
                   contentFit="cover"
                 />
@@ -353,75 +283,85 @@ export default function ListingDetails() {
                 </View>
               </View>
             </View>
-            
             <View style={styles.sellerActions}>
-                <Animated.View style={[{ flex: 1 }]}>
-                    <Pressable 
-                        style={({ pressed }) => [
-                            styles.actionButton,
-                            isFollowing ? styles.followingButton : styles.followButtonStyle,
-                            pressed && styles.actionButtonPressed
-                        ]}
-                        onPress={handleFollow}
-                    >
-                        <Ionicons 
-                            name={isFollowing ? "checkmark" : "person-add"} 
-                            size={16} 
-                            color={isFollowing ? Colors.white : Colors.primary} 
-                        />
-                        <Text style={[
-                            isFollowing ? styles.followingButtonText : styles.followButtonText
-                        ]}>
-                            {isFollowing ? "Following" : "Follow"}
-                        </Text>
-                    </Pressable>
-                </Animated.View>
-              
-                <Pressable 
-                    style={({ pressed }) => [
-                        styles.actionButton, 
-                        styles.viewProfileButton,
-                        pressed && styles.actionButtonPressed
-                    ]}
-                    onPress={handleViewProfile}
-                >
-                    <Ionicons name="person" size={16} color={Colors.white} />
-                    <Text style={styles.viewProfileButtonText}>View Profile</Text>
-                </Pressable>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  isFollowing ? styles.followingButton : styles.followButtonStyle,
+                ]}
+                onPress={handleFollow}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={isFollowing ? "checkmark" : "person-add"}
+                  size={16}
+                  color={isFollowing ? Colors.white : Colors.primary}
+                />
+                <Text style={[
+                  isFollowing ? styles.followingButtonText : styles.followButtonText
+                ]}>
+                  {isFollowing ? "Following" : "Follow"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  styles.viewProfileButton,
+                ]}
+                onPress={handleViewProfile}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="person" size={16} color={Colors.white} />
+                <Text style={styles.viewProfileButtonText}>View Profile</Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          {/* Review Input Section */}
-          <View style={styles.reviewSection}>
-            <Text style={styles.reviewTitle}>Leave a Review</Text>
-            <Text style={styles.reviewSubtitle}>Share your experience with this seller</Text>
-            <Pressable 
-              style={({ pressed }) => [
-                styles.reviewButton,
-                pressed && styles.reviewButtonPressed
-              ]}
+          {/* Action Buttons Row */}
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={styles.reviewButton}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setShowReviewModal(true);
               }}
+              activeOpacity={0.7}
             >
               <Text style={styles.reviewButtonText}>Write Review</Text>
-              <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-            </Pressable>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.reportButton}
+              onPress={handleReportListing}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="flag-outline" size={16} color={Colors.red} />
+              <Text style={styles.reportButtonText}>Report Listing</Text>
+            </TouchableOpacity>
           </View>
-
-          {/* Report Listing */}
-          <Pressable 
-            style={({ pressed }) => [
-              styles.reportButton,
-              pressed && styles.reportButtonPressed
-            ]} 
-            onPress={handleReportListing}
+          {/* Contact Seller Button */}
+          <TouchableOpacity
+            style={styles.contactSellerButton}
+            onPress={handleContactSeller}
+            activeOpacity={0.7}
           >
-            <Ionicons name="flag-outline" size={20} color={Colors.red} />
-            <Text style={styles.reportButtonText}>Report this listing</Text>
-          </Pressable>
-
+            <Ionicons name="chatbubble-outline" size={20} color={Colors.white} />
+            <Text style={styles.contactSellerButtonText}>Contact Seller</Text>
+          </TouchableOpacity>
+          {/* Get Directions Button */}
+          <TouchableOpacity
+            style={styles.directionsButtonMain}
+            onPress={handleGetDirections}
+            disabled={isLoadingDirections}
+            activeOpacity={0.7}
+          >
+            {isLoadingDirections ? (
+              <CustomLoader size="small" />
+            ) : (
+              <>
+                <Ionicons name="navigate-outline" size={20} color={Colors.primary} />
+                <Text style={styles.directionsButtonMainText}>Get Directions</Text>
+              </>
+            )}
+          </TouchableOpacity>
           {/* Safety Tips */}
           <Pressable
             style={styles.safetyTips}
@@ -433,9 +373,9 @@ export default function ListingDetails() {
             <View style={styles.safetyHeader}>
               <Ionicons name="shield-checkmark-outline" size={20} color={Colors.primary} />
               <Text style={styles.safetyTitle}>Safety Tips</Text>
-              <Ionicons 
-                name={showSafetyTips ? "chevron-up" : "chevron-down"} 
-                size={20} 
+              <Ionicons
+                name={showSafetyTips ? "chevron-up" : "chevron-down"}
+                size={20}
                 color={Colors.grey}
                 style={styles.safetyChevron}
               />
@@ -450,7 +390,6 @@ export default function ListingDetails() {
               </Text>
             )}
           </Pressable>
-
           {/* Related Listings */}
           <View style={styles.relatedListings}>
             <View style={styles.relatedHeader}>
@@ -484,7 +423,6 @@ export default function ListingDetails() {
           </View>
         </View>
       </ScrollView>
-
       {/* Header Buttons */}
       <SafeAreaView style={styles.overlayHeader} edges={['top']}>
         <Pressable style={styles.overlayButton} onPress={handleBack}>
@@ -494,39 +432,6 @@ export default function ListingDetails() {
           <Ionicons name="share-social-outline" size={24} color={Colors.black} />
         </Pressable>
       </SafeAreaView>
-
-      {/* Bottom Action Bar */}
-        <View style={styles.bottomBar}>
-          <Pressable 
-            style={({ pressed }) => [
-              styles.directionsButton,
-              pressed && styles.directionsButtonPressed,
-              isLoadingDirections && styles.directionsButtonLoading
-            ]}
-            onPress={handleGetDirections}
-            disabled={isLoadingDirections}
-          >
-            {isLoadingDirections ? (
-              <CustomLoader size="small" />
-            ) : (
-              <>
-                <Ionicons name="navigate-outline" size={20} color={Colors.primary} />
-                <Text style={styles.directionsButtonText}>Get Directions</Text>
-              </>
-            )}
-          </Pressable>
-          <Pressable 
-            style={({ pressed }) => [
-              styles.contactButton,
-              pressed && styles.contactButtonPressed
-            ]}
-            onPress={handleContactSeller}
-          >
-            <Ionicons name="chatbubble-outline" size={20} color={Colors.white} />
-            <Text style={styles.contactButtonText}>Contact Seller</Text>
-          </Pressable>
-        </View>
-      
       {/* Modals */}
       {showContactModal && (
         <Suspense fallback={<View />}>
@@ -535,15 +440,14 @@ export default function ListingDetails() {
             onClose={() => setShowContactModal(false)}
             seller={{
               name: sellerInfo?.full_name || sellerInfo?.username || 'Seller',
-              phone: sellerInfo?.phone_number || '', 
-              email: sellerInfo?.email || '', 
+              phone: sellerInfo?.phone_number || '',
+              email: sellerInfo?.email || '',
               whatsapp: sellerInfo?.phone_number || ''
             }}
             listingTitle={listing.title}
           />
         </Suspense>
       )}
-
       {showReviewModal && (
         <Suspense fallback={<View />}>
           <LazyWriteReviewModal
@@ -553,7 +457,6 @@ export default function ListingDetails() {
           />
         </Suspense>
       )}
-
       {showReportModal && (
         <Suspense fallback={<View />}>
           <LazyReportListingModal
@@ -563,12 +466,10 @@ export default function ListingDetails() {
           />
         </Suspense>
       )}
-
       <AlertComponent />
     </GestureHandlerRootView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -610,7 +511,7 @@ const styles = StyleSheet.create({
   },
   imageCounterContainer: {
     position: 'absolute',
-    bottom: 12,
+    bottom: 20,
     right: 16,
     zIndex: 10,
   },
@@ -631,37 +532,24 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  ratingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  starsContainer: {
-    flexDirection: 'row',
-    marginRight: 8,
-  },
-  ratingText: {
-    fontSize: 14,
-    color: Colors.grey,
-  },
   productTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: Colors.black,
     marginBottom: 12,
     lineHeight: 32,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  statsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    flex: 1,
   },
   priceContainer: {
     flexDirection: 'row',
@@ -673,14 +561,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.primary,
     marginRight: 8,
-  },
-  favoriteButton: {
-    marginLeft: 'auto',
-    padding: 8,
-  },
-  favoriteButtonPressed: {
-    opacity: 0.7,
-    transform: [{ scale: 0.9 }],
   },
   badgesContainer: {
     flexDirection: 'row',
@@ -702,6 +582,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.black,
     lineHeight: 24,
+    marginBottom: 8,
+  },
+  readMoreText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '600',
     marginBottom: 24,
   },
   sellerInfo: {
@@ -719,14 +605,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.05,
     shadowRadius: 2,
-  },
-  sellerHeader: {
-    marginBottom: 12,
-  },
-  sellerTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.black,
   },
   sellerDetails: {
     gap: 4,
@@ -782,10 +660,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     gap: 6,
-    width: '100%',
-  },
-  actionButtonPressed: {
-    opacity: 0.8,
   },
   followButtonStyle: {
     backgroundColor: Colors.white,
@@ -836,41 +710,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.grey,
   },
-  reviewSection: {
-    backgroundColor: Colors.white,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: Colors.lightgrey,
-  },
-  reviewTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.black,
-    marginBottom: 4,
-  },
-  reviewSubtitle: {
-    fontSize: 14,
-    color: Colors.grey,
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 12,
     marginBottom: 12,
+    marginHorizontal: 4,
   },
   reviewButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    width: '100%',
-  },
-  reviewButtonPressed: {
-    opacity: 0.7,
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: '#22C55E',
+    borderRadius: 8,
   },
   reviewButtonText: {
     fontSize: 14,
-    color: Colors.primary,
-    fontWeight: '500',
+    color: '#22C55E',
+    fontWeight: '600',
   },
   reportButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -879,17 +742,45 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.red,
     borderRadius: 8,
-    marginBottom: 16,
-    gap: 8,
-    width: '100%',
-  },
-  reportButtonPressed: {
-    opacity: 0.7,
-    backgroundColor: 'rgba(255, 0, 0, 0.05)',
+    gap: 6,
   },
   reportButtonText: {
     fontSize: 14,
     color: Colors.red,
+    fontWeight: '600',
+  },
+  contactSellerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    marginBottom: 12,
+    gap: 8,
+    marginHorizontal: 4,
+  },
+  contactSellerButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  directionsButtonMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+    marginHorizontal: 4,
+  },
+  directionsButtonMainText: {
+    color: Colors.primary,
+    fontSize: 16,
     fontWeight: '600',
   },
   safetyTips: {
@@ -946,58 +837,6 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 14,
     color: Colors.primary,
-    fontWeight: '600',
-  },
-  bottomBar: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: Colors.lightgrey,
-    flexDirection: 'row',
-    gap: 12,
-    backgroundColor: Colors.white,
-    width: '100%',
-  },
-  directionsButton: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    borderRadius: 8,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    minHeight: 48,
-  },
-  directionsButtonPressed: {
-    opacity: 0.7,
-    backgroundColor: 'rgba(0, 122, 255, 0.05)',
-  },
-  directionsButtonLoading: {
-    opacity: 0.6,
-  },
-  directionsButtonText: {
-    color: Colors.primary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  contactButton: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  contactButtonPressed: {
-    opacity: 0.85,
-  },
-  contactButtonText: {
-    color: Colors.white,
-    fontSize: 16,
     fontWeight: '600',
   },
   loadingContainer: {

@@ -3,24 +3,28 @@
  * Uses Expo SecureStore for encrypted storage
  */
 
-import * as SecureStore from 'expo-secure-store';
+import { getItem, removeItem, setItem } from "@/utils/storage";
+import * as SecureStore from "expo-secure-store";
 
-const ACCESS_TOKEN_KEY = 'kikwetu_access_token';
-const REFRESH_TOKEN_KEY = 'kikwetu_refresh_token';
-const USER_DATA_KEY = 'kikwetu_user_data';
+const ACCESS_TOKEN_KEY = "kikwetu_access_token";
+const REFRESH_TOKEN_KEY = "kikwetu_refresh_token";
+const USER_DATA_KEY = "kikwetu_user_data";
 
 /**
  * Store authentication tokens
  */
-export async function setTokens(accessToken: string, refreshToken: string): Promise<void> {
+export async function setTokens(
+  accessToken: string,
+  refreshToken: string,
+): Promise<void> {
   try {
     await Promise.all([
       SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken),
       SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken),
     ]);
   } catch (error) {
-    console.error('Error storing tokens:', error);
-    throw new Error('Failed to store authentication tokens');
+    console.error("Error storing tokens:", error);
+    throw new Error("Failed to store authentication tokens");
   }
 }
 
@@ -31,7 +35,7 @@ export async function getAccessToken(): Promise<string | null> {
   try {
     return await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
   } catch (error) {
-    console.error('Error getting access token:', error);
+    console.error("Error getting access token:", error);
     return null;
   }
 }
@@ -43,7 +47,7 @@ export async function getRefreshToken(): Promise<string | null> {
   try {
     return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
   } catch (error) {
-    console.error('Error getting refresh token:', error);
+    console.error("Error getting refresh token:", error);
     return null;
   }
 }
@@ -56,33 +60,34 @@ export async function clearTokens(): Promise<void> {
     await Promise.all([
       SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY),
       SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
-      SecureStore.deleteItemAsync(USER_DATA_KEY),
     ]);
+    removeItem(USER_DATA_KEY);
   } catch (error) {
-    console.error('Error clearing tokens:', error);
+    console.error("Error clearing tokens:", error);
   }
 }
 
 /**
  * Store user data
+ * Uses encrypted MMKV for fast synchronous access
  */
-export async function setUserData(userData: any): Promise<void> {
+export function setUserData(userData: any): void {
   try {
-    await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(userData));
+    setItem(USER_DATA_KEY, userData);
   } catch (error) {
-    console.error('Error storing user data:', error);
+    console.error("Error storing user data:", error);
   }
 }
 
 /**
  * Get user data
+ * Returns data synchronously from encrypted MMKV
  */
-export async function getUserData(): Promise<any | null> {
+export function getUserData(): any | null {
   try {
-    const data = await SecureStore.getItemAsync(USER_DATA_KEY);
-    return data ? JSON.parse(data) : null;
+    return getItem(USER_DATA_KEY);
   } catch (error) {
-    console.error('Error getting user data:', error);
+    console.error("Error getting user data:", error);
     return null;
   }
 }
@@ -100,17 +105,17 @@ export async function isAuthenticated(): Promise<boolean> {
  */
 export function decodeToken(token: string): any {
   try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const jsonPayload = decodeURIComponent(
       atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(""),
     );
     return JSON.parse(jsonPayload);
   } catch (error) {
-    console.error('Error decoding token:', error);
+    console.error("Error decoding token:", error);
     return null;
   }
 }
@@ -122,11 +127,10 @@ export function isTokenExpired(token: string): boolean {
   try {
     const decoded = decodeToken(token);
     if (!decoded || !decoded.exp) return true;
-    
+
     const currentTime = Date.now() / 1000;
     return decoded.exp < currentTime;
   } catch (error) {
     return true;
   }
 }
-

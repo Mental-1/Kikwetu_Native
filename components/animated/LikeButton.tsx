@@ -1,21 +1,22 @@
+import { Colors } from '@/src/constants/constant';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable } from 'react-native';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSequence,
   Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/src/constants/constant';
 
 interface AnimatedIconProps {
   onPress: () => void;
   isLiked: boolean;
+  iconColor?: string;
 }
 
-const LikeButton: React.FC<AnimatedIconProps> = ({ onPress, isLiked }) => {
+const LikeButton: React.FC<AnimatedIconProps> = ({ onPress, isLiked, iconColor = Colors.white }) => {
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -35,17 +36,17 @@ const LikeButton: React.FC<AnimatedIconProps> = ({ onPress, isLiked }) => {
         easing: Easing.in(Easing.ease)
       })
     );
-    
-    onPress(); 
+
+    onPress();
   };
 
   return (
-    <Pressable onPress={handlePress}>
+    <Pressable onPress={handlePress} hitSlop={10}>
       <Animated.View style={animatedStyle}>
         <Ionicons
           name={isLiked ? 'heart' : 'heart-outline'}
           size={24}
-          color={isLiked ? Colors.red : Colors.white}
+          color={isLiked ? Colors.red : iconColor}
         />
       </Animated.View>
     </Pressable>

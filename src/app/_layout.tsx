@@ -1,4 +1,3 @@
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '@/contexts/authContext';
 import '@/global.css';
 import '@fontsource/montserrat';
@@ -7,13 +6,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
-
-import { PaperProvider } from "react-native-paper";
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import OfflineScreen from '@/components/OfflineScreen';
+import { ThemeProvider } from "@/contexts/theme/ThemeProvider";
 import { useConnectivity } from '@/src/hooks/useConnectivity';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { ThemeProvider } from "@/contexts/theme/ThemeProvider";
+import { PaperProvider } from "react-native-paper";
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { recoveryStatus } from '@/utils/storage';
+import { Alert } from 'react-native';
+
 
 Sentry.init({
   dsn: 'https://c670fa4991891b62dc670c9e71806185@o4509619077382144.ingest.us.sentry.io/4510064800169984',
@@ -51,42 +53,52 @@ const queryClient = new QueryClient({
 });
 
 function Navigator() {
-    return (
-        <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="(screens)" />
-        </Stack>
-    );
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(screens)" />
+    </Stack>
+  );
 }
 
 
 function RootLayout() {
-    const { isConnected } = useConnectivity();
-    useEffect(() => {
-        SplashScreen.hideAsync();
-    }, []);
+  const { isConnected } = useConnectivity();
+  useEffect(() => {
+    SplashScreen.hideAsync();
 
-    if (!isConnected) {
-        return <OfflineScreen />;
+    // Check for storage recovery events
+    if (recoveryStatus === 'failed') {
+      Alert.alert(
+        "Storage Reset",
+        "We encountered a critical issue with your storage. For your safety, local data has been reset. Please log in again.",
+        [{ text: "OK" }]
+      );
+    } else if (recoveryStatus === 'recovered') {
     }
+  }, []);
 
-    return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
-            <SafeAreaProvider>
-              <ThemeProvider>
-                <QueryClientProvider client={queryClient}>
-                    <PaperProvider>
-                        <AuthProvider>
-                            <BottomSheetModalProvider>
-                                <Navigator />
-                            </BottomSheetModalProvider>
-                        </AuthProvider>
-                    </PaperProvider>
-                </QueryClientProvider>
-              </ThemeProvider>
-            </SafeAreaProvider>
-        </GestureHandlerRootView>
-    );
+  if (!isConnected) {
+    return <OfflineScreen />;
+  }
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <PaperProvider>
+              <AuthProvider>
+                <BottomSheetModalProvider>
+                  <Navigator />
+                </BottomSheetModalProvider>
+              </AuthProvider>
+            </PaperProvider>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
 }
 
 export default Sentry.wrap(RootLayout);

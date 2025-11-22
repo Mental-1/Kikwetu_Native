@@ -59,7 +59,7 @@ export default function Step1() {
 
   const [tagInput, setTagInput] = useState('');
   const [priceInput, setPriceInput] = useState('');
-  
+
   const [isCategorySheetVisible, setIsCategorySheetVisible] = useState(false);
   const [isSubcategorySheetVisible, setIsSubcategorySheetVisible] = useState(false);
   const [isStoreSheetVisible, setIsStoreSheetVisible] = useState(false);
@@ -367,16 +367,16 @@ export default function Step1() {
                       style={[
                         styles.dropdownText,
                         (!subcategoryId || !categoryId) &&
-                          styles.placeholderText,
+                        styles.placeholderText,
                       ]}
                       numberOfLines={1}
                     >
                       {!categoryId
                         ? 'Select category first'
                         : subcategoryId
-                        ? subcategories?.find((s) => s.id === subcategoryId)
+                          ? subcategories?.find((s) => s.id === subcategoryId)
                             ?.name
-                        : 'Subcategory'}
+                          : 'Subcategory'}
                     </Text>
                     <Ionicons name="chevron-down" size={20} color={Colors.grey} />
                   </TouchableOpacity>
@@ -422,7 +422,11 @@ export default function Step1() {
               {/* Negotiable Checkbox */}
               <TouchableOpacity
                 style={styles.checkboxContainer}
-                onPress={() => setIsNegotiable(!isNegotiable)}
+                onPress={() => {
+                  requestAnimationFrame(() => {
+                    setIsNegotiable(!isNegotiable);
+                  });
+                }}
                 activeOpacity={0.7}
               >
                 <View
@@ -448,7 +452,10 @@ export default function Step1() {
                   placeholder='Enter location'
                   placeholderTextColor={Colors.grey}
                   value={location}
-                  onChangeText={setLocation}
+                  onChangeText={(text) => {
+                    console.log('Location input changed to:', text);
+                    setLocation(text);
+                  }}
                 />
                 <TouchableOpacity
                   style={[
@@ -483,7 +490,11 @@ export default function Step1() {
                       styles.conditionButton,
                       condition === cond && styles.conditionButtonSelected,
                     ]}
-                    onPress={() => setCondition(cond)}
+                    onPress={() => {
+                      requestAnimationFrame(() => {
+                        setCondition(cond);
+                      });
+                    }}
                     activeOpacity={condition === cond ? 1 : 0.7}
                   >
                     <Text
@@ -557,12 +568,13 @@ export default function Step1() {
           </SafeAreaView>
 
           {/* Bottom Sheets */}
-          
+
           {/* Category Sheet */}
           <BottomSheet
             visible={isCategorySheetVisible}
             onClose={() => setIsCategorySheetVisible(false)}
             snapPoints={['50%', '85%']}
+            initialSnapPoint={1}
             enableDynamicSizing={false}
           >
             <View style={styles.sheetHeader}>
@@ -571,7 +583,7 @@ export default function Step1() {
                 <Ionicons name="close" size={24} color={Colors.black} />
               </TouchableOpacity>
             </View>
-            <View style={{ height: 400 }}>
+            <View style={{ flex: 1 }}>
               <FlashList
                 data={categories || []}
                 renderItem={renderCategoryItem}
@@ -585,6 +597,7 @@ export default function Step1() {
             visible={isSubcategorySheetVisible}
             onClose={() => setIsSubcategorySheetVisible(false)}
             snapPoints={['50%', '85%']}
+            initialSnapPoint={1}
             enableDynamicSizing={false}
           >
             <View style={styles.sheetHeader}>
@@ -593,7 +606,7 @@ export default function Step1() {
                 <Ionicons name="close" size={24} color={Colors.black} />
               </TouchableOpacity>
             </View>
-            <View style={{ height: 400 }}>
+            <View style={{ flex: 1 }}>
               <FlashList
                 data={subcategories || []}
                 renderItem={renderSubcategoryItem}
@@ -609,7 +622,7 @@ export default function Step1() {
           <BottomSheet
             visible={isStoreSheetVisible}
             onClose={() => setIsStoreSheetVisible(false)}
-            snapPoints={['50%']}
+            snapPoints={['60%']}
             enableDynamicSizing={false}
           >
             <View style={styles.sheetHeader}>
@@ -618,7 +631,7 @@ export default function Step1() {
                 <Ionicons name="close" size={24} color={Colors.black} />
               </TouchableOpacity>
             </View>
-            <View style={{ height: 300 }}>
+            <View style={{ flex: 1 }}>
               <TouchableOpacity
                 style={styles.createStoreItem}
                 onPress={() => {

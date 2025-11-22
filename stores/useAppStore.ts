@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { zustandStorage } from "@/utils/storage";
 import { MMKV } from "react-native-mmkv";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -168,7 +168,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "app-storage",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         postAd: state.postAd,
       }),

@@ -25,63 +25,63 @@ const sortOptions = [
 const SortModal: React.FC<SortModalProps> = (
   { visible, onClose, currentSortBy, onSortChange },
 ) => {
-    const [tempSortBy, setTempSortBy] = useState(currentSortBy);
+  const [tempSortBy, setTempSortBy] = useState(currentSortBy);
 
-    const handleApply = () => {
-      onSortChange(tempSortBy);
-      onClose();
-    };
+  const handleApply = () => {
+    onSortChange(tempSortBy);
+    onClose();
+  };
 
-    const handleReset = () => {
-      setTempSortBy(DEFAULT_SORT);
-    };
+  const handleReset = () => {
+    setTempSortBy(DEFAULT_SORT);
+  };
 
-    return (
-      <BottomSheet visible={visible} onClose={onClose} snapPoints={['50%']} enableDynamicSizing>
-        <View style={styles.modalContainer}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <Pressable
-              onPress={onClose}
-              style={({ pressed }) => [styles.closeButton, { opacity: pressed ? 0.7 : 1 }]}
-            >
-              <Ionicons name="close" size={24} color={Colors.primary} />
-            </Pressable>
-            <Text style={styles.modalTitle}>Sort By</Text>
-            <Pressable onPress={handleReset} style={({ pressed }) => [styles.resetButton, { opacity: pressed ? 0.7 : 1 }]}>
-              <Text style={styles.resetText}>Reset</Text>
-            </Pressable>
-          </View>
-
-          {/* Sort Options */}
-          <ScrollView 
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.sortOptionsContainer}
+  return (
+    <BottomSheet visible={visible} onClose={onClose} snapPoints={['50%']} enableDynamicSizing={false}>
+      <View style={styles.modalContainer}>
+        {/* Header */}
+        <View style={styles.modalHeader}>
+          <Pressable
+            onPress={onClose}
+            style={({ pressed }) => [styles.closeButton, { opacity: pressed ? 0.7 : 1 }]}
           >
-            {sortOptions.map((option) => (
-              <Pressable
-                key={option.value}
-                style={styles.radioButtonContainer}
-                onPress={() => setTempSortBy(option.value)}
-              >
-                <View style={[styles.radioButton, tempSortBy === option.value && styles.radioButtonSelected]}>
-                  {tempSortBy === option.value && <View style={styles.radioButtonInner} />}
-                </View>
-                <Text style={styles.radioButtonLabel}>{option.label}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-
-          {/* Apply Button */}
-          <View style={styles.applyButtonContainer}>
-            <Pressable style={({ pressed }) => [styles.applyButton, { opacity: pressed ? 0.7 : 1 }]} onPress={handleApply}>
-              <Text style={styles.applyButtonText}>Apply Sort</Text>
-            </Pressable>
-          </View>
+            <Ionicons name="close" size={24} color={Colors.primary} />
+          </Pressable>
+          <Text style={styles.modalTitle}>Sort By</Text>
+          <Pressable onPress={handleReset} style={({ pressed }) => [styles.resetButton, { opacity: pressed ? 0.7 : 1 }]}>
+            <Text style={styles.resetText}>Reset</Text>
+          </Pressable>
         </View>
-      </BottomSheet>
-    );
-  }
+
+        {/* Sort Options */}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.sortOptionsContainer}
+        >
+          {sortOptions.map((option) => (
+            <Pressable
+              key={option.value}
+              style={styles.radioButtonContainer}
+              onPress={() => setTempSortBy(option.value)}
+            >
+              <View style={[styles.radioButton, tempSortBy === option.value && styles.radioButtonSelected]}>
+                {tempSortBy === option.value && <View style={styles.radioButtonInner} />}
+              </View>
+              <Text style={styles.radioButtonLabel}>{option.label}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        {/* Apply Button */}
+        <View style={styles.applyButtonContainer}>
+          <Pressable style={({ pressed }) => [styles.applyButton, { opacity: pressed ? 0.7 : 1 }]} onPress={handleApply}>
+            <Text style={styles.applyButtonText}>Apply Sort</Text>
+          </Pressable>
+        </View>
+      </View>
+    </BottomSheet>
+  );
+}
 
 const styles = StyleSheet.create({
   modalContainer: {

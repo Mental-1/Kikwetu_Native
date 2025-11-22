@@ -8,14 +8,14 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -28,9 +28,60 @@ export default function Step2() {
     (state) => state.postAd
   );
   const [activeTab, setActiveTab] = useState<'images' | 'videos'>('images');
-  const [uploadingMap, setUploadingMap] = useState<Record<string, boolean>>({});
-  
+
+  const [uploadQueue, setUploadQueue] = useState<{ uri: string; type: 'image' | 'video' }[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+
   const { uploadMedia } = useMediaUpload();
+
+  React.useEffect(() => {
+    const processNext = async () => {
+      if (isProcessing || uploadQueue.length === 0) return;
+
+      setIsProcessing(true);
+      const nextItem = uploadQueue[0];
+      const { uri, type } = nextItem;
+
+      try {
+        const mediaId = await uploadMedia(
+          { uri, type },
+          (progress) => {
+            setUploadProgress((prev) => ({ ...prev, [uri]: progress }));
+          }
+        );
+
+        if (mediaId) {
+          setUploadedMedia([
+            ...useAppStore.getState().postAd.uploadedMedia, // Get latest state
+            { uri, id: mediaId, type },
+          ]);
+          setUploadProgress((prev) => {
+            const newState = { ...prev };
+            delete newState[uri];
+            return newState;
+          });
+        }
+      } catch (error) {
+        console.error('Upload failed for', uri, error);
+        Alert.alert('Upload Failed', 'Failed to upload media. Please try again.');
+        setUploadProgress((prev) => {
+          const newState = { ...prev };
+          delete newState[uri];
+          return newState;
+        });
+      } finally {
+        setUploadQueue((prev) => prev.slice(1));
+        setIsProcessing(false);
+      }
+    };
+
+    processNext();
+  }, [uploadQueue, isProcessing, uploadMedia, setUploadedMedia]);
+
+  const addToQueue = useCallback((items: { uri: string; type: 'image' | 'video' }[]) => {
+    setUploadQueue((prev) => [...prev, ...items]);
+  }, []);
 
   const handleBack = useCallback(() => {
     router.back();
@@ -44,38 +95,16 @@ export default function Step2() {
       );
       return;
     }
-    
-    // Check if still uploading
-    const isUploading = Object.values(uploadingMap).some((isUploading) => isUploading);
-    if (isUploading) {
+
+    if (uploadQueue.length > 0 || isProcessing) {
       Alert.alert('Uploading', 'Please wait for all uploads to complete.');
       return;
     }
 
     router.push('/(screens)/post-ad/step3');
-  }, [images.length, videos.length, uploadingMap, router]);
+  }, [images.length, videos.length, uploadQueue.length, isProcessing, router]);
 
-  const handleUpload = useCallback(async (uri: string, type: 'image' | 'video') => {
-    setUploadingMap((prev) => ({ ...prev, [uri]: true }));
-    try {
-      const mediaId = await uploadMedia({ uri, type });
-      if (mediaId) {
-        setUploadedMedia([
-          ...uploadedMedia,
-          { uri, id: mediaId, type },
-        ]);
-      }
-    } catch (error) {
-      console.error('Upload failed for', uri, error);
-      Alert.alert('Upload Failed', 'Failed to upload media. Please try again.');
-    } finally {
-      setUploadingMap((prev) => {
-        const newState = { ...prev };
-        delete newState[uri];
-        return newState;
-      });
-    }
-  }, [uploadMedia, uploadedMedia, setUploadedMedia]);
+
 
   const pickImage = useCallback(async () => {
     const permissionResult =
@@ -111,21 +140,19 @@ export default function Step2() {
 
       setImages([...images, ...newImageUris]);
 
-      // Trigger uploads
-      newAssets.forEach((asset) => {
-        handleUpload(asset.uri, 'image');
-      });
+      // Add to sequential queue
+      const queueItems = newAssets.map(asset => ({ uri: asset.uri, type: 'image' as const }));
+      addToQueue(queueItems);
 
       if (result.assets.length > availableSlots) {
         Alert.alert(
           'Limit Reached',
-          `Only the first ${availableSlots} image${
-            availableSlots > 1 ? 's were' : ' was'
+          `Only the first ${availableSlots} image${availableSlots > 1 ? 's were' : ' was'
           } added to keep you within the ${MAX_IMAGES}-image limit.`
         );
       }
     }
-  }, [images, setImages, handleUpload]);
+  }, [images, setImages, addToQueue]);
 
   const pickVideo = useCallback(async () => {
     const permissionResult =
@@ -156,19 +183,21 @@ export default function Step2() {
 
       const uri = result.assets[0].uri;
       setVideos([...videos, uri]);
-      handleUpload(uri, 'video');
+
+      addToQueue([{ uri, type: 'video' }]);
     }
-  }, [videos, setVideos, handleUpload]);
+  }, [videos, setVideos, addToQueue]);
 
   const removeImage = useCallback(
     (index: number) => {
       const uriToRemove = images[index];
       const newImages = images.filter((_, i) => i !== index);
       setImages(newImages);
-      
-      // Remove from uploaded media
+
       const newUploadedMedia = uploadedMedia.filter((media) => media.uri !== uriToRemove);
       setUploadedMedia(newUploadedMedia);
+
+      setUploadQueue(prev => prev.filter(item => item.uri !== uriToRemove));
     },
     [images, setImages, uploadedMedia, setUploadedMedia]
   );
@@ -179,22 +208,29 @@ export default function Step2() {
       const newVideos = videos.filter((_, i) => i !== index);
       setVideos(newVideos);
 
-      // Remove from uploaded media
       const newUploadedMedia = uploadedMedia.filter((media) => media.uri !== uriToRemove);
       setUploadedMedia(newUploadedMedia);
+
+      setUploadQueue(prev => prev.filter(item => item.uri !== uriToRemove));
     },
     [videos, setVideos, uploadedMedia, setUploadedMedia]
   );
 
   const renderImageItem = useCallback(
     ({ item, index }: { item: string; index: number }) => {
-      const isUploading = uploadingMap[item];
+      const progress = uploadProgress[item];
+      const isPending = uploadQueue.some(q => q.uri === item);
+
       return (
         <View style={styles.mediaItem}>
           <Image source={{ uri: item }} style={styles.mediaImage} />
-          {isUploading && (
+          {(progress !== undefined || isPending) && (
             <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="small" color={Colors.white} />
+              {progress !== undefined ? (
+                <Text style={styles.progressText}>{Math.round(progress)}%</Text>
+              ) : (
+                <ActivityIndicator size="small" color={Colors.white} />
+              )}
             </View>
           )}
           <TouchableOpacity
@@ -207,21 +243,27 @@ export default function Step2() {
         </View>
       );
     },
-    [removeImage, uploadingMap]
+    [removeImage, uploadProgress, uploadQueue]
   );
 
   const renderVideoItem = useCallback(
     ({ item, index }: { item: string; index: number }) => {
-      const isUploading = uploadingMap[item];
+      const progress = uploadProgress[item];
+      const isPending = uploadQueue.some(q => q.uri === item);
+
       return (
         <View style={styles.mediaItem}>
           <View style={styles.videoPlaceholder}>
             <Ionicons name="play-circle" size={40} color={Colors.primary} />
             <Text style={styles.videoText}>Video {index + 1}</Text>
           </View>
-          {isUploading && (
+          {(progress !== undefined || isPending) && (
             <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="small" color={Colors.white} />
+              {progress !== undefined ? (
+                <Text style={styles.progressText}>{Math.round(progress)}%</Text>
+              ) : (
+                <ActivityIndicator size="small" color={Colors.white} />
+              )}
             </View>
           )}
           <TouchableOpacity
@@ -234,7 +276,7 @@ export default function Step2() {
         </View>
       );
     },
-    [removeVideo, uploadingMap]
+    [removeVideo, uploadProgress, uploadQueue]
   );
 
   const handleTabChange = useCallback((tab: 'images' | 'videos') => {
@@ -520,6 +562,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
+  },
+  progressText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   removeButton: {
     position: 'absolute',

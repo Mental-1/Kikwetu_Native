@@ -1,4 +1,4 @@
- import { authService } from '@/src/services/auth.service';
+import { authService } from '@/src/services/auth.service';
 import { AuthUser } from '@/src/types/api.types';
 import { clearTokens, getUserData, isAuthenticated, setUserData } from '@/src/utils/tokenManager';
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -23,13 +23,14 @@ export const useAuth = () => {
   return context;
 };
 
+
 interface AuthProviderProps {
   children: React.ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<AuthUser | null>(() => getUserData());
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -37,24 +38,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeAuth = async () => {
       try {
         const authenticated = await isAuthenticated();
-        if (authenticated) {
-          const userData = await getUserData();
-          if (userData && isMounted) {
-            setUser(userData);
-          } else if (isMounted) {
-            await refreshUserSession();
+
+        if (!authenticated && user) {
+          const refreshed = await refreshUserSession();
+          if (!refreshed && isMounted) {
+            setUser(null);
           }
-        } else if (isMounted) {
+        } else if (!authenticated && isMounted) {
           setUser(null);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
         if (isMounted) {
           setUser(null);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
         }
       }
     };
