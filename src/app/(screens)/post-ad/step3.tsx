@@ -1,7 +1,9 @@
+import BottomSheet from '@/components/BottomSheet';
+import PlanUsageCard from '@/components/PlanUsageCard';
+import { Colors } from '@/src/constants/constant';
 import { useCreateListing, useSaveDraft } from '@/src/hooks/useListings';
-import {Colors} from '@/src/constants/constant';
 import { validateCompleteListing } from '@/src/utils/listingValidation';
-import { useAppStore } from '@/stores/useAppStore';
+import { getUserPlan, useAppStore } from '@/stores/useAppStore';
 import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -11,10 +13,10 @@ import React, { useCallback, useState } from 'react';
 import {
   Alert,
   FlatList,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,7 +26,12 @@ export default function Step3() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [showLimitSheet, setShowLimitSheet] = useState(false);
 
+  const userPlan = getUserPlan();
+
+  const postAd = useAppStore((state) => state.postAd);
   const {
     title,
     description,
@@ -42,7 +49,7 @@ export default function Step3() {
     storeId,
     isDraft,
     resetPostAd,
-  } = useAppStore((state) => state.postAd);
+  } = postAd;
 
   const createListingMutation = useCreateListing();
   const saveDraftMutation = useSaveDraft();
@@ -51,7 +58,7 @@ export default function Step3() {
     router.back();
   }, [router]);
 
-  const handlePublish = useCallback(async () => {
+  const publishListing = useCallback(async () => {
     const listingData = {
       title,
       description,
@@ -77,63 +84,73 @@ export default function Step3() {
       return;
     }
 
-    Alert.alert(
-      'Publish Your Ad',
-      'Are you sure you want to publish this listing?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Publish Ad',
-          onPress: async () => {
-            try {
-              setIsPublishing(true);
-              setUploadProgress(0);
+    try {
+      setIsPublishing(true);
+      setUploadProgress(0);
 
-              await createListingMutation.mutateAsync({
-                listingData: {
-                  title: validation.data!.title!,
-                  description: validation.data!.description!,
-                  price: validation.data!.price!,
-                  category_id: validation.data!.category_id!,
-                  subcategory_id: validation.data!.subcategory_id,
-                  condition: validation.data!.condition!,
-                  location: validation.data!.location!,
-                  latitude: validation.data!.latitude ?? undefined,
-                  longitude: validation.data!.longitude ?? undefined,
-                  negotiable: validation.data!.negotiable!,
-                  images: validation.data!.images!,
-                  videos: validation.data!.videos!,
-                  tags: validation.data!.tags!,
-                  store_id: validation.data!.store_id
-                    ? String(validation.data!.store_id)
-                    : undefined,
-                  isDraft: validation.data!.isDraft!,
-                  status: 'pending'
-                },
-                imageUris: images,
-                onUploadProgress: setUploadProgress,
-              });
-
-              showSuccessToast(
-                'Your ad has been published successfully!',
-                'Success'
-              );
-              resetPostAd();
-              router.push('/(tabs)/listings');
-            } catch (error: any) {
-              console.error('Error publishing listing:', error);
-              showErrorToast(
-                error.message ||
-                  'Failed to publish listing. Please try again.'
-              );
-            } finally {
-              setIsPublishing(false);
-              setUploadProgress(0);
-            }
-          },
+      await createListingMutation.mutateAsync({
+        listingData: {
+          title: validation.data!.title!,
+          description: validation.data!.description!,
+          price: validation.data!.price!,
+          category_id: validation.data!.category_id!,
+          subcategory_id: validation.data!.subcategory_id,
+          condition: validation.data!.condition!,
+          location: validation.data!.location!,
+          latitude: validation.data!.latitude ?? undefined,
+          longitude: validation.data!.longitude ?? undefined,
+          negotiable: validation.data!.negotiable!,
+          images: validation.data!.images!,
+          videos: validation.data!.videos!,
+          tags: validation.data!.tags!,
+          store_id: validation.data!.store_id
+            ? String(validation.data!.store_id)
+            : undefined,
+          isDraft: validation.data!.isDraft!,
+          status: 'pending'
         },
-      ]
-    );
+        imageUris: images,
+        onUploadProgress: setUploadProgress,
+      });
+
+      setIsSuccess(true);
+      showSuccessToast(
+        'Your ad has been published successfully!',
+        'Success'
+      );
+      setTimeout(() => {
+        resetPostAd();
+        router.push('/(screens)/(dashboard)/mylistings');
+      }, 1500);
+
+    } catch (error: any) {
+      console.error('Error publishing listing:', error);
+      setIsPublishing(false);
+      
+      Alert.alert(
+        'Publishing Failed',
+        'Please try again.',
+        [
+          {
+            text: 'OK',
+            style: 'cancel',
+            onPress: () => {},
+          },
+          {
+            text: 'Try Again',
+            onPress: publishListing,
+          },
+        ]
+      );
+    } finally {
+      if (!isSuccess) {
+         // Keep loading state if success to show the green button
+         // Only turn off if error
+         // But wait, if I retry, I need isPublishing to be false first? 
+         // Actually, if error, I set isPublishing false in catch.
+         // If success, I want it to stay "publishing" (or rather "success") until nav.
+      }
+    }
   }, [
     title,
     description,
@@ -152,7 +169,27 @@ export default function Step3() {
     createListingMutation,
     router,
     resetPostAd,
+    isSuccess
   ]);
+
+  const handlePublish = useCallback(() => {
+    if (userPlan.usedListings >= userPlan.maxListings) {
+      setShowLimitSheet(true);
+      return;
+    }
+
+    Alert.alert(
+      'Publish Your Ad',
+      'Are you sure you want to publish this listing?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Publish Ad',
+          onPress: publishListing,
+        },
+      ]
+    );
+  }, [publishListing, userPlan]);
 
   const handleSaveDraft = useCallback(async () => {
     const listingData = {
@@ -196,7 +233,7 @@ export default function Step3() {
                 store_id: validation.data!.store_id
                   ? String(validation.data!.store_id)
                   : undefined,
-                isDraft: true,
+                  isDraft: true,
               });
 
               showSuccessToast(
@@ -260,15 +297,13 @@ export default function Step3() {
       <StatusBar style="dark" />
       {/* Header */}
       <SafeAreaView style={styles.header} edges={['top']}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.backButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={handleBack}
+          activeOpacity={0.7}
         >
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
-        </Pressable>
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Publish Ad - Preview</Text>
         <View style={styles.placeholder} />
       </SafeAreaView>
@@ -371,39 +406,100 @@ export default function Step3() {
             </Text>
           </View>
         </View>
+
+        {/* Plan Usage Card */}
+        <PlanUsageCard
+          usedListings={userPlan.usedListings}
+          maxListings={userPlan.maxListings}
+          planName={userPlan.planName}
+        />
       </ScrollView>
 
       {/* Footer Buttons */}
       <SafeAreaView style={styles.footer} edges={['bottom']}>
         <View style={styles.footerButtonsContainer}>
-          <Pressable
-            style={({ pressed }) => [
+          <TouchableOpacity
+            style={[
               styles.footerButton,
               styles.draftButton,
-              { opacity: pressed || isSavingDraft ? 0.7 : 1 },
             ]}
             onPress={handleSaveDraft}
             disabled={isSavingDraft || isPublishing}
+            activeOpacity={0.7}
           >
             <Text style={[styles.footerButtonText, styles.draftButtonText]}>
               {isSavingDraft ? 'Saving...' : 'Save as Draft'}
             </Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
               styles.footerButton,
               styles.publishButton,
-              { opacity: pressed || isPublishing ? 0.7 : 1 },
+              isSuccess && styles.successButton,
             ]}
             onPress={handlePublish}
-            disabled={isPublishing || isSavingDraft}
+            disabled={isPublishing || isSavingDraft || isSuccess}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.footerButtonText, styles.publishButtonText]}>
-              {isPublishing ? `Publishing... ${Math.round(uploadProgress * 100)}%` : 'Publish Ad'}
-            </Text>
-          </Pressable>
+            {isPublishing && !isSuccess ? (
+              <Text style={[styles.footerButtonText, styles.publishButtonText]}>
+                Publishing... {Math.round(uploadProgress * 100)}%
+              </Text>
+            ) : isSuccess ? (
+              <View style={styles.successContent}>
+                <Ionicons name="checkmark-circle" size={24} color={Colors.white} />
+                <Text style={styles.footerButtonText}>Published</Text>
+              </View>
+            ) : (
+              <Text style={[styles.footerButtonText, styles.publishButtonText]}>
+                Publish Ad
+              </Text>
+            )}
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
+
+      {/* Listing Limit Bottom Sheet */}
+      <BottomSheet
+        visible={showLimitSheet}
+        onClose={() => setShowLimitSheet(false)}
+        snapPoints={['45%']}
+      >
+        <View style={styles.limitSheetContent}>
+          <View style={styles.limitSheetHeader}>
+            <Ionicons name="alert-circle" size={48} color={Colors.red} />
+            <Text style={styles.limitSheetTitle}>Listing Limit Reached</Text>
+            <Text style={styles.limitSheetMessage}>
+              You've used all {userPlan.maxListings} listings on your {userPlan.planName} plan.
+            </Text>
+          </View>
+
+          <View style={styles.limitSheetButtons}>
+            <TouchableOpacity
+              style={[styles.limitSheetButton, styles.upgradeButton]}
+              onPress={() => {
+                setShowLimitSheet(false);
+                router.push('/(screens)/(dashboard)/plans-billing');
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.limitSheetButton, styles.payButton]}
+              onPress={() => {
+                setShowLimitSheet(false);
+                // TODO: Open payment modal
+                showErrorToast('Payment modal not implemented yet');
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.payButtonText}>Pay for this listing only</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </BottomSheet>
     </View>
   );
 }
@@ -603,12 +699,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    height: 56,
   },
   draftButton: {
     backgroundColor: Colors.lightgrey,
   },
   publishButton: {
     backgroundColor: Colors.primary,
+  },
+  successButton: {
+    backgroundColor: Colors.green,
   },
   footerButtonText: {
     fontSize: 16,
@@ -619,5 +719,55 @@ const styles = StyleSheet.create({
   },
   publishButtonText: {
     color: Colors.white,
+  },
+  successContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  limitSheetContent: {
+    padding: 20,
+  },
+  limitSheetHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  limitSheetTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.black,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  limitSheetMessage: {
+    fontSize: 14,
+    color: Colors.grey,
+    textAlign: 'center',
+  },
+  limitSheetButtons: {
+    gap: 12,
+  },
+  limitSheetButton: {
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  upgradeButton: {
+    backgroundColor: Colors.primary,
+  },
+  upgradeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.white,
+  },
+  payButton: {
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  payButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.primary,
   },
 });

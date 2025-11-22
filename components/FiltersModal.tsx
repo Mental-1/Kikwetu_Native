@@ -14,8 +14,14 @@ import {
   View,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, runOnJS } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  Easing
+} from 'react-native-reanimated';
 import BottomSheet from './BottomSheet';
+import { scheduleOnRN } from 'react-native-worklets';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - 80;
@@ -28,6 +34,7 @@ interface FiltersModalProps {
   onApplyFilters: (filters: FilterOptions) => void;
   categories: Category[];
   isLoading: boolean;
+  initialFilters?: Partial<FilterOptions>;
 }
 
 interface FilterOptions {
@@ -42,14 +49,14 @@ interface FilterOptions {
 }
 
 const FiltersModal: React.FC<FiltersModalProps> = (
-  { visible, onClose, onApplyFilters, categories, isLoading },
+  { visible, onClose, onApplyFilters, categories, isLoading, initialFilters },
 ) => {
   const [filters, setFilters] = useState<FilterOptions>({
-    priceRange: { min: 0, max: 1000000 },
-    condition: [],
-    category: '',
-    subcategoryId: null,
-    distance: 50,
+    priceRange: initialFilters?.priceRange || { min: 0, max: 1000000 },
+    condition: initialFilters?.condition || [],
+    category: initialFilters?.category || '',
+    subcategoryId: initialFilters?.subcategoryId || null,
+    distance: initialFilters?.distance || 50,
   });
 
   const [priceInputs, setPriceInputs] = useState({
@@ -57,12 +64,32 @@ const FiltersModal: React.FC<FiltersModalProps> = (
     max: '1000000',
   });
 
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
+    initialFilters?.category ? parseInt(initialFilters.category, 10) : null
+  );
   const [showAllCategories, setShowAllCategories] = useState(false);
+
+  React.useEffect(() => {
+    if (visible && initialFilters) {
+      setFilters(prev => ({
+        ...prev,
+        ...initialFilters,
+        priceRange: initialFilters.priceRange || prev.priceRange,
+        condition: initialFilters.condition || prev.condition,
+        category: initialFilters.category || prev.category,
+        subcategoryId: initialFilters.subcategoryId || prev.subcategoryId,
+        distance: initialFilters.distance || prev.distance,
+      }));
+
+      if (initialFilters.category) {
+        setSelectedCategoryId(parseInt(initialFilters.category, 10));
+      }
+    }
+  }, [visible, initialFilters]);
 
   const conditionOptions = ['New', 'Like New', 'Used', 'Refurbished'];
 
-  const categoryOptions = useMemo(() => 
+  const categoryOptions = useMemo(() =>
     categories.map(cat => ({
       id: cat.id,
       name: cat.name,
@@ -71,7 +98,7 @@ const FiltersModal: React.FC<FiltersModalProps> = (
     [categories]
   );
 
-  const displayedCategories = useMemo(() => 
+  const displayedCategories = useMemo(() =>
     showAllCategories ? categoryOptions : categoryOptions.slice(0, 8),
     [categoryOptions, showAllCategories]
   );
@@ -80,7 +107,7 @@ const FiltersModal: React.FC<FiltersModalProps> = (
     selectedCategoryId || 0
   );
 
-  const subcategoryOptions = useMemo(() => 
+  const subcategoryOptions = useMemo(() =>
     categorySubcategories || [],
     [categorySubcategories]
   );
@@ -143,12 +170,23 @@ const FiltersModal: React.FC<FiltersModalProps> = (
     })
     .onUpdate((event) => {
       translateX.value = Math.max(0, Math.min(SLIDER_WIDTH, context.value.x + event.translationX));
+
       const newDistance = Math.round((translateX.value / SLIDER_WIDTH) * 20) * 5;
-      runOnJS(setFilters)(prev => ({ ...prev, distance: newDistance }));
+
+      scheduleOnRN(() => {
+        setFilters(prev => ({ ...prev, distance: newDistance }));
+      });
     })
     .onEnd(() => {
       const newDistance = Math.round((translateX.value / SLIDER_WIDTH) * 20) * 5;
-      translateX.value = withSpring((newDistance / 100) * SLIDER_WIDTH, { damping: 15, stiffness: 150 });
+
+      translateX.value = withTiming(
+        (newDistance / 100) * SLIDER_WIDTH,
+        {
+          duration: 300,
+          easing: Easing.out(Easing.quad)
+        }
+      );
     });
 
   const animatedThumbStyle = useAnimatedStyle(() => {
@@ -197,168 +235,168 @@ const FiltersModal: React.FC<FiltersModalProps> = (
           </Pressable>
         </View>
 
-        <ScrollView 
-          style={styles.modalContent} 
+        <ScrollView
+          style={styles.modalContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {/* Category Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Category</Text>
+            {isLoading ? (
+              <CategorySkeleton />
+            ) : (
+              <>
+                <View style={styles.pillsContainer}>
+                  {displayedCategories.map((category) => (
+                    <Pressable
+                      key={category.id}
+                      style={({ pressed }) => [
+                        styles.pill,
+                        selectedCategoryId === category.id && styles.selectedPill,
+                        { opacity: pressed ? 0.7 : 1 },
+                      ]}
+                      onPress={() => handleCategorySelect(category.id)}
+                    >
+                      <Text style={[
+                        styles.pillText,
+                        selectedCategoryId === category.id && styles.selectedPillText
+                      ]}>
+                        {category.emoji} {category.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                {/* See All Button */}
+                {!showAllCategories && categoryOptions.length > 8 && (
+                  <Pressable
+                    style={({ pressed }) => [styles.seeAllButton, { opacity: pressed ? 0.7 : 1 }]}
+                    onPress={() => setShowAllCategories(true)}
+                  >
+                    <Text style={styles.seeAllButtonText}>
+                      See All ({categoryOptions.length})
+                    </Text>
+                    <Ionicons name="chevron-down" size={16} color={Colors.primary} />
+                  </Pressable>
+                )}
+
+                {/* Show Less Button */}
+                {showAllCategories && (
+                  <Pressable
+                    style={({ pressed }) => [styles.seeAllButton, { opacity: pressed ? 0.7 : 1 }]}
+                    onPress={() => setShowAllCategories(false)}
+                  >
+                    <Text style={styles.seeAllButtonText}>
+                      Show Less
+                    </Text>
+                    <Ionicons name="chevron-up" size={16} color={Colors.primary} />
+                  </Pressable>
+                )}
+              </>
+            )}
+          </View>
+
+          {/* Subcategory Section */}
+          {selectedCategoryId !== null && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Category</Text>
-              {isLoading ? (
-                <CategorySkeleton />
+              <Text style={styles.sectionTitle}>Subcategory</Text>
+              {subcategoriesLoading ? (
+                <SubcategorySkeleton />
               ) : (
-                <>
-                  <View style={styles.pillsContainer}>
-                    {displayedCategories.map((category) => (
-                      <Pressable
-                        key={category.id}
-                        style={({ pressed }) => [
-                          styles.pill,
-                          selectedCategoryId === category.id && styles.selectedPill,
-                          { opacity: pressed ? 0.7 : 1 },
-                        ]}
-                        onPress={() => handleCategorySelect(category.id)}
-                      >
-                        <Text style={[
-                          styles.pillText,
-                          selectedCategoryId === category.id && styles.selectedPillText
-                        ]}>
-                          {category.emoji} {category.name}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                  
-                  {/* See All Button */}
-                  {!showAllCategories && categoryOptions.length > 8 && (
-                    <Pressable 
-                      style={({ pressed }) => [styles.seeAllButton, { opacity: pressed ? 0.7 : 1 }]} 
-                      onPress={() => setShowAllCategories(true)}
+                <View style={styles.pillsContainer}>
+                  {subcategoryOptions.map((subcategory) => (
+                    <Pressable
+                      key={subcategory.id}
+                      style={({ pressed }) => [
+                        styles.pill,
+                        filters.subcategoryId === subcategory.id && styles.selectedPill,
+                        { opacity: pressed ? 0.7 : 1 },
+                      ]}
+                      onPress={() => setFilters(prev => ({
+                        ...prev,
+                        subcategoryId: prev.subcategoryId === subcategory.id ? null : subcategory.id
+                      }))}
                     >
-                      <Text style={styles.seeAllButtonText}>
-                        See All ({categoryOptions.length})
+                      <Text style={[
+                        styles.pillText,
+                        filters.subcategoryId === subcategory.id && styles.selectedPillText
+                      ]}>
+                        {subcategory.name}
                       </Text>
-                      <Ionicons name="chevron-down" size={16} color={Colors.primary} />
                     </Pressable>
-                  )}
-                  
-                  {/* Show Less Button */}
-                  {showAllCategories && (
-                    <Pressable 
-                      style={({ pressed }) => [styles.seeAllButton, { opacity: pressed ? 0.7 : 1 }]} 
-                      onPress={() => setShowAllCategories(false)}
-                    >
-                      <Text style={styles.seeAllButtonText}>
-                        Show Less
-                      </Text>
-                      <Ionicons name="chevron-up" size={16} color={Colors.primary} />
-                    </Pressable>
-                  )}
-                </>
+                  ))}
+                </View>
               )}
             </View>
+          )}
 
-            {/* Subcategory Section */}
-            {selectedCategoryId !== null && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Subcategory</Text>
-                {subcategoriesLoading ? (
-                  <SubcategorySkeleton />
-                ) : (
-                  <View style={styles.pillsContainer}>
-                    {subcategoryOptions.map((subcategory) => (
-                      <Pressable
-                        key={subcategory.id}
-                        style={({ pressed }) => [
-                          styles.pill,
-                          filters.subcategoryId === subcategory.id && styles.selectedPill,
-                          { opacity: pressed ? 0.7 : 1 },
-                        ]}
-                        onPress={() => setFilters(prev => ({
-                          ...prev,
-                          subcategoryId: prev.subcategoryId === subcategory.id ? null : subcategory.id
-                        }))}
-                      >
-                        <Text style={[
-                          styles.pillText,
-                          filters.subcategoryId === subcategory.id && styles.selectedPillText
-                        ]}>
-                          {subcategory.name}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
+          {/* Condition Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Condition</Text>
+            <View style={styles.pillsContainer}>
+              {conditionOptions.map((condition) => (
+                <Pressable
+                  key={condition}
+                  style={({ pressed }) => [
+                    styles.pill,
+                    filters.condition.includes(condition) && styles.selectedPill,
+                    { opacity: pressed ? 0.7 : 1 },
+                  ]}
+                  onPress={() => handleConditionToggle(condition)}
+                >
+                  <Text style={[
+                    styles.pillText,
+                    filters.condition.includes(condition) && styles.selectedPillText
+                  ]}>
+                    {condition}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {/* Price Range Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Price Range</Text>
+            <View style={styles.priceRangeContainer}>
+              <View style={styles.priceInputContainer}>
+                <Text style={styles.priceLabel}>Min</Text>
+                <TextInput
+                  style={styles.priceInput}
+                  value={priceInputs.min}
+                  onChangeText={(text) => setPriceInputs(prev => ({ ...prev, min: text }))}
+                  placeholder="0"
+                  keyboardType="numeric"
+                  placeholderTextColor={Colors.grey}
+                />
               </View>
-            )}
-
-            {/* Condition Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Condition</Text>
-              <View style={styles.pillsContainer}>
-                {conditionOptions.map((condition) => (
-                  <Pressable
-                    key={condition}
-                    style={({ pressed }) => [
-                      styles.pill,
-                      filters.condition.includes(condition) && styles.selectedPill,
-                      { opacity: pressed ? 0.7 : 1 },
-                    ]}
-                    onPress={() => handleConditionToggle(condition)}
-                  >
-                    <Text style={[
-                      styles.pillText,
-                      filters.condition.includes(condition) && styles.selectedPillText
-                    ]}>
-                      {condition}
-                    </Text>
-                  </Pressable>
-                ))}
+              <View style={styles.priceInputContainer}>
+                <Text style={styles.priceLabel}>Max</Text>
+                <TextInput
+                  style={styles.priceInput}
+                  value={priceInputs.max}
+                  onChangeText={(text) => setPriceInputs(prev => ({ ...prev, max: text }))}
+                  placeholder="1000000"
+                  keyboardType="numeric"
+                  placeholderTextColor={Colors.grey}
+                />
               </View>
             </View>
-
-            {/* Price Range Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Price Range</Text>
-              <View style={styles.priceRangeContainer}>
-                <View style={styles.priceInputContainer}>
-                  <Text style={styles.priceLabel}>Min</Text>
-                  <TextInput
-                    style={styles.priceInput}
-                    value={priceInputs.min}
-                    onChangeText={(text) => setPriceInputs(prev => ({ ...prev, min: text }))}
-                    placeholder="0"
-                    keyboardType="numeric"
-                    placeholderTextColor={Colors.grey}
-                  />
-                </View>
-                <View style={styles.priceInputContainer}>
-                  <Text style={styles.priceLabel}>Max</Text>
-                  <TextInput
-                    style={styles.priceInput}
-                    value={priceInputs.max}
-                    onChangeText={(text) => setPriceInputs(prev => ({ ...prev, max: text }))}
-                    placeholder="1000000"
-                    keyboardType="numeric"
-                    placeholderTextColor={Colors.grey}
-                  />
-                </View>
-              </View>
-            </View>
+          </View>
 
           {/* Distance Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Distance: {filters.distance} km</Text>
             <View style={styles.sliderContainer}>
               <View style={styles.sliderTrack} />
-                <Animated.View style={[styles.sliderProgress, animatedProgressStyle]} />
-                <GestureDetector gesture={panGesture}>
-                  <Animated.View 
-                    style={[styles.sliderThumb, animatedThumbStyle]}
-                    hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }} // Increased hit area
-                  />
-                </GestureDetector>
+              <Animated.View style={[styles.sliderProgress, animatedProgressStyle]} />
+              <GestureDetector gesture={panGesture}>
+                <Animated.View
+                  style={[styles.sliderThumb, animatedThumbStyle]}
+                  hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }} // Increased hit area
+                />
+              </GestureDetector>
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderLabel}>0 km</Text>
                 <Text style={styles.sliderLabel}>100 km</Text>
@@ -469,7 +507,7 @@ const styles = StyleSheet.create({
     color: Colors.black,
   },
   sliderContainer: {
-    height: 50, 
+    height: 50,
     justifyContent: 'center',
   },
   sliderTrack: {

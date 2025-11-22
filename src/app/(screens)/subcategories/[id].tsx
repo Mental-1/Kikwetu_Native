@@ -1,12 +1,12 @@
 import { useCategory, useCategoryMutations, useSubcategoriesByCategory } from '@/hooks/useCategories';
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FlashList } from '@shopify/flash-list';
 
 const SubcategoriesScreen = () => {
   const router = useRouter();
@@ -23,9 +23,9 @@ const SubcategoriesScreen = () => {
 
   const handleSubcategoryPress = useCallback((subcategoryId: number) => {
     requestAnimationFrame(() => {
-      router.push(`/(tabs)/listings?subcategory=${subcategoryId}`);
+      router.push(`/(tabs)/listings?category=${categoryId}&subcategory=${subcategoryId}`);
     });
-  }, [router]);
+  }, [router, categoryId]);
 
   React.useEffect(() => {
     prefetchCategories();
@@ -160,6 +160,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   subcategoriesList: {
+    paddingTop: 16,
     paddingBottom: 20,
   },
   subcategoryItem: {

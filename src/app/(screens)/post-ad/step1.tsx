@@ -1,4 +1,6 @@
+import BottomSheet from '@/components/BottomSheet';
 import CustomDialog from '@/components/ui/CustomDialog';
+import CustomLoader from "@/components/ui/CustomLoader";
 import {
   useCategories,
   useSubcategoriesByCategory,
@@ -9,24 +11,24 @@ import { useAppStore } from '@/stores/useAppStore';
 import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
 import { getLocationWithAddress } from '@/utils/locationUtils';
 import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from "@shopify/flash-list";
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import CustomLoader from "@/components/ui/CustomLoader";
 
 export default function Step1() {
   const router = useRouter();
@@ -56,8 +58,11 @@ export default function Step1() {
   } = useAppStore((state) => state.postAd);
 
   const [tagInput, setTagInput] = useState('');
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [priceInput, setPriceInput] = useState('');
+  
+  const [isCategorySheetVisible, setIsCategorySheetVisible] = useState(false);
+  const [isSubcategorySheetVisible, setIsSubcategorySheetVisible] = useState(false);
+  const [isStoreSheetVisible, setIsStoreSheetVisible] = useState(false);
 
   useEffect(() => {
     if (price === null || price === undefined) {
@@ -65,7 +70,7 @@ export default function Step1() {
     } else {
       setPriceInput(price.toLocaleString());
     }
-  }, [price]);
+  }, []);
 
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
@@ -129,7 +134,10 @@ export default function Step1() {
   const handlePriceChange = (text: string) => {
     const formatted = formatPrice(text);
     setPriceInput(formatted);
-    const numericValue = text.replace(/\D/g, '');
+  };
+
+  const handlePriceBlur = () => {
+    const numericValue = priceInput.replace(/\D/g, '');
     setPrice(numericValue ? parseFloat(numericValue) : null);
   };
 
@@ -190,9 +198,74 @@ export default function Step1() {
     setShowLocationDialog(false);
   };
 
-  const toggleDropdown = (name: string) => {
-    setOpenDropdown(openDropdown === name ? null : name);
-  };
+  const renderCategoryItem = useCallback(({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={[
+        styles.sheetItem,
+        categoryId === item.id && styles.sheetItemSelected
+      ]}
+      onPress={() => {
+        setCategoryId(item.id);
+        setIsCategorySheetVisible(false);
+      }}
+    >
+      <Text style={[
+        styles.sheetItemText,
+        categoryId === item.id && styles.sheetItemTextSelected
+      ]}>
+        {item.name}
+      </Text>
+      {categoryId === item.id && (
+        <Ionicons name="checkmark" size={20} color={Colors.primary} />
+      )}
+    </TouchableOpacity>
+  ), [categoryId]);
+
+  const renderSubcategoryItem = useCallback(({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={[
+        styles.sheetItem,
+        subcategoryId === item.id && styles.sheetItemSelected
+      ]}
+      onPress={() => {
+        setSubcategoryId(item.id);
+        setIsSubcategorySheetVisible(false);
+      }}
+    >
+      <Text style={[
+        styles.sheetItemText,
+        subcategoryId === item.id && styles.sheetItemTextSelected
+      ]}>
+        {item.name}
+      </Text>
+      {subcategoryId === item.id && (
+        <Ionicons name="checkmark" size={20} color={Colors.primary} />
+      )}
+    </TouchableOpacity>
+  ), [subcategoryId]);
+
+  const renderStoreItem = useCallback(({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={[
+        styles.sheetItem,
+        storeId === item.id && styles.sheetItemSelected
+      ]}
+      onPress={() => {
+        setStoreId(item.id);
+        setIsStoreSheetVisible(false);
+      }}
+    >
+      <Text style={[
+        styles.sheetItemText,
+        storeId === item.id && styles.sheetItemTextSelected
+      ]}>
+        {item.name}
+      </Text>
+      {storeId === item.id && (
+        <Ionicons name="checkmark" size={20} color={Colors.primary} />
+      )}
+    </TouchableOpacity>
+  ), [storeId]);
 
   return (
     <KeyboardAvoidingView
@@ -204,15 +277,12 @@ export default function Step1() {
           <StatusBar style='dark' />
           {/* Header */}
           <SafeAreaView style={styles.header} edges={['top']}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.backButton,
-                { opacity: pressed ? 0.7 : 1 },
-              ]}
+            <TouchableOpacity
+              style={styles.backButton}
               onPress={handleBack}
             >
               <Ionicons name='chevron-back' size={24} color={Colors.black} />
-            </Pressable>
+            </TouchableOpacity>
             <Text style={styles.headerTitle}>Post Ad - Details</Text>
             <View style={styles.placeholder} />
           </SafeAreaView>
@@ -258,75 +328,40 @@ export default function Step1() {
             {/* Category and Subcategory */}
             <View style={styles.section}>
               <View style={styles.rowContainer}>
-                {/* Category Dropdown */}
+                {/* Category Trigger */}
                 <View style={styles.halfWidth}>
                   <Text style={styles.label}>Category *</Text>
-                  <Pressable
+                  <TouchableOpacity
                     style={styles.dropdown}
-                    onPress={() => toggleDropdown('category')}
+                    onPress={() => setIsCategorySheetVisible(true)}
+                    activeOpacity={0.7}
                   >
                     <Text
                       style={[
                         styles.dropdownText,
                         !categoryId && styles.placeholderText,
                       ]}
+                      numberOfLines={1}
                     >
                       {categoryId
                         ? categories?.find((c) => c.id === categoryId)?.name
                         : 'Select Category'}
                     </Text>
-                    <Ionicons
-                      name={openDropdown === 'category' ? 'chevron-up' : 'chevron-down'}
-                      size={20}
-                      color={Colors.grey}
-                    />
-                  </Pressable>
-
-                  {openDropdown === 'category' && (
-                    <View style={styles.dropdownList}>
-                      <ScrollView
-                        style={styles.dropdownScroll}
-                        showsVerticalScrollIndicator={true}
-                        nestedScrollEnabled={true}
-                        keyboardShouldPersistTaps='handled'
-                      >
-                        {categoriesLoading ? (
-                          <Text style={styles.loadingText}>
-                            Loading categories...
-                          </Text>
-                        ) : (
-                          categories?.map((category) => (
-                            <Pressable
-                              key={category.id}
-                              style={styles.dropdownItem}
-                              onPress={() => {
-                                setCategoryId(category.id);
-                                toggleDropdown('category');
-                              }}
-                            >
-                              <Text style={styles.dropdownItemText}>
-                                {category.name}
-                              </Text>
-                            </Pressable>
-                          ))
-                        )}
-                      </ScrollView>
-                    </View>
-                  )}
+                    <Ionicons name="chevron-down" size={20} color={Colors.grey} />
+                  </TouchableOpacity>
                 </View>
 
-                {/* Subcategory Dropdown */}
+                {/* Subcategory Trigger */}
                 <View style={styles.halfWidth}>
                   <Text style={styles.label}>Subcategory</Text>
-                  <Pressable
+                  <TouchableOpacity
                     style={[
                       styles.dropdown,
                       !categoryId && styles.disabledDropdown,
                     ]}
-                    onPress={() =>
-                      categoryId && toggleDropdown('subcategory')
-                    }
+                    onPress={() => categoryId && setIsSubcategorySheetVisible(true)}
                     disabled={!categoryId}
+                    activeOpacity={0.7}
                   >
                     <Text
                       style={[
@@ -334,54 +369,17 @@ export default function Step1() {
                         (!subcategoryId || !categoryId) &&
                           styles.placeholderText,
                       ]}
+                      numberOfLines={1}
                     >
                       {!categoryId
                         ? 'Select category first'
                         : subcategoryId
                         ? subcategories?.find((s) => s.id === subcategoryId)
                             ?.name
-                        : 'Select Subcategory'}
+                        : 'Subcategory'}
                     </Text>
-                    <Ionicons
-                      name={
-                        openDropdown === 'subcategory' ? 'chevron-up' : 'chevron-down'
-                      }
-                      size={20}
-                      color={Colors.grey}
-                    />
-                  </Pressable>
-
-                  {openDropdown === 'subcategory' && categoryId && (
-                    <View style={styles.dropdownList}>
-                      <ScrollView
-                        style={styles.dropdownScroll}
-                        showsVerticalScrollIndicator={true}
-                        nestedScrollEnabled={true}
-                        keyboardShouldPersistTaps='handled'
-                      >
-                        {subcategories?.length === 0 ? (
-                          <Text style={styles.loadingText}>
-                            No subcategories available
-                          </Text>
-                        ) : (
-                          subcategories?.map((subcategory) => (
-                            <Pressable
-                              key={subcategory.id}
-                              style={styles.dropdownItem}
-                              onPress={() => {
-                                setSubcategoryId(subcategory.id);
-                                toggleDropdown('subcategory');
-                              }}
-                            >
-                              <Text style={styles.dropdownItemText}>
-                                {subcategory.name}
-                              </Text>
-                            </Pressable>
-                          ))
-                        )}
-                      </ScrollView>
-                    </View>
-                  )}
+                    <Ionicons name="chevron-down" size={20} color={Colors.grey} />
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -389,9 +387,10 @@ export default function Step1() {
             {/* Store Selection */}
             <View style={styles.section}>
               <Text style={styles.label}>Store (Optional)</Text>
-              <Pressable
+              <TouchableOpacity
                 style={styles.dropdown}
-                onPress={() => toggleDropdown('store')}
+                onPress={() => setIsStoreSheetVisible(true)}
+                activeOpacity={0.7}
               >
                 <Text
                   style={[
@@ -403,80 +402,8 @@ export default function Step1() {
                     ? safeStores.find((s) => s.id === storeId)?.name
                     : 'Select Store (Optional)'}
                 </Text>
-                <Ionicons
-                  name={openDropdown === 'store' ? 'chevron-up' : 'chevron-down'}
-                  size={20}
-                  color={Colors.grey}
-                />
-              </Pressable>
-
-              {openDropdown === 'store' && (
-                <View style={styles.dropdownList}>
-                  <ScrollView
-                    style={styles.dropdownScroll}
-                    showsVerticalScrollIndicator={true}
-                    nestedScrollEnabled={true}
-                    keyboardShouldPersistTaps='handled'
-                  >
-                    {storesLoading ? (
-                      <Text style={styles.loadingText}>Loading stores...</Text>
-                    ) : (
-                      <>
-                        {/* Create Store Option */}
-                        <Pressable
-                          style={({ pressed }) => [
-                            styles.dropdownItem,
-                            styles.createStoreItem,
-                            { opacity: pressed ? 0.7 : 1 },
-                          ]}
-                          onPress={() => {
-                            toggleDropdown('store');
-                            router.push(
-                              '/(screens)/(dashboard)/stores/store-create'
-                            );
-                          }}
-                        >
-                          <Ionicons
-                            name='add-circle-outline'
-                            size={20}
-                            color={Colors.primary}
-                          />
-                          <Text
-                            style={[
-                              styles.dropdownItemText,
-                              styles.createStoreText,
-                            ]}
-                          >
-                            Create New Store
-                          </Text>
-                        </Pressable>
-
-                        {/* Existing Stores */}
-                        {safeStores.length === 0 ? (
-                          <Text style={styles.loadingText}>
-                            No stores available
-                          </Text>
-                        ) : (
-                          safeStores.map((store) => (
-                            <Pressable
-                              key={store.id}
-                              style={styles.dropdownItem}
-                              onPress={() => {
-                                setStoreId(store.id);
-                                toggleDropdown('store');
-                              }}
-                            >
-                              <Text style={styles.dropdownItemText}>
-                                {store.name}
-                              </Text>
-                            </Pressable>
-                          ))
-                        )}
-                      </>
-                    )}
-                  </ScrollView>
-                </View>
-              )}
+                <Ionicons name="chevron-down" size={20} color={Colors.grey} />
+              </TouchableOpacity>
             </View>
 
             {/* Price */}
@@ -488,16 +415,15 @@ export default function Step1() {
                 placeholderTextColor={Colors.grey}
                 value={priceInput}
                 onChangeText={handlePriceChange}
+                onBlur={handlePriceBlur}
                 keyboardType='numeric'
               />
 
               {/* Negotiable Checkbox */}
-              <Pressable
-                style={({ pressed }) => [
-                  styles.checkboxContainer,
-                  { opacity: pressed ? 0.7 : 1 },
-                ]}
+              <TouchableOpacity
+                style={styles.checkboxContainer}
                 onPress={() => setIsNegotiable(!isNegotiable)}
+                activeOpacity={0.7}
               >
                 <View
                   style={[
@@ -510,7 +436,7 @@ export default function Step1() {
                   )}
                 </View>
                 <Text style={styles.checkboxLabel}>Price is negotiable</Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
 
             {/* Location */}
@@ -524,14 +450,14 @@ export default function Step1() {
                   value={location}
                   onChangeText={setLocation}
                 />
-                <Pressable
-                  style={({ pressed }) => [
+                <TouchableOpacity
+                  style={[
                     styles.locationButton,
                     isLoadingLocation && styles.locationButtonLoading,
-                    { opacity: pressed ? 0.7 : 1 },
                   ]}
                   onPress={requestLocation}
                   disabled={isLoadingLocation}
+                  activeOpacity={0.7}
                 >
                   {isLoadingLocation ? (
                     <CustomLoader />
@@ -542,7 +468,7 @@ export default function Step1() {
                       color={Colors.primary}
                     />
                   )}
-                </Pressable>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -550,15 +476,15 @@ export default function Step1() {
             <View style={styles.section}>
               <Text style={styles.label}>Condition *</Text>
               <View style={styles.conditionContainer}>
-                {['New', 'Like New', 'Good', 'Fair', 'Poor'].map((cond) => (
-                  <Pressable
+                {['New', 'Like New', 'Good', 'Used'].map((cond) => (
+                  <TouchableOpacity
                     key={cond}
-                    style={({ pressed }) => [
+                    style={[
                       styles.conditionButton,
                       condition === cond && styles.conditionButtonSelected,
-                      { opacity: pressed ? 0.7 : 1 },
                     ]}
                     onPress={() => setCondition(cond)}
+                    activeOpacity={condition === cond ? 1 : 0.7}
                   >
                     <Text
                       style={[
@@ -568,7 +494,7 @@ export default function Step1() {
                     >
                       {cond}
                     </Text>
-                  </Pressable>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
@@ -587,34 +513,29 @@ export default function Step1() {
                   onChangeText={setTagInput}
                   onSubmitEditing={addTag}
                   returnKeyType='done'
-                  blurOnSubmit={false}
                 />
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.addTagButton,
-                    { opacity: pressed ? 0.7 : 1 },
-                  ]}
+                <TouchableOpacity
+                  style={styles.addTagButton}
                   onPress={addTag}
+                  activeOpacity={0.7}
                 >
                   <Ionicons name='add' size={20} color={Colors.white} />
-                </Pressable>
+                </TouchableOpacity>
               </View>
 
               {/* Display Tags */}
               {tags.length > 0 && (
                 <View style={styles.tagsContainer}>
                   {tags.map((tag, index) => (
-                    <Pressable
+                    <TouchableOpacity
                       key={index}
-                      style={({ pressed }) => [
-                        styles.tag,
-                        { opacity: pressed ? 0.7 : 1 },
-                      ]}
+                      style={styles.tag}
                       onPress={() => removeTag(tag)}
+                      activeOpacity={0.7}
                     >
                       <Text style={styles.tagText}>#{tag}</Text>
                       <Ionicons name='close' size={16} color={Colors.white} />
-                    </Pressable>
+                    </TouchableOpacity>
                   ))}
                 </View>
               )}
@@ -624,18 +545,100 @@ export default function Step1() {
           {/* Next Button */}
           <SafeAreaView edges={['bottom']}>
             <View style={styles.footer}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.nextButton,
-                  { opacity: pressed ? 0.7 : 1 },
-                ]}
+              <TouchableOpacity
+                style={styles.nextButton}
                 onPress={handleNext}
+                activeOpacity={0.7}
               >
                 <Text style={styles.nextButtonText}>Next: Add Media</Text>
                 <Ionicons name='chevron-forward' size={20} color={Colors.white} />
-              </Pressable>
+              </TouchableOpacity>
             </View>
           </SafeAreaView>
+
+          {/* Bottom Sheets */}
+          
+          {/* Category Sheet */}
+          <BottomSheet
+            visible={isCategorySheetVisible}
+            onClose={() => setIsCategorySheetVisible(false)}
+            snapPoints={['50%', '85%']}
+            enableDynamicSizing={false}
+          >
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Select Category</Text>
+              <TouchableOpacity onPress={() => setIsCategorySheetVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.black} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ height: 400 }}>
+              <FlashList
+                data={categories || []}
+                renderItem={renderCategoryItem}
+                keyExtractor={(item) => item.id.toString()}
+              />
+            </View>
+          </BottomSheet>
+
+          {/* Subcategory Sheet */}
+          <BottomSheet
+            visible={isSubcategorySheetVisible}
+            onClose={() => setIsSubcategorySheetVisible(false)}
+            snapPoints={['50%', '85%']}
+            enableDynamicSizing={false}
+          >
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Select Subcategory</Text>
+              <TouchableOpacity onPress={() => setIsSubcategorySheetVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.black} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ height: 400 }}>
+              <FlashList
+                data={subcategories || []}
+                renderItem={renderSubcategoryItem}
+                keyExtractor={(item) => item.id.toString()}
+                ListEmptyComponent={
+                  <Text style={styles.emptyListText}>No subcategories available</Text>
+                }
+              />
+            </View>
+          </BottomSheet>
+
+          {/* Store Sheet */}
+          <BottomSheet
+            visible={isStoreSheetVisible}
+            onClose={() => setIsStoreSheetVisible(false)}
+            snapPoints={['50%']}
+            enableDynamicSizing={false}
+          >
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Select Store</Text>
+              <TouchableOpacity onPress={() => setIsStoreSheetVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.black} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ height: 300 }}>
+              <TouchableOpacity
+                style={styles.createStoreItem}
+                onPress={() => {
+                  setIsStoreSheetVisible(false);
+                  router.push('/(screens)/(dashboard)/stores/store-create');
+                }}
+              >
+                <Ionicons name="add-circle-outline" size={24} color={Colors.primary} />
+                <Text style={styles.createStoreText}>Create New Store</Text>
+              </TouchableOpacity>
+              <FlashList
+                data={safeStores}
+                renderItem={renderStoreItem}
+                keyExtractor={(item) => item.id.toString()}
+                ListEmptyComponent={
+                  <Text style={styles.emptyListText}>No stores available</Text>
+                }
+              />
+            </View>
+          </BottomSheet>
 
           {/* Custom Location Permission Dialog */}
           <CustomDialog
@@ -716,6 +719,60 @@ const styles = StyleSheet.create({
     color: Colors.grey,
     textAlign: 'right',
     marginTop: 4,
+  },
+  rowContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  halfWidth: {
+    flex: 1,
+  },
+  dropdown: {
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: Colors.lightgrey,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  disabledDropdown: {
+    backgroundColor: Colors.background,
+    opacity: 0.7,
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: Colors.black,
+    flex: 1,
+    marginRight: 8,
+  },
+  placeholderText: {
+    color: Colors.grey,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: Colors.grey,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: Colors.black,
   },
   locationContainer: {
     flexDirection: 'row',
@@ -798,9 +855,6 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 16,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.lightgrey,
   },
   nextButton: {
     backgroundColor: Colors.primary,
@@ -816,106 +870,58 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  rowContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  halfWidth: {
-    flex: 1,
-    flexShrink: 1,
-  },
-  dropdown: {
-    backgroundColor: Colors.white,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: Colors.lightgrey,
+  // Sheet Styles
+  sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  disabledDropdown: {
-    backgroundColor: Colors.lightgrey,
-    opacity: 0.6,
-  },
-  dropdownText: {
-    fontSize: 16,
-    color: Colors.black,
-    flex: 1,
-  },
-  placeholderText: {
-    color: Colors.grey,
-  },
-  dropdownList: {
-    position: 'absolute',
-    top: 50,
-    left: 0,
-    right: 0,
-    backgroundColor: Colors.white,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.lightgrey,
-    maxHeight: 150,
-    zIndex: 1000,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  dropdownScroll: {
-    maxHeight: 140,
-  },
-  dropdownItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.lightgrey,
+    marginBottom: 8,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.black,
+  },
+  sheetItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.lightgrey,
+  },
+  sheetItemSelected: {
+    backgroundColor: '#f5f5f5',
+  },
+  sheetItemText: {
+    fontSize: 16,
+    color: Colors.black,
+  },
+  sheetItemTextSelected: {
+    color: Colors.primary,
+    fontWeight: '600',
   },
   createStoreItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(3, 65, 252, 0.05)',
-  },
-  dropdownItemText: {
-    fontSize: 14,
-    color: Colors.black,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightgrey,
+    gap: 12,
   },
   createStoreText: {
-    marginLeft: 8,
+    fontSize: 16,
     color: Colors.primary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  loadingText: {
-    fontSize: 14,
-    color: Colors.grey,
+  emptyListText: {
     textAlign: 'center',
-    paddingVertical: 12,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: Colors.lightgrey,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  checkboxChecked: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: Colors.black,
-    fontWeight: '500',
+    padding: 20,
+    color: Colors.grey,
   },
 });

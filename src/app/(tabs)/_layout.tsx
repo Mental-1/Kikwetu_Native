@@ -1,15 +1,12 @@
+import { Colors } from '@/src/constants/constant';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
-import { Colors } from '@/src/constants/constant';
 
 export default function TabLayout() {
     return (
         <Tabs screenOptions={{ 
             headerShown: false, 
             tabBarActiveTintColor: Colors.primary,
-            tabBarStyle: {
-                height: 70,
-            },
         }}>
             <Tabs.Screen
                 name="home"

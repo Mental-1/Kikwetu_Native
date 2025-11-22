@@ -1,7 +1,7 @@
 import { Colors } from '@/src/constants/constant';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomSheet from './BottomSheet';
 
@@ -20,7 +20,12 @@ const AvatarSheet: React.FC<AvatarSheetProps> = (
   const { bottom } = useSafeAreaInsets();
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} enableDynamicSizing>
+    <BottomSheet 
+      visible={visible} 
+      onClose={onClose} 
+      enableDynamicSizing={false}
+      snapPoints={['40%']}
+    >
       <View style={[styles.dropdown, { paddingBottom: bottom > 0 ? bottom : 20 }]}>
         {/* User Info Header */}
         <View style={styles.userHeader}>
@@ -41,23 +46,31 @@ const AvatarSheet: React.FC<AvatarSheetProps> = (
 
         {/* Menu Options */}
         <View style={styles.menuOptions}>
-          <Pressable style={({ pressed }) => [styles.menuItem, { opacity: pressed ? 0.7 : 1 }]} onPress={onDashboard}>
+          <TouchableOpacity 
+            style={styles.menuItem} 
+            onPress={onDashboard}
+            activeOpacity={0.7}
+          >
             <View style={styles.menuItemContent}>
               <Ionicons name="grid-outline" size={20} color={Colors.primary} />
               <Text style={styles.menuText}>Dashboard</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
-          </Pressable>
+          </TouchableOpacity>
 
           <View style={styles.divider} />
 
-          <Pressable style={({ pressed }) => [styles.menuItem, { opacity: pressed ? 0.7 : 1 }]} onPress={onSignOut}>
+          <TouchableOpacity 
+            style={styles.menuItem} 
+            onPress={onSignOut}
+            activeOpacity={0.7}
+          >
             <View style={styles.menuItemContent}>
               <Ionicons name="log-out-outline" size={20} color={Colors.red} />
               <Text style={[styles.menuText, { color: Colors.red }]}>Sign Out</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
-          </Pressable>
+          </TouchableOpacity>
         </View>
       </View>
     </BottomSheet>

@@ -1,4 +1,3 @@
-import { FlashList } from "@shopify/flash-list";
 import FiltersModal from '@/components/FiltersModal';
 import ListingCard from '@/components/ListingCard';
 import ListingsSkeleton from '@/components/ListingsSkeleton';
@@ -12,17 +11,18 @@ import { useAppStore } from '@/stores/useAppStore';
 import type { ListingItem } from '@/types/types';
 import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { FlashList } from "@shopify/flash-list";
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   Dimensions,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
-  View,
-  Animated
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -36,6 +36,7 @@ const ListingsLoading = () => (
 
 function ListingsContent() {
   const router = useRouter();
+  const { category, subcategory } = useLocalSearchParams<{ category: string; subcategory: string }>();
   const { searchQuery, setSearchQuery } = useAppStore();
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
 
@@ -52,6 +53,16 @@ function ListingsContent() {
   const [isGridView, setIsGridView] = useState(true);
   const [sortBy, setSortBy] = useState('newest');
   const [appliedFilters, setAppliedFilters] = useState<any>(null);
+
+  useEffect(() => {
+    if (category || subcategory) {
+      setAppliedFilters((prev: any) => ({
+        ...prev,
+        category: category,
+        subcategory: subcategory,
+      }));
+    }
+  }, [category, subcategory]);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   const [favoriteStates, setFavoriteStates] = useState<Record<string, boolean>>({});
@@ -94,19 +105,10 @@ function ListingsContent() {
     }
   }, [categories, prefetchSubcategories]);
 
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    { useNativeDriver: false }
-  );
-
-  useEffect(() => {
-    const listener = scrollY.addListener(({ value }) => {
-      setShowBackToTop(value > height * 1.5);
-    });
-    return () => {
-      scrollY.removeListener(listener);
-    };
-  }, [scrollY]);
+  const handleScroll = useCallback((event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setShowBackToTop(offsetY > height * 2);
+  }, []);
 
   const scrollToTop = useCallback(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -242,6 +244,11 @@ function ListingsContent() {
             />
           </Pressable>
 
+          {/* Filter Button */}
+          <Pressable style={({ pressed }) => [styles.sortButton, { opacity: pressed ? 0.7 : 1 }]} onPress={handleFilterToggle}>
+            <Ionicons name="options-outline" size={20} color={Colors.primary} />
+          </Pressable>
+
           {/* Sort Button */}
           <Pressable style={({ pressed }) => [styles.sortButton, { opacity: pressed ? 0.7 : 1 }]} onPress={handleSort}>
             <Ionicons name="funnel-outline" size={20} color={Colors.primary} />
@@ -251,11 +258,7 @@ function ListingsContent() {
 
       {/* Filter and Results Info */}
       <View style={styles.filterSection}>
-        {/* Filter Pill */}
-        <Pressable style={({ pressed }) => [styles.filterPill, { opacity: pressed ? 0.7 : 1 }]} onPress={handleFilterToggle}>
-          <Text style={styles.filterPillText}>Filters</Text>
-          <Ionicons name="options-outline" size={16} color={Colors.white} />
-        </Pressable>
+        {/* Results and Sort Info */}
 
         {/* Results and Sort Info */}
         <View style={styles.resultsInfo}>
@@ -355,6 +358,7 @@ function ListingsContent() {
         onApplyFilters={handleApplyFilters}
         categories={categories || []}
         isLoading={categoriesLoading}
+        initialFilters={appliedFilters}
       />
 
       {/* Sort Modal */}
@@ -438,7 +442,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     zIndex: 1,
   },
   filterPill: {

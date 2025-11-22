@@ -1,4 +1,4 @@
-import { apiClient, ApiResponse } from './api';
+import { apiClient, ApiResponse } from "./api";
 
 export interface UserProfile {
   id: string;
@@ -21,7 +21,7 @@ export interface UserProfile {
 export interface UserPreferences {
   id: string;
   userId: string;
-  theme: 'light' | 'dark' | 'auto';
+  theme: "light" | "dark" | "auto";
   language: string;
   currency: string;
   notifications: {
@@ -37,7 +37,7 @@ export interface UserPreferences {
     showEmail: boolean;
     showPhone: boolean;
     showLastSeen: boolean;
-    profileVisibility: 'public' | 'private' | 'friends';
+    profileVisibility: "public" | "private" | "friends";
   };
   createdAt: string;
   updatedAt: string;
@@ -55,21 +55,37 @@ export interface UpdateProfileData {
 }
 
 export interface UpdatePreferencesData {
-  theme?: 'light' | 'dark' | 'auto';
+  theme?: "light" | "dark" | "auto";
   language?: string;
   currency?: string;
-  notifications?: Partial<UserPreferences['notifications']>;
-  privacy?: Partial<UserPreferences['privacy']>;
+  notifications?: Partial<UserPreferences["notifications"]>;
+  privacy?: Partial<UserPreferences["privacy"]>;
+}
+
+export interface UserSubscription {
+  id: string;
+  userId: string;
+  planName: string;
+  maxListings: number;
+  usedListings: number;
+  features: string[];
+  status: "active" | "inactive" | "cancelled" | "expired";
+  startDate: string;
+  endDate?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 class UserService {
-  private readonly baseEndpoint = '/user';
+  private readonly baseEndpoint = "/user";
 
   async getProfile(): Promise<ApiResponse<UserProfile>> {
     return apiClient.get<UserProfile>(`${this.baseEndpoint}/profile`);
   }
 
-  async updateProfile(data: UpdateProfileData): Promise<ApiResponse<UserProfile>> {
+  async updateProfile(
+    data: UpdateProfileData,
+  ): Promise<ApiResponse<UserProfile>> {
     return apiClient.put<UserProfile>(`${this.baseEndpoint}/profile`, data);
   }
 
@@ -77,26 +93,44 @@ class UserService {
     return apiClient.get<UserPreferences>(`${this.baseEndpoint}/preferences`);
   }
 
-  async updatePreferences(data: UpdatePreferencesData): Promise<ApiResponse<UserPreferences>> {
-    return apiClient.put<UserPreferences>(`${this.baseEndpoint}/preferences`, data);
+  async updatePreferences(
+    data: UpdatePreferencesData,
+  ): Promise<ApiResponse<UserPreferences>> {
+    return apiClient.put<UserPreferences>(
+      `${this.baseEndpoint}/preferences`,
+      data,
+    );
   }
 
-  async uploadAvatar(imageData: FormData): Promise<ApiResponse<{ avatarUrl: string }>> {
-    return apiClient.post<{ avatarUrl: string }>(`${this.baseEndpoint}/avatar`, imageData);
+  async getSubscription(): Promise<ApiResponse<UserSubscription>> {
+    return apiClient.get<UserSubscription>(`${this.baseEndpoint}/subscription`);
+  }
+
+  async uploadAvatar(
+    imageData: FormData,
+  ): Promise<ApiResponse<{ avatarUrl: string }>> {
+    return apiClient.post<{ avatarUrl: string }>(
+      `${this.baseEndpoint}/avatar`,
+      imageData,
+    );
   }
 
   async deleteAccount(reason?: string): Promise<ApiResponse<void>> {
-    return apiClient.delete<void>(`${this.baseEndpoint}/account?reason=${reason}`);
+    return apiClient.delete<void>(
+      `${this.baseEndpoint}/account?reason=${reason}`,
+    );
   }
 
-  async getUserStats(): Promise<ApiResponse<{
-    totalListings: number;
-    activeListings: number;
-    totalViews: number;
-    totalSaved: number;
-    rating: number;
-    reviewsCount: number;
-  }>> {
+  async getUserStats(): Promise<
+    ApiResponse<{
+      totalListings: number;
+      activeListings: number;
+      totalViews: number;
+      totalSaved: number;
+      rating: number;
+      reviewsCount: number;
+    }>
+  > {
     return apiClient.get<{
       totalListings: number;
       activeListings: number;
@@ -107,16 +141,33 @@ class UserService {
     }>(`${this.baseEndpoint}/stats`);
   }
 
-  async verifyPhone(phoneNumber: string): Promise<ApiResponse<{ verificationId: string }>> {
-    return apiClient.post<{ verificationId: string }>(`${this.baseEndpoint}/verify-phone`, { phoneNumber });
+  async verifyPhone(
+    phoneNumber: string,
+  ): Promise<ApiResponse<{ verificationId: string }>> {
+    return apiClient.post<{ verificationId: string }>(
+      `${this.baseEndpoint}/verify-phone`,
+      { phoneNumber },
+    );
   }
 
-  async confirmPhoneVerification(verificationId: string, code: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>(`${this.baseEndpoint}/confirm-phone`, { verificationId, code });
+  async confirmPhoneVerification(
+    verificationId: string,
+    code: string,
+  ): Promise<ApiResponse<void>> {
+    return apiClient.post<void>(`${this.baseEndpoint}/confirm-phone`, {
+      verificationId,
+      code,
+    });
   }
 
-  async changePassword(currentPassword: string, newPassword: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>(`${this.baseEndpoint}/change-password`, { currentPassword, newPassword });
+  async changePassword(
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<ApiResponse<void>> {
+    return apiClient.post<void>(`${this.baseEndpoint}/change-password`, {
+      currentPassword,
+      newPassword,
+    });
   }
 
   async getUserById(userId: string): Promise<ApiResponse<UserProfile>> {

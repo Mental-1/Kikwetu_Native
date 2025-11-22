@@ -1,4 +1,5 @@
 import { Colors } from '@/src/constants/constant';
+import { useMediaUpload } from '@/src/hooks/useMediaUpload';
 import { useAppStore } from '@/stores/useAppStore';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -7,13 +8,14 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useState } from 'react';
 import {
-  Alert,
-  FlatList,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,10 +24,13 @@ const MAX_VIDEOS = 3;
 
 export default function Step2() {
   const router = useRouter();
-  const { images, videos, setImages, setVideos } = useAppStore(
+  const { images, videos, uploadedMedia, setImages, setVideos, setUploadedMedia } = useAppStore(
     (state) => state.postAd
   );
   const [activeTab, setActiveTab] = useState<'images' | 'videos'>('images');
+  const [uploadingMap, setUploadingMap] = useState<Record<string, boolean>>({});
+  
+  const { uploadMedia } = useMediaUpload();
 
   const handleBack = useCallback(() => {
     router.back();
@@ -39,8 +44,38 @@ export default function Step2() {
       );
       return;
     }
+    
+    // Check if still uploading
+    const isUploading = Object.values(uploadingMap).some((isUploading) => isUploading);
+    if (isUploading) {
+      Alert.alert('Uploading', 'Please wait for all uploads to complete.');
+      return;
+    }
+
     router.push('/(screens)/post-ad/step3');
-  }, [images.length, videos.length, router]);
+  }, [images.length, videos.length, uploadingMap, router]);
+
+  const handleUpload = useCallback(async (uri: string, type: 'image' | 'video') => {
+    setUploadingMap((prev) => ({ ...prev, [uri]: true }));
+    try {
+      const mediaId = await uploadMedia({ uri, type });
+      if (mediaId) {
+        setUploadedMedia([
+          ...uploadedMedia,
+          { uri, id: mediaId, type },
+        ]);
+      }
+    } catch (error) {
+      console.error('Upload failed for', uri, error);
+      Alert.alert('Upload Failed', 'Failed to upload media. Please try again.');
+    } finally {
+      setUploadingMap((prev) => {
+        const newState = { ...prev };
+        delete newState[uri];
+        return newState;
+      });
+    }
+  }, [uploadMedia, uploadedMedia, setUploadedMedia]);
 
   const pickImage = useCallback(async () => {
     const permissionResult =
@@ -71,11 +106,15 @@ export default function Step2() {
         return;
       }
 
-      const newImageUris = result.assets
-        .slice(0, availableSlots)
-        .map((asset) => asset.uri);
+      const newAssets = result.assets.slice(0, availableSlots);
+      const newImageUris = newAssets.map((asset) => asset.uri);
 
       setImages([...images, ...newImageUris]);
+
+      // Trigger uploads
+      newAssets.forEach((asset) => {
+        handleUpload(asset.uri, 'image');
+      });
 
       if (result.assets.length > availableSlots) {
         Alert.alert(
@@ -86,7 +125,7 @@ export default function Step2() {
         );
       }
     }
-  }, [images, setImages]);
+  }, [images, setImages, handleUpload]);
 
   const pickVideo = useCallback(async () => {
     const permissionResult =
@@ -115,63 +154,87 @@ export default function Step2() {
         return;
       }
 
-      setVideos([...videos, result.assets[0].uri]);
+      const uri = result.assets[0].uri;
+      setVideos([...videos, uri]);
+      handleUpload(uri, 'video');
     }
-  }, [videos, setVideos]);
+  }, [videos, setVideos, handleUpload]);
 
   const removeImage = useCallback(
     (index: number) => {
+      const uriToRemove = images[index];
       const newImages = images.filter((_, i) => i !== index);
       setImages(newImages);
+      
+      // Remove from uploaded media
+      const newUploadedMedia = uploadedMedia.filter((media) => media.uri !== uriToRemove);
+      setUploadedMedia(newUploadedMedia);
     },
-    [images, setImages]
+    [images, setImages, uploadedMedia, setUploadedMedia]
   );
 
   const removeVideo = useCallback(
     (index: number) => {
+      const uriToRemove = videos[index];
       const newVideos = videos.filter((_, i) => i !== index);
       setVideos(newVideos);
+
+      // Remove from uploaded media
+      const newUploadedMedia = uploadedMedia.filter((media) => media.uri !== uriToRemove);
+      setUploadedMedia(newUploadedMedia);
     },
-    [videos, setVideos]
+    [videos, setVideos, uploadedMedia, setUploadedMedia]
   );
 
   const renderImageItem = useCallback(
-    ({ item, index }: { item: string; index: number }) => (
-      <View style={styles.mediaItem}>
-        <Image source={{ uri: item }} style={styles.mediaImage} />
-        <Pressable
-          style={({ pressed }) => [
-            styles.removeButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
-          onPress={() => removeImage(index)}
-        >
-          <Ionicons name="close" size={20} color={Colors.white} />
-        </Pressable>
-      </View>
-    ),
-    [removeImage]
+    ({ item, index }: { item: string; index: number }) => {
+      const isUploading = uploadingMap[item];
+      return (
+        <View style={styles.mediaItem}>
+          <Image source={{ uri: item }} style={styles.mediaImage} />
+          {isUploading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="small" color={Colors.white} />
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={() => removeImage(index)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={20} color={Colors.white} />
+          </TouchableOpacity>
+        </View>
+      );
+    },
+    [removeImage, uploadingMap]
   );
 
   const renderVideoItem = useCallback(
-    ({ item, index }: { item: string; index: number }) => (
-      <View style={styles.mediaItem}>
-        <View style={styles.videoPlaceholder}>
-          <Ionicons name="play-circle" size={40} color={Colors.primary} />
-          <Text style={styles.videoText}>Video {index + 1}</Text>
+    ({ item, index }: { item: string; index: number }) => {
+      const isUploading = uploadingMap[item];
+      return (
+        <View style={styles.mediaItem}>
+          <View style={styles.videoPlaceholder}>
+            <Ionicons name="play-circle" size={40} color={Colors.primary} />
+            <Text style={styles.videoText}>Video {index + 1}</Text>
+          </View>
+          {isUploading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="small" color={Colors.white} />
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={() => removeVideo(index)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={20} color={Colors.white} />
+          </TouchableOpacity>
         </View>
-        <Pressable
-          style={({ pressed }) => [
-            styles.removeButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
-          onPress={() => removeVideo(index)}
-        >
-          <Ionicons name="close" size={20} color={Colors.white} />
-        </Pressable>
-      </View>
-    ),
-    [removeVideo]
+      );
+    },
+    [removeVideo, uploadingMap]
   );
 
   const handleTabChange = useCallback((tab: 'images' | 'videos') => {
@@ -183,28 +246,26 @@ export default function Step2() {
       <StatusBar style="dark" />
       {/* Header */}
       <SafeAreaView style={styles.header} edges={['top']}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.backButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={handleBack}
+          activeOpacity={0.7}
         >
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
-        </Pressable>
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Post Ad - Media</Text>
         <View style={styles.placeholder} />
       </SafeAreaView>
 
       {/* Tab Selector */}
       <View style={styles.tabContainer}>
-        <Pressable
-          style={({ pressed }) => [
+        <TouchableOpacity
+          style={[
             styles.tab,
             activeTab === 'images' && styles.activeTab,
-            { opacity: pressed ? 0.7 : 1 },
           ]}
           onPress={() => handleTabChange('images')}
+          activeOpacity={0.7}
         >
           <Ionicons
             name="images-outline"
@@ -216,15 +277,15 @@ export default function Step2() {
           >
             Images ({images.length})
           </Text>
-        </Pressable>
+        </TouchableOpacity>
 
-        <Pressable
-          style={({ pressed }) => [
+        <TouchableOpacity
+          style={[
             styles.tab,
             activeTab === 'videos' && styles.activeTab,
-            { opacity: pressed ? 0.7 : 1 },
           ]}
           onPress={() => handleTabChange('videos')}
+          activeOpacity={0.7}
         >
           <Ionicons
             name="videocam-outline"
@@ -236,7 +297,7 @@ export default function Step2() {
           >
             Videos ({videos.length})
           </Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -252,22 +313,22 @@ export default function Step2() {
           </Text>
 
           {/* Add Button */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.addButton,
-              { opacity: pressed ? 0.7 : 1 },
-            ]}
-            onPress={activeTab === 'images' ? pickImage : pickVideo}
-          >
-            <Ionicons
-              name={activeTab === 'images' ? 'camera-outline' : 'videocam-outline'}
-              size={24}
-              color={Colors.primary}
-            />
-            <Text style={styles.addButtonText}>
-              Add {activeTab === 'images' ? 'Photo' : 'Video'}
-            </Text>
-          </Pressable>
+          <View style={styles.addButtonContainer}>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={activeTab === 'images' ? pickImage : pickVideo}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={activeTab === 'images' ? 'camera-outline' : 'videocam-outline'}
+                size={24}
+                color={Colors.primary}
+              />
+              <Text style={styles.addButtonText}>
+                Add {activeTab === 'images' ? 'Photo' : 'Video'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Media Grid */}
@@ -314,16 +375,14 @@ export default function Step2() {
       {/* Footer */}
       <SafeAreaView edges={['bottom']}>
         <View style={styles.footer}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.nextButton,
-              { opacity: pressed ? 0.7 : 1 },
-            ]}
+          <TouchableOpacity
+            style={styles.nextButton}
             onPress={handleNext}
+            activeOpacity={0.8}
           >
             <Text style={styles.nextButtonText}>Next: Preview</Text>
             <Ionicons name="chevron-forward" size={20} color={Colors.white} />
-          </Pressable>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </View>
@@ -369,9 +428,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 16,
     gap: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomWidth: 2,
     borderBottomColor: Colors.primary,
   },
   tabText: {
@@ -381,6 +441,7 @@ const styles = StyleSheet.create({
   },
   activeTabText: {
     color: Colors.primary,
+    fontWeight: '600',
   },
   content: {
     flex: 1,
@@ -401,7 +462,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     lineHeight: 20,
   },
+  addButtonContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   addButton: {
+    width: '100%',
     backgroundColor: Colors.white,
     borderWidth: 2,
     borderColor: Colors.primary,
@@ -409,6 +475,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 24,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
   },
   addButtonText: {
@@ -424,15 +491,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
     marginBottom: 12,
     position: 'relative',
+    height: 120,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   mediaImage: {
     width: '100%',
-    height: 120,
+    height: '100%',
     borderRadius: 8,
   },
   videoPlaceholder: {
     width: '100%',
-    height: 120,
+    height: '100%',
     backgroundColor: Colors.lightgrey,
     borderRadius: 8,
     alignItems: 'center',
@@ -443,6 +513,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.grey,
     fontWeight: '500',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
   },
   removeButton: {
     position: 'absolute',

@@ -610,7 +610,7 @@ const styles = StyleSheet.create({
   },
   imageCounterContainer: {
     position: 'absolute',
-    bottom: 16,
+    bottom: 12,
     right: 16,
     zIndex: 10,
   },
