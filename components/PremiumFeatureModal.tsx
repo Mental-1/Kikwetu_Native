@@ -1,10 +1,9 @@
-import { Colors } from '@/src/constants/constant';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import BottomSheet from './BottomSheet';
+import { Colors } from "@/src/constants/constant";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import BottomSheet from "./BottomSheet";
 
 export interface PremiumFeatureModalProps {
   visible: boolean;
@@ -15,174 +14,202 @@ export interface PremiumFeatureModalProps {
 }
 
 const defaultBenefits = [
-  'Detailed analytics and insights',
-  'Performance tracking',
-  'Revenue optimization',
-  'Advanced reporting'
-]
+  "Detailed analytics and insights",
+  "Performance tracking",
+  "Revenue optimization",
+  "Advanced reporting",
+];
 
 const PremiumFeatureModal: React.FC<PremiumFeatureModalProps> = (
-  { visible, onClose, featureName, featureDescription, benefits = defaultBenefits },
+  {
+    visible,
+    onClose,
+    featureName,
+    featureDescription,
+    benefits = defaultBenefits,
+  },
 ) => {
   const router = useRouter();
-  const { bottom } = useSafeAreaInsets();
 
   const handleUpgrade = () => {
     onClose();
-    router.push('/(screens)/(dashboard)/plans-billing');
+    router.push("/(screens)/(dashboard)/plans-billing");
   };
 
   return (
     <BottomSheet visible={visible} onClose={onClose} enableDynamicSizing>
-        <ScrollView contentContainerStyle={[styles.modalContainer, { paddingBottom: bottom > 0 ? bottom + 12 : 24 }]}>
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="diamond" size={48} color={Colors.primary} />
-              </View>
-              <Text style={styles.title}>Premium Feature</Text>
-              <Text style={styles.featureName}>{featureName}</Text>
+      <View style={styles.modalContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Premium Feature</Text>
+          <Pressable onPress={onClose} style={styles.closeButton}>
+            <Ionicons name="close" size={20} color={Colors.black} />
+          </Pressable>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.content}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="diamond" size={40} color={Colors.primary} />
             </View>
 
-            {/* Description */}
-            <View style={styles.descriptionSection}>
-              <Text style={styles.description}>{featureDescription}</Text>
-            </View>
+            <Text style={styles.featureName}>{featureName}</Text>
+            <Text style={styles.description}>{featureDescription}</Text>
 
-            {/* Benefits */}
             <View style={styles.benefitsSection}>
-              <Text style={styles.benefitsTitle}>What you&apos;ll get:</Text>
+              <Text style={styles.benefitsTitle}>What you'll get:</Text>
               {benefits.map((benefit, index) => (
                 <View key={index} style={styles.benefitItem}>
-                  <Ionicons name="checkmark-circle" size={20} color={Colors.green} />
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color={Colors.green}
+                  />
                   <Text style={styles.benefitText}>{benefit}</Text>
                 </View>
               ))}
             </View>
-
-            {/* Actions */}
-            <View style={styles.actionsContainer}>
-              <Pressable 
-                style={({ pressed }) => [styles.upgradeButton, { opacity: pressed ? 0.8 : 1 }]} 
-                onPress={handleUpgrade}
-              >
-                <Ionicons name="diamond" size={20} color={Colors.white} />
-                <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
-              </Pressable>
-              
-              <Pressable 
-                style={({ pressed }) => [styles.cancelButton, { opacity: pressed ? 0.7 : 1 }]} 
-                onPress={onClose}
-              >
-                <Text style={styles.cancelButtonText}>Maybe Later</Text>
-              </Pressable>
-            </View>
+          </View>
         </ScrollView>
+
+        {/* Actions */}
+        <View style={styles.actionsContainer}>
+          <Pressable
+            style={(
+              { pressed },
+            ) => [styles.upgradeButton, { opacity: pressed ? 0.9 : 1 }]}
+            onPress={handleUpgrade}
+          >
+            <Ionicons name="diamond" size={20} color={Colors.white} />
+            <Text style={styles.upgradeButtonText}>Upgrade to Unlock</Text>
+          </Pressable>
+
+          <Pressable
+            style={(
+              { pressed },
+            ) => [styles.cancelButton, { opacity: pressed ? 0.6 : 1 }]}
+            onPress={onClose}
+          >
+            <Text style={styles.cancelButtonText}>Maybe Later</Text>
+          </Pressable>
+        </View>
+      </View>
     </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
   modalContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    maxHeight: "90%",
   },
   header: {
-    alignItems: 'center',
-    marginBottom: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    marginBottom: 10,
+    position: "relative",
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.grey,
+  },
+  closeButton: {
+    position: "absolute",
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#f2f2f2",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  content: {
+    alignItems: "center",
+    paddingBottom: 20,
   },
   iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(3, 65, 252, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "rgba(3, 65, 252, 0.08)",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.black,
-    marginBottom: 8,
-  },
   featureName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.primary,
-    textAlign: 'center',
-  },
-  descriptionSection: {
-    marginBottom: 20,
+    fontSize: 22,
+    fontWeight: "bold",
+    color: Colors.black,
+    textAlign: "center",
+    marginBottom: 8,
   },
   description: {
     fontSize: 16,
     color: Colors.grey,
-    textAlign: 'center',
-    lineHeight: 24,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 24,
+    paddingHorizontal: 10,
   },
   benefitsSection: {
-    width: '100%',
-    marginBottom: 24,
+    width: "100%",
+    backgroundColor: "#F8F9FA",
+    padding: 16,
+    borderRadius: 16,
   },
   benefitsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: "700",
     color: Colors.black,
     marginBottom: 12,
-    textAlign: 'center',
   },
   benefitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    paddingHorizontal: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
   },
   benefitText: {
     fontSize: 14,
-    color: Colors.grey,
-    marginLeft: 12,
+    color: Colors.darkgrey,
+    marginLeft: 10,
     flex: 1,
+    fontWeight: "500",
   },
   actionsContainer: {
-    width: '100%',
     gap: 12,
-    marginTop: 12,
+    marginTop: 10,
   },
   upgradeButton: {
     backgroundColor: Colors.primary,
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 16,
-    paddingHorizontal: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     shadowColor: Colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 4,
   },
   upgradeButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.white,
   },
   cancelButton: {
-    backgroundColor: 'transparent',
-    borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 24,
-    alignItems: 'center',
+    alignItems: "center",
   },
   cancelButtonText: {
     fontSize: 16,
     color: Colors.grey,
-    fontWeight: '500',
+    fontWeight: "600",
   },
 });
 

@@ -67,16 +67,16 @@ export default function BottomSheet({
 
   const getSnapPosition = useCallback((index: number): number => {
     'worklet';
+    const availableHeight = windowHeight.value - insets.top; 
+
     if (enableDynamicSizing && contentHeight.value > 0) {
-      const available = windowHeight.value - insets.top - insets.bottom;
       const needed = contentHeight.value + (handleStyle === 'default' ? 40 : 20);
-      return windowHeight.value - Math.min(available, needed);
+      return windowHeight.value - Math.min(availableHeight, needed);
     }
 
     const percentage = parsePercentage(snapPoints[index]);
-    const availableHeight = windowHeight.value - insets.top;
-    return availableHeight * (1 - percentage);
-  }, [enableDynamicSizing, insets.top, insets.bottom, snapPoints, parsePercentage, contentHeight, windowHeight, handleStyle]);
+    return availableHeight * (1 - percentage) + insets.top; 
+  }, [enableDynamicSizing, insets.top, snapPoints, parsePercentage, contentHeight, windowHeight, handleStyle]);
 
   const closeSheet = useCallback(() => {
     'worklet';
@@ -100,31 +100,28 @@ export default function BottomSheet({
   }, [currentSnapIndex, getSnapPosition, translateY, onSnapPointChange]);
 
   const findNearestSnapPoint = useCallback((position: number, velocity: number): number => {
-    'worklet';
-    if (velocity > 800) return -1;
-
-    if (velocity < -800) return snapPoints.length - 1;
-
-    const currentTarget = getSnapPosition(currentSnapIndex.value);
-    const distanceFromCurrent = position - currentTarget;
-
-    // If dragged down significantly (e.g., > 1/3 of sheet height or > 150px), close
-    // For dynamic sizing, we use a fixed threshold because percentage might be misleading for short sheets
-    if (distanceFromCurrent > 150) return -1;
-
-    let closest = 0;
-    let minDist = Math.abs(position - getSnapPosition(0));
-
-    for (let i = 1; i < snapPoints.length; i++) {
-      const dist = Math.abs(position - getSnapPosition(i));
-      if (dist < minDist) {
-        minDist = dist;
-        closest = i;
+      'worklet';
+      if (velocity > 800) return -1;
+      if (velocity < -800) return snapPoints.length - 1;
+  
+      const currentTarget = getSnapPosition(currentSnapIndex.value);
+      const distanceFromCurrent = position - currentTarget;
+  
+      if (distanceFromCurrent > 150) return -1;
+  
+      let closest = 0;
+      let minDist = Math.abs(position - getSnapPosition(0));
+  
+      for (let i = 1; i < snapPoints.length; i++) {
+        const dist = Math.abs(position - getSnapPosition(i));
+        if (dist < minDist) {
+          minDist = dist;
+          closest = i;
+        }
       }
-    }
-
-    return closest;
-  }, [snapPoints.length, getSnapPosition, currentSnapIndex]);
+  
+      return closest;
+    }, [snapPoints.length, getSnapPosition, currentSnapIndex]);
 
   const gesture = Gesture.Pan()
     .onStart(() => {
@@ -155,9 +152,6 @@ export default function BottomSheet({
     if (visible) {
       currentSnapIndex.value = initialSnapPoint;
       backdropOpacity.value = withTiming(1, { duration: 300 });
-
-      // If dynamic sizing, we wait for layout (contentHeight > 0) before animating up
-      // If not dynamic, or if we already have height (re-open), animate immediately
       if (!enableDynamicSizing || contentHeight.value > 0) {
         const target = getSnapPosition(initialSnapPoint);
         translateY.value = withTiming(target, { duration: 350 });
@@ -183,6 +177,7 @@ export default function BottomSheet({
 
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
+    paddingBottom: insets.bottom, 
   }));
 
   const backdropStyle = useAnimatedStyle(() => ({
@@ -202,7 +197,13 @@ export default function BottomSheet({
   }, [enableDynamicSizing, contentHeight, visible, translateY, getSnapPosition, currentSnapIndex]);
 
   return (
-    <Modal transparent visible={visible} animationType="none" onRequestClose={closeSheet}>
+    <Modal 
+      transparent 
+      visible={visible} 
+      animationType="none" 
+      onRequestClose={closeSheet}
+      statusBarTranslucent 
+    >
       <GestureHandlerRootView style={styles.root}>
         <Animated.View style={[styles.backdrop, backdropStyle, { backgroundColor: backdropColor }]}>
           {closeOnBackdropPress && <Pressable style={StyleSheet.absoluteFill} onPress={closeSheet} />}
@@ -233,7 +234,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
+    bottom: 0, 
     backgroundColor: 'white',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -242,12 +243,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 20,
-    maxHeight: '95%',
+    maxHeight: '100%', 
   },
   handleWrapper: {
     paddingTop: 12,
     paddingBottom: 8,
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   handle: {
     width: 40,
@@ -256,7 +258,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ddd',
   },
   content: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingHorizontal: 0, 
   },
 });

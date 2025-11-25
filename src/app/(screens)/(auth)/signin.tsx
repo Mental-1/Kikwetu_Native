@@ -1,16 +1,16 @@
+import BottomSheet from '@/components/BottomSheet';
+import GoogleIcon from '@/components/ui/GoogleIcon';
 import { useAuth } from '@/contexts/authContext';
 import { Colors } from '@/src/constants/constant';
 import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Button, TextInput } from 'react-native-paper';
-import { z } from 'zod';
-import GoogleIcon from '@/components/ui/GoogleIcon';
-import BottomSheet from '@/components/BottomSheet';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet, Text, TouchableOpacity, View, Pressable } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { Button, TextInput } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { z } from 'zod';
 
 interface SignInProps {
   visible: boolean;
@@ -143,12 +143,13 @@ const SignIn: React.FC<SignInProps> = ({
             <Text style={styles.errorText}>{errors.password.message}</Text>
           )}
 
-          <Pressable
+          <TouchableOpacity
             onPress={onSwitchToForgotPassword}
             style={styles.forgotPasswordButton}
+            activeOpacity={0.7}
           >
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-          </Pressable>
+          </TouchableOpacity>
         </View>
 
         <Button
@@ -170,29 +171,25 @@ const SignIn: React.FC<SignInProps> = ({
           <View style={styles.dividerLine} />
         </View>
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.authButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
-          onPress={() => {}}
+        <TouchableOpacity
+          style={styles.authButton}
+          onPress={() => { }}
+          activeOpacity={0.7}
         >
           <GoogleIcon size={24} />
           <Text style={styles.authButtonText}>Sign In with Google</Text>
-        </Pressable>
+        </TouchableOpacity>
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.switchAuthButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
+        <TouchableOpacity
+          style={styles.switchAuthButton}
           onPress={onSwitchToSignUp}
+          activeOpacity={0.7}
         >
           <Text style={styles.switchAuthText}>
             Don&apos;t have an account?{' '}
             <Text style={styles.switchAuthLink}>Sign Up</Text>
           </Text>
-        </Pressable>
+        </TouchableOpacity>
 
         <View style={styles.legalLinksContainer}>
           <Pressable

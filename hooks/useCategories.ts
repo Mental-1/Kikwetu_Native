@@ -1,10 +1,12 @@
-import { supabase } from '@/lib/supabase';
+import { supabase } from "@/lib/supabase";
+import { AttributeSchema } from "@/src/types/categoryAttributes";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface Category {
     id: number;
     name: string;
     icon?: string;
+    attribute_schema?: AttributeSchema;
 }
 
 export interface Subcategory {
@@ -84,10 +86,11 @@ export const useSubcategoriesByCategory = (categoryId: number | null) => {
         ...rest
     } = useSubcategories();
 
-    const filteredSubcategories =
-        categoryId && allSubcategories
-            ? allSubcategories.filter((sub) => sub.parent_category_id === categoryId)
-            : [];
+    const filteredSubcategories = categoryId && allSubcategories
+        ? allSubcategories.filter((sub) =>
+            sub.parent_category_id === categoryId
+        )
+        : [];
 
     return {
         data: filteredSubcategories,
@@ -100,10 +103,9 @@ export const useSubcategoriesByCategory = (categoryId: number | null) => {
 export const useCategory = (categoryId: number | null) => {
     const { data: categories, isLoading, error, ...rest } = useCategories();
 
-    const category =
-        categoryId && categories
-            ? categories.find((cat) => cat.id === categoryId) || null
-            : null;
+    const category = categoryId && categories
+        ? categories.find((cat) => cat.id === categoryId) || null
+        : null;
 
     return {
         data: category,
@@ -114,12 +116,12 @@ export const useCategory = (categoryId: number | null) => {
 };
 
 export const useSubcategory = (subcategoryId: number | null) => {
-    const { data: subcategories, isLoading, error, ...rest } = useSubcategories();
+    const { data: subcategories, isLoading, error, ...rest } =
+        useSubcategories();
 
-    const subcategory =
-        subcategoryId && subcategories
-            ? subcategories.find((sub) => sub.id === subcategoryId) || null
-            : null;
+    const subcategory = subcategoryId && subcategories
+        ? subcategories.find((sub) => sub.id === subcategoryId) || null
+        : null;
 
     return {
         data: subcategory,
@@ -153,7 +155,6 @@ export const useCategoryMutations = () => {
         });
     };
 
-    // Optimistically update categories cache (useful for admin operations)
     const updateCategoryInCache = (
         categoryId: number,
         updates: Partial<Category>,
@@ -163,7 +164,9 @@ export const useCategoryMutations = () => {
             (oldData: Category[] | undefined) => {
                 if (!oldData) return oldData;
                 return oldData.map((category) =>
-                    category.id === categoryId ? { ...category, ...updates } : category,
+                    category.id === categoryId
+                        ? { ...category, ...updates }
+                        : category
                 );
             },
         );
@@ -175,7 +178,7 @@ export const useCategoryMutations = () => {
             (oldData: Category[] | undefined) => {
                 if (!oldData) return [newCategory];
                 return [...oldData, newCategory].sort((a, b) =>
-                    a.name.localeCompare(b.name),
+                    a.name.localeCompare(b.name)
                 );
             },
         );

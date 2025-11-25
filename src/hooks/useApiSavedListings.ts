@@ -3,16 +3,16 @@
  * Custom hooks for saved listings using the new API
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { savedListingsService } from '../services/savedListings.service';
-import { showErrorToast, showSuccessToast } from '@/utils/toast';
+import { showErrorToast, showSuccessToast } from "@/utils/toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { savedListingsService } from "../services/savedListings.service";
 
 /**
  * Hook to fetch saved listings
  */
 export function useSavedListings() {
   return useQuery({
-    queryKey: ['savedListings'],
+    queryKey: ["savedListings"],
     queryFn: async () => {
       const response = await savedListingsService.getSavedListings(1, 100);
       return response.data || [];
@@ -29,19 +29,22 @@ export function useSaveListing() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ listingId, notes }: { listingId: string; notes?: string }) => {
+    mutationFn: async (
+      { listingId, notes }: { listingId: string; notes?: string },
+    ) => {
       const response = await savedListingsService.saveListing(listingId, notes);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to save listing');
+        throw new Error(response.error || "Failed to save listing");
       }
-      return response.data;
+      return { data: response.data, listingId };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['savedListings'] });
-      showSuccessToast('Listing saved successfully', 'Success');
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["savedListings"] });
+      queryClient.invalidateQueries({ queryKey: ["isSaved", data.listingId] });
+      showSuccessToast("Listing saved successfully", "Success");
     },
     onError: (error: Error) => {
-      showErrorToast(error.message, 'Save Failed');
+      showErrorToast(error.message, "Save Failed");
     },
   });
 }
@@ -56,16 +59,17 @@ export function useUnsaveListing() {
     mutationFn: async (listingId: string) => {
       const response = await savedListingsService.unsaveListing(listingId);
       if (!response.success) {
-        throw new Error(response.error || 'Failed to unsave listing');
+        throw new Error(response.error || "Failed to unsave listing");
       }
-      return response;
+      return { response, listingId };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['savedListings'] });
-      showSuccessToast('Listing removed from saved', 'Success');
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["savedListings"] });
+      queryClient.invalidateQueries({ queryKey: ["isSaved", data.listingId] });
+      showSuccessToast("Listing removed from saved", "Success");
     },
     onError: (error: Error) => {
-      showErrorToast(error.message, 'Remove Failed');
+      showErrorToast(error.message, "Remove Failed");
     },
   });
 }
@@ -80,16 +84,16 @@ export function useClearAllSavedListings() {
     mutationFn: async () => {
       const response = await savedListingsService.clearAllSavedListings();
       if (!response.success) {
-        throw new Error(response.error || 'Failed to clear saved listings');
+        throw new Error(response.error || "Failed to clear saved listings");
       }
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['savedListings'] });
-      showSuccessToast('All saved listings cleared', 'Success');
+      queryClient.invalidateQueries({ queryKey: ["savedListings"] });
+      showSuccessToast("All saved listings cleared", "Success");
     },
     onError: (error: Error) => {
-      showErrorToast(error.message, 'Clear Failed');
+      showErrorToast(error.message, "Clear Failed");
     },
   });
 }
@@ -99,7 +103,7 @@ export function useClearAllSavedListings() {
  */
 export function useCheckIfSaved(listingId: string) {
   return useQuery({
-    queryKey: ['isSaved', listingId],
+    queryKey: ["isSaved", listingId],
     queryFn: async () => {
       const response = await savedListingsService.checkIfSaved(listingId);
       if (!response.success || !response.data) {
@@ -111,4 +115,5 @@ export function useCheckIfSaved(listingId: string) {
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 }
+
 

@@ -1,4 +1,4 @@
-import { Database } from '../../utils/supabase/database.types';
+import { Database } from "../../utils/supabase/database.types";
 
 /**
  * API Response Types
@@ -106,10 +106,20 @@ export interface ApiListing {
   images: string[];
   user_id: string;
   store_id?: number;
-  status: 'draft' | 'active' | 'pending' | 'rejected' | 'under_review' | 'deleted' | 'sold' | 'expired';
-  payment_status?: 'pending' | 'completed' | 'failed';
+  status:
+    | "draft"
+    | "active"
+    | "pending"
+    | "rejected"
+    | "under_review"
+    | "deleted"
+    | "sold"
+    | "expired";
+  payment_status?: "pending" | "completed" | "failed";
   plan?: string;
   views: number;
+  is_available?: boolean;
+  attributes?: Record<string, any>;
   created_at: string;
   updated_at: string;
   expiry_date?: string;
@@ -121,9 +131,9 @@ export interface ApiTransaction {
   id: string;
   amount: number;
   currency: string;
-  status: 'pending' | 'completed' | 'failed' | 'refunded';
-  type: 'subscription' | 'one-time' | 'refund' | 'payout';
-  category: 'plan' | 'listing' | 'feature' | 'refund' | 'withdrawal';
+  status: "pending" | "completed" | "failed" | "refunded";
+  type: "subscription" | "one-time" | "refund" | "payout";
+  category: "plan" | "listing" | "feature" | "refund" | "withdrawal";
   description: string;
   payment_method: string;
   reference: string;
@@ -135,7 +145,7 @@ export interface ApiTransaction {
 // Payment types
 export interface ApiPaymentMethod {
   id: string;
-  type: 'card' | 'bank' | 'mobile';
+  type: "card" | "bank" | "mobile";
   name: string;
   lastFour: string;
   expiryDate?: string;
@@ -168,7 +178,7 @@ export interface ApiSubscription {
   plan_id: string;
   user_id: string;
   status: Database["public"]["Enums"]["subscription_status"];
-  billing_cycle: 'monthly' | 'annual';
+  billing_cycle: "monthly" | "annual";
   start_date: string;
   end_date?: string;
   next_billing_date?: string;
@@ -228,4 +238,3 @@ export interface PaystackPaymentResponse {
   reference: string;
   transactionId: string;
 }
-

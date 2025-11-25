@@ -24,36 +24,12 @@ interface ReportListingModalProps {
 }
 
 const reportReasons: ReportReason[] = [
-  {
-    id: 'spam',
-    title: 'Spam or Scam',
-    description: 'This listing appears to be spam or fraudulent'
-  },
-  {
-    id: 'inappropriate',
-    title: 'Inappropriate Content',
-    description: 'Contains offensive, illegal, or inappropriate material'
-  },
-  {
-    id: 'fake',
-    title: 'Fake or Misleading',
-    description: 'False information, fake items, or misleading description'
-  },
-  {
-    id: 'duplicate',
-    title: 'Duplicate Listing',
-    description: 'This is a duplicate of another listing'
-  },
-  {
-    id: 'wrong_category',
-    title: 'Wrong Category',
-    description: 'This item is listed in the wrong category'
-  },
-  {
-    id: 'other',
-    title: 'Other',
-    description: 'Other reason not listed above'
-  }
+  { id: 'spam', title: 'Spam or Scam', description: 'This listing appears to be spam or fraudulent' },
+  { id: 'inappropriate', title: 'Inappropriate Content', description: 'Contains offensive, illegal, or inappropriate material' },
+  { id: 'fake', title: 'Fake or Misleading', description: 'False information, fake items, or misleading description' },
+  { id: 'duplicate', title: 'Duplicate Listing', description: 'This is a duplicate of another listing' },
+  { id: 'wrong_category', title: 'Wrong Category', description: 'This item is listed in the wrong category' },
+  { id: 'other', title: 'Other', description: 'Other reason not listed above' }
 ];
 
 const ReportListingModal: React.FC<ReportListingModalProps> = ({
@@ -79,76 +55,75 @@ const ReportListingModal: React.FC<ReportListingModalProps> = ({
   return (
     <BottomSheet visible={visible} onClose={handleClose} enableDynamicSizing>
       <View style={styles.modalContainer}>
+        {/* New Header Style */}
         <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Report Listing</Text>
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color={Colors.primary} />
+            <Ionicons name="close" size={20} color={Colors.black} />
           </TouchableOpacity>
-          <Text style={styles.modalTitle}>Report</Text>
         </View>
         
-        <View style={styles.modalContent}>
-          <ScrollView 
-            style={styles.formContainer} 
-            contentContainerStyle={styles.formContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.subtitle}>Why are you reporting this listing?</Text>
-            
-            <View style={styles.reasonsContainer}>
-              {reportReasons.map((reason) => (
-                <TouchableOpacity
-                  key={reason.id}
-                  style={[
-                    styles.reasonItem,
-                    selectedReason === reason.id && styles.selectedReason
-                  ]}
-                  onPress={() => setSelectedReason(reason.id)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.reasonContent}>
-                    <View style={styles.radioContainer}>
-                      <View style={[
-                        styles.radioButton,
-                        selectedReason === reason.id && styles.radioSelected
-                      ]}>
-                        {selectedReason === reason.id && (
-                          <View style={styles.radioInner} />
-                        )}
-                      </View>
-                    </View>
-                    <View style={styles.reasonText}>
-                      <Text style={[
-                        styles.reasonTitle,
-                        selectedReason === reason.id && styles.selectedReasonTitle
-                      ]}>
-                        {reason.title}
-                      </Text>
-                      <Text style={[
-                        styles.reasonDescription,
-                        selectedReason === reason.id && styles.selectedReasonDescription
-                      ]}>
-                        {reason.description}
-                      </Text>
+        <ScrollView 
+          style={styles.formContainer} 
+          contentContainerStyle={styles.formContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.subtitle}>Why are you reporting this listing?</Text>
+          
+          <View style={styles.reasonsContainer}>
+            {reportReasons.map((reason) => (
+              <TouchableOpacity
+                key={reason.id}
+                style={[
+                  styles.reasonItem,
+                  selectedReason === reason.id && styles.selectedReason
+                ]}
+                onPress={() => setSelectedReason(reason.id)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.reasonContent}>
+                  <View style={styles.radioContainer}>
+                    <View style={[
+                      styles.radioButton,
+                      selectedReason === reason.id && styles.radioSelected
+                    ]}>
+                      {selectedReason === reason.id && (
+                        <View style={styles.radioInner} />
+                      )}
                     </View>
                   </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-            
-            <Button
-              mode="contained"
-              onPress={handleSubmit}
-              style={[
-                styles.submitButton,
-                !selectedReason && styles.submitButtonDisabled
-              ]}
-              labelStyle={styles.submitButtonText}
-              disabled={!selectedReason}
-            >
-              Report Listing
-            </Button>
-          </ScrollView>
-        </View>
+                  <View style={styles.reasonText}>
+                    <Text style={[
+                      styles.reasonTitle,
+                      selectedReason === reason.id && styles.selectedReasonTitle
+                    ]}>
+                      {reason.title}
+                    </Text>
+                    <Text style={[
+                      styles.reasonDescription,
+                      selectedReason === reason.id && styles.selectedReasonDescription
+                    ]}>
+                      {reason.description}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+          
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            style={[
+              styles.submitButton,
+              !selectedReason && styles.submitButtonDisabled
+            ]}
+            labelStyle={styles.submitButtonText}
+            disabled={!selectedReason}
+          >
+            Report Listing
+          </Button>
+        </ScrollView>
       </View>
     </BottomSheet>
   );
@@ -156,70 +131,62 @@ const ReportListingModal: React.FC<ReportListingModalProps> = ({
 
 const styles = StyleSheet.create({
   modalContainer: {
-    height: '100%',
     backgroundColor: Colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightgrey,
-  },
-  closeButton: {
-    padding: 8,
+    justifyContent: 'flex-end', 
+    paddingVertical: 10,
+    marginBottom: 10,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.red,
-    flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
     textAlign: 'center',
-    marginRight: 40,
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.red,
+    zIndex: -1,
   },
-  modalContent: {
-    flex: 1,
-    padding: 20,
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f2f2f2',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   formContainer: {
-    flex: 1,
+    maxHeight: 500, 
   },
   formContent: {
-    flexGrow: 1,
-    justifyContent: 'flex-start',
-    paddingTop: 10,
     paddingBottom: 20,
-  },
-  welcomeText: {
-    fontSize: 26,
-    color: Colors.red,
-    letterSpacing: 1.5,
-    fontWeight: 'bold',
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     color: Colors.grey,
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 16,
+    fontWeight: '500',
   },
   reasonsContainer: {
-    marginVertical: 10,
+    marginBottom: 20,
   },
   reasonItem: {
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 8,
+    borderRadius: 12,
+    marginBottom: 10,
     backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   selectedReason: {
     backgroundColor: '#FFF5F5',
-    borderWidth: 1,
     borderColor: Colors.red,
   },
   reasonContent: {
@@ -243,9 +210,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.red,
   },
   radioInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: Colors.red,
   },
   reasonText: {
@@ -255,13 +222,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.black,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   selectedReasonTitle: {
     color: Colors.red,
   },
   reasonDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.grey,
     lineHeight: 18,
   },
@@ -269,18 +236,16 @@ const styles = StyleSheet.create({
     color: '#B91C1C',
   },
   submitButton: {
-    marginTop: 10,
-    marginBottom: 8,
     borderRadius: 12,
     backgroundColor: Colors.red,
+    paddingVertical: 6,
   },
   submitButtonDisabled: {
     backgroundColor: Colors.lightgrey,
   },
   submitButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    paddingVertical: 8,
+    fontWeight: 'bold',
     color: Colors.white,
   },
 });

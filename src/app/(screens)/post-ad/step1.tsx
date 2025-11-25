@@ -60,8 +60,6 @@ export default function Step1() {
   const [tagInput, setTagInput] = useState('');
   const [priceInput, setPriceInput] = useState('');
 
-  const [isCategorySheetVisible, setIsCategorySheetVisible] = useState(false);
-  const [isSubcategorySheetVisible, setIsSubcategorySheetVisible] = useState(false);
   const [isStoreSheetVisible, setIsStoreSheetVisible] = useState(false);
 
   useEffect(() => {
@@ -198,52 +196,6 @@ export default function Step1() {
     setShowLocationDialog(false);
   };
 
-  const renderCategoryItem = useCallback(({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={[
-        styles.sheetItem,
-        categoryId === item.id && styles.sheetItemSelected
-      ]}
-      onPress={() => {
-        setCategoryId(item.id);
-        setIsCategorySheetVisible(false);
-      }}
-    >
-      <Text style={[
-        styles.sheetItemText,
-        categoryId === item.id && styles.sheetItemTextSelected
-      ]}>
-        {item.name}
-      </Text>
-      {categoryId === item.id && (
-        <Ionicons name="checkmark" size={20} color={Colors.primary} />
-      )}
-    </TouchableOpacity>
-  ), [categoryId]);
-
-  const renderSubcategoryItem = useCallback(({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={[
-        styles.sheetItem,
-        subcategoryId === item.id && styles.sheetItemSelected
-      ]}
-      onPress={() => {
-        setSubcategoryId(item.id);
-        setIsSubcategorySheetVisible(false);
-      }}
-    >
-      <Text style={[
-        styles.sheetItemText,
-        subcategoryId === item.id && styles.sheetItemTextSelected
-      ]}>
-        {item.name}
-      </Text>
-      {subcategoryId === item.id && (
-        <Ionicons name="checkmark" size={20} color={Colors.primary} />
-      )}
-    </TouchableOpacity>
-  ), [subcategoryId]);
-
   const renderStoreItem = useCallback(({ item }: { item: any }) => (
     <TouchableOpacity
       style={[
@@ -333,7 +285,7 @@ export default function Step1() {
                   <Text style={styles.label}>Category *</Text>
                   <TouchableOpacity
                     style={styles.dropdown}
-                    onPress={() => setIsCategorySheetVisible(true)}
+                    onPress={() => router.push('./select-category')}
                     activeOpacity={0.7}
                   >
                     <Text
@@ -347,7 +299,7 @@ export default function Step1() {
                         ? categories?.find((c) => c.id === categoryId)?.name
                         : 'Select Category'}
                     </Text>
-                    <Ionicons name="chevron-down" size={20} color={Colors.grey} />
+                    <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
                   </TouchableOpacity>
                 </View>
 
@@ -359,7 +311,14 @@ export default function Step1() {
                       styles.dropdown,
                       !categoryId && styles.disabledDropdown,
                     ]}
-                    onPress={() => categoryId && setIsSubcategorySheetVisible(true)}
+                    onPress={() => {
+                      if (categoryId) {
+                        router.push({
+                          pathname: './select-subcategory',
+                          params: { categoryId: categoryId },
+                        });
+                      }
+                    }}
                     disabled={!categoryId}
                     activeOpacity={0.7}
                   >
@@ -378,7 +337,7 @@ export default function Step1() {
                             ?.name
                           : 'Subcategory'}
                     </Text>
-                    <Ionicons name="chevron-down" size={20} color={Colors.grey} />
+                    <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -568,55 +527,6 @@ export default function Step1() {
           </SafeAreaView>
 
           {/* Bottom Sheets */}
-
-          {/* Category Sheet */}
-          <BottomSheet
-            visible={isCategorySheetVisible}
-            onClose={() => setIsCategorySheetVisible(false)}
-            snapPoints={['50%', '85%']}
-            initialSnapPoint={1}
-            enableDynamicSizing={false}
-          >
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Select Category</Text>
-              <TouchableOpacity onPress={() => setIsCategorySheetVisible(false)}>
-                <Ionicons name="close" size={24} color={Colors.black} />
-              </TouchableOpacity>
-            </View>
-            <View style={{ flex: 1 }}>
-              <FlashList
-                data={categories || []}
-                renderItem={renderCategoryItem}
-                keyExtractor={(item) => item.id.toString()}
-              />
-            </View>
-          </BottomSheet>
-
-          {/* Subcategory Sheet */}
-          <BottomSheet
-            visible={isSubcategorySheetVisible}
-            onClose={() => setIsSubcategorySheetVisible(false)}
-            snapPoints={['50%', '85%']}
-            initialSnapPoint={1}
-            enableDynamicSizing={false}
-          >
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Select Subcategory</Text>
-              <TouchableOpacity onPress={() => setIsSubcategorySheetVisible(false)}>
-                <Ionicons name="close" size={24} color={Colors.black} />
-              </TouchableOpacity>
-            </View>
-            <View style={{ flex: 1 }}>
-              <FlashList
-                data={subcategories || []}
-                renderItem={renderSubcategoryItem}
-                keyExtractor={(item) => item.id.toString()}
-                ListEmptyComponent={
-                  <Text style={styles.emptyListText}>No subcategories available</Text>
-                }
-              />
-            </View>
-          </BottomSheet>
 
           {/* Store Sheet */}
           <BottomSheet
