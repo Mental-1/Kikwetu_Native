@@ -42,7 +42,6 @@ import {
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const IMAGE_HEIGHT = 370;
 
-// Lazy Loaded Modals
 const LazyContactSellerModal = lazy(() =>
   import("@/components/ContactSellerModal")
 );
@@ -52,9 +51,7 @@ const LazyWriteReviewModal = lazy(() =>
 const LazyReportListingModal = lazy(() =>
   import("@/components/ReportListingModal")
 );
-const LazyContextMenu = lazy(() => import("@/components/ui/ContextMenu")); // Placeholder for context menu component
-
-// --- Components for Specifications Card ---
+const LazyContextMenu = lazy(() => import("@/components/ui/ContextMenu"));
 
 interface SpecItemProps {
   iconName: keyof typeof Ionicons.glyphMap;
