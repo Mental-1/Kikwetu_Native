@@ -1,3 +1,16 @@
+import CustomLoader from "@/components/ui/CustomLoader";
+import {
+    useCategories,
+    useSubcategoriesByCategory,
+} from "@/hooks/useCategories";
+import { Colors } from "@/src/constants/constant";
+import { useAppStore } from "@/stores/useAppStore";
+import { Ionicons } from "@expo/vector-icons";
+import { FlashList } from "@shopify/flash-list";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useCallback, useMemo, useState } from "react";
+import {
     StyleSheet,
     Text,
     TextInput,
@@ -6,7 +19,7 @@
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type SelectionType = "category" | "subcategory" | "attribute" | "store";
+type SelectionType = "category" | "subcategory" | "attribute";
 
 interface OptionItem {
     id: number | string;
@@ -29,9 +42,9 @@ export default function SelectOption() {
         options?: string;
     }>();
 
-    const { setCategoryId, setSubcategoryId, setStoreId } = useAppStore((
-        state,
-    ) => state.postAd);
+    const { setCategoryId, setSubcategoryId } = useAppStore((state) =>
+        state.postAd
+    );
     const [searchQuery, setSearchQuery] = useState("");
 
     // Fetch data based on type
@@ -40,7 +53,6 @@ export default function SelectOption() {
     const subcategoriesQuery = useSubcategoriesByCategory(
         type === "subcategory" ? parsedCategoryId : null,
     );
-    const { data: stores } = useStores();
 
     const { data: rawData, isLoading } = useMemo(() => {
         switch (type) {
@@ -48,8 +60,6 @@ export default function SelectOption() {
                 return categoriesQuery;
             case "subcategory":
                 return subcategoriesQuery;
-            case "store":
-                return { data: stores || [], isLoading: false };
             case "attribute":
                 try {
                     const parsedOptions = JSON.parse(
@@ -69,7 +79,7 @@ export default function SelectOption() {
             default:
                 return { data: [], isLoading: false };
         }
-    }, [type, categoriesQuery, subcategoriesQuery, stores, optionsParam]);
+    }, [type, categoriesQuery, subcategoriesQuery, optionsParam]);
 
     // Filter data based on search
     const filteredData = useMemo(() => {
@@ -103,25 +113,13 @@ export default function SelectOption() {
                     router.push("./step1");
                     break;
 
-                case "store":
-                    setStoreId(String(item.id));
-                    router.back();
-                    break;
-
                 case "attribute":
                     router.back();
                     router.setParams({ [`${attributeKey}_value`]: item.name });
                     break;
             }
         },
-        [
-            type,
-            setCategoryId,
-            setSubcategoryId,
-            setStoreId,
-            router,
-            attributeKey,
-        ],
+        [type, setCategoryId, setSubcategoryId, router, attributeKey],
     );
 
     const renderItem = useCallback(

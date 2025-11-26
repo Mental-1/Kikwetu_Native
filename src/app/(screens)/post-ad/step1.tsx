@@ -1,3 +1,4 @@
+import BottomSheet from "@/components/BottomSheet";
 import CustomDialog from "@/components/ui/CustomDialog";
 import CustomLoader from "@/components/ui/CustomLoader";
 import {
@@ -10,9 +11,10 @@ import { useAppStore } from "@/stores/useAppStore";
 import { createAlertHelpers, useCustomAlert } from "@/utils/alertUtils";
 import { getLocationWithAddress } from "@/utils/locationUtils";
 import { Ionicons } from "@expo/vector-icons";
+import { FlashList } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Keyboard,
@@ -30,31 +32,35 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Step1() {
   const router = useRouter();
-
-  // Atomic selectors to prevent full re-renders
-  const title = useAppStore((state) => state.postAd.title);
-  const description = useAppStore((state) => state.postAd.description);
-  const price = useAppStore((state) => state.postAd.price);
-  const isNegotiable = useAppStore((state) => state.postAd.isNegotiable);
-  const location = useAppStore((state) => state.postAd.location);
-  const condition = useAppStore((state) => state.postAd.condition);
-  const categoryId = useAppStore((state) => state.postAd.categoryId);
-  const subcategoryId = useAppStore((state) => state.postAd.subcategoryId);
-  const storeId = useAppStore((state) => state.postAd.storeId);
-  const tags = useAppStore((state) => state.postAd.tags);
-
-  const setTitle = useAppStore((state) => state.postAd.setTitle);
-  const setDescription = useAppStore((state) => state.postAd.setDescription);
-  const setPrice = useAppStore((state) => state.postAd.setPrice);
-  const setIsNegotiable = useAppStore((state) => state.postAd.setIsNegotiable);
-  const setLocation = useAppStore((state) => state.postAd.setLocation);
-  const setLatitude = useAppStore((state) => state.postAd.setLatitude);
-  const setLongitude = useAppStore((state) => state.postAd.setLongitude);
-  const setCondition = useAppStore((state) => state.postAd.setCondition);
-  const setTags = useAppStore((state) => state.postAd.setTags);
+  const {
+    title,
+    description,
+    price,
+    isNegotiable,
+    location,
+    condition,
+    categoryId,
+    subcategoryId,
+    storeId,
+    tags,
+    setTitle,
+    setDescription,
+    setPrice,
+    setIsNegotiable,
+    setLocation,
+    setLatitude,
+    setLongitude,
+    setCondition,
+    setCategoryId,
+    setSubcategoryId,
+    setStoreId,
+    setTags,
+  } = useAppStore((state) => state.postAd);
 
   const [tagInput, setTagInput] = useState("");
   const [priceInput, setPriceInput] = useState("");
+
+  const [isStoreSheetVisible, setIsStoreSheetVisible] = useState(false);
 
   useEffect(() => {
     if (price === null || price === undefined) {
@@ -75,9 +81,15 @@ export default function Step1() {
   const { locationSuccess: showLocationSuccessAlert, error: showErrorAlert } =
     alertHelpers;
 
-  const { data: categories } = useCategories();
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { data: subcategories } = useSubcategoriesByCategory(categoryId);
-  const { data: stores } = useStores();
+  const {
+    data: stores,
+    isLoading: storesLoading,
+    error: storesError,
+  } = useStores();
+
+  const safeStores = storesError ? [] : stores || [];
 
   const handleBack = () => {
     router.push("/(tabs)/listings");
@@ -185,6 +197,34 @@ export default function Step1() {
     setShowLocationDialog(false);
   };
 
+  const renderStoreItem = useCallback(
+    ({ item }: { item: any }) => (
+      <TouchableOpacity
+        style={[
+          styles.sheetItem,
+          storeId === item.id && styles.sheetItemSelected,
+        ]}
+        onPress={() => {
+          setStoreId(item.id);
+          setIsStoreSheetVisible(false);
+        }}
+      >
+        <Text
+          style={[
+            styles.sheetItemText,
+            storeId === item.id && styles.sheetItemTextSelected,
+          ]}
+        >
+          {item.name}
+        </Text>
+        {storeId === item.id && (
+          <Ionicons name="checkmark" size={20} color={Colors.primary} />
+        )}
+      </TouchableOpacity>
+    ),
+    [storeId],
+  );
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -209,7 +249,7 @@ export default function Step1() {
             style={styles.content}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            removeClippedSubviews={true}
+            removeClippedSubviews={false}
           >
             {/* Title */}
             <View style={styles.section}>
@@ -334,14 +374,7 @@ export default function Step1() {
               <Text style={styles.label}>Store (Optional)</Text>
               <TouchableOpacity
                 style={styles.dropdown}
-                onPress={() =>
-                  router.push({
-                    pathname: "./select-option",
-                    params: {
-                      type: "store",
-                      title: "Select Store",
-                    },
-                  })}
+                onPress={() => setIsStoreSheetVisible(true)}
                 activeOpacity={0.7}
               >
                 <Text
@@ -351,14 +384,10 @@ export default function Step1() {
                   ]}
                 >
                   {storeId
-                    ? stores?.find((s) => s.id === storeId)?.name
+                    ? safeStores.find((s) => s.id === storeId)?.name
                     : "Select Store (Optional)"}
                 </Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={Colors.grey}
-                />
+                <Ionicons name="chevron-down" size={20} color={Colors.grey} />
               </TouchableOpacity>
             </View>
 
@@ -378,7 +407,11 @@ export default function Step1() {
               {/* Negotiable Checkbox */}
               <TouchableOpacity
                 style={styles.checkboxContainer}
-                onPress={() => setIsNegotiable(!isNegotiable)}
+                onPress={() => {
+                  requestAnimationFrame(() => {
+                    setIsNegotiable(!isNegotiable);
+                  });
+                }}
                 activeOpacity={0.7}
               >
                 <View
@@ -404,7 +437,10 @@ export default function Step1() {
                   placeholder="Enter location"
                   placeholderTextColor={Colors.grey}
                   value={location}
-                  onChangeText={setLocation}
+                  onChangeText={(text) => {
+                    console.log("Location input changed to:", text);
+                    setLocation(text);
+                  }}
                 />
                 <TouchableOpacity
                   style={[
@@ -437,7 +473,11 @@ export default function Step1() {
                       styles.conditionButton,
                       condition === cond && styles.conditionButtonSelected,
                     ]}
-                    onPress={() => setCondition(cond)}
+                    onPress={() => {
+                      requestAnimationFrame(() => {
+                        setCondition(cond);
+                      });
+                    }}
                     activeOpacity={condition === cond ? 1 : 0.7}
                   >
                     <Text
@@ -513,6 +553,47 @@ export default function Step1() {
               </TouchableOpacity>
             </View>
           </SafeAreaView>
+
+          {/* Bottom Sheets */}
+
+          {/* Store Sheet */}
+          <BottomSheet
+            visible={isStoreSheetVisible}
+            onClose={() => setIsStoreSheetVisible(false)}
+            snapPoints={["60%"]}
+            enableDynamicSizing={false}
+          >
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Select Store</Text>
+              <TouchableOpacity onPress={() => setIsStoreSheetVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.black} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TouchableOpacity
+                style={styles.createStoreItem}
+                onPress={() => {
+                  setIsStoreSheetVisible(false);
+                  router.push("/(screens)/(dashboard)/stores/store-create");
+                }}
+              >
+                <Ionicons
+                  name="add-circle-outline"
+                  size={24}
+                  color={Colors.primary}
+                />
+                <Text style={styles.createStoreText}>Create New Store</Text>
+              </TouchableOpacity>
+              <FlashList
+                data={safeStores}
+                renderItem={renderStoreItem}
+                keyExtractor={(item) => item.id.toString()}
+                ListEmptyComponent={
+                  <Text style={styles.emptyListText}>No stores available</Text>
+                }
+              />
+            </View>
+          </BottomSheet>
 
           {/* Custom Location Permission Dialog */}
           <CustomDialog
@@ -743,5 +824,59 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: "600",
+  },
+  // Sheet Styles
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightgrey,
+    marginBottom: 8,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: Colors.black,
+  },
+  sheetItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.lightgrey,
+  },
+  sheetItemSelected: {
+    backgroundColor: "#f5f5f5",
+  },
+  sheetItemText: {
+    fontSize: 16,
+    color: Colors.black,
+  },
+  sheetItemTextSelected: {
+    color: Colors.primary,
+    fontWeight: "600",
+  },
+  createStoreItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightgrey,
+    gap: 12,
+  },
+  createStoreText: {
+    fontSize: 16,
+    color: Colors.primary,
+    fontWeight: "600",
+  },
+  emptyListText: {
+    textAlign: "center",
+    padding: 20,
+    color: Colors.grey,
   },
 });
