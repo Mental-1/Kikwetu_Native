@@ -98,7 +98,7 @@ export default function SelectOption() {
                     setCategoryId(Number(item.id));
                     setSubcategoryId(null);
                     router.push({
-                        pathname: "./select-option",
+                        pathname: "/(screens)/post-ad/select-option" as any,
                         params: {
                             type: "subcategory",
                             title: "Select Subcategory",
@@ -110,7 +110,7 @@ export default function SelectOption() {
                 case "subcategory":
                     setSubcategoryId(Number(item.id));
                     router.dismissAll();
-                    router.push("./step1");
+                    router.push("/(screens)/post-ad/step1" as any);
                     break;
 
                 case "attribute":

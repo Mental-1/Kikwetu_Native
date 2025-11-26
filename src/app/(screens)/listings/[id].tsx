@@ -103,36 +103,38 @@ const SpecificationsCard = ({ listing }: { listing: ApiListing }) => {
     },
   ], [listing]);
 
-  const visibleSpecs = specs.slice(0, 4);
-  const hiddenSpecs = specs.slice(4);
-  const shouldTruncate = specs.length > 4;
+  const visibleSpecs = specs.slice(0, 6);
+  const hiddenSpecs = specs.slice(6);
+  const shouldTruncate = specs.length > 6;
 
   const specsToRender = isExpanded ? specs : visibleSpecs;
 
   return (
-    <View style={styles.specsCard}>
-      <Text style={styles.specsTitle}>Specifications</Text>
-      <View style={styles.specsGrid}>
-        {specsToRender.map((spec, index) => (
-          <View key={index} style={styles.specWrapper}>
-            <SpecItem
-              iconName={spec.icon as keyof typeof Ionicons.glyphMap}
-              label={spec.label}
-              value={spec.value}
-            />
-          </View>
-        ))}
+    <View style={styles.specsContainer}>
+      <Text style={styles.sectionTitle}>Specifications</Text>
+      <View style={styles.specsCard}>
+        <View style={styles.specsGrid}>
+          {specsToRender.map((spec, index) => (
+            <View key={index} style={styles.specWrapper}>
+              <SpecItem
+                iconName={spec.icon as keyof typeof Ionicons.glyphMap}
+                label={spec.label}
+                value={spec.value}
+              />
+            </View>
+          ))}
+        </View>
+        {shouldTruncate && (
+          <TouchableOpacity
+            style={styles.expandSpecsButton}
+            onPress={() => setIsExpanded(!isExpanded)}
+          >
+            <Text style={styles.expandSpecsText}>
+              {isExpanded ? "Hide" : "See More"}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
-      {shouldTruncate && (
-        <TouchableOpacity
-          style={styles.expandSpecsButton}
-          onPress={() => setIsExpanded(!isExpanded)}
-        >
-          <Text style={styles.expandSpecsText}>
-            {isExpanded ? "Hide" : `See More (${hiddenSpecs.length} others)`}
-          </Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 };
@@ -156,7 +158,7 @@ const StickyBottomBar = ({
         onPress={handleContactSeller}
         activeOpacity={0.7}
       >
-        <Ionicons name="chatbubble-outline" size={20} color={Colors.white} />
+        <Ionicons name="chatbubble-outline" size={18} color={Colors.white} />
         <Text style={styles.bottomContactButtonText}>Contact Seller</Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -170,7 +172,7 @@ const StickyBottomBar = ({
           : (
             <Ionicons
               name="navigate-outline"
-              size={24}
+              size={20}
               color={Colors.primary}
             />
           )}
@@ -477,29 +479,32 @@ export default function ListingDetails() {
             <LikeButton
               isLiked={isSaved}
               onPress={handleFavorite}
-              iconColor={Colors.red}
+              iconColor={Colors.black}
             />
           </View>
 
-          {/* Price, Location, Views */}
-          <View style={styles.priceLocationRow}>
-            <Text style={styles.currentPrice}>{price}</Text>
-            <View style={styles.statsLeft}>
-              <View style={styles.locationContainer}>
-                <Ionicons
-                  name="location-outline"
-                  size={14}
-                  color={Colors.grey}
-                />
-                <Text style={styles.locationText} numberOfLines={1}>
-                  {listing.location || "Location not specified"}
-                </Text>
-              </View>
-              <View style={styles.viewsContainer}>
-                <Ionicons name="eye-outline" size={14} color={Colors.grey} />
-                <Text style={styles.viewsText}>{listing.views || 0} views</Text>
-              </View>
+          {/* Location and Views Row */}
+          <View style={styles.locationViewsRow}>
+            <View style={styles.locationContainer}>
+              <Ionicons
+                name="location-outline"
+                size={14}
+                color={Colors.grey}
+              />
+              <Text style={styles.locationText} numberOfLines={1}>
+                {listing.location || "Location not specified"}
+              </Text>
             </View>
+            <Text style={styles.dotSeparator}>•</Text>
+            <View style={styles.viewsContainer}>
+              <Ionicons name="eye-outline" size={14} color={Colors.grey} />
+              <Text style={styles.viewsText}>{listing.views || 0} views</Text>
+            </View>
+          </View>
+
+          {/* Price Row */}
+          <View style={styles.priceRow}>
+            <Text style={styles.currentPrice}>{price}</Text>
           </View>
 
           {/* Badges */}
@@ -537,75 +542,70 @@ export default function ListingDetails() {
           {/* Description */}
           <View style={styles.descriptionContainer}>
             <Text style={styles.sectionTitle}>Description</Text>
-            <Text
-              style={styles.description}
-              numberOfLines={isDescriptionExpanded ? undefined : 3}
-            >
-              {listing.description || "No description available"}
-            </Text>
-            {listing.description && listing.description.length > 150 && (
-              <TouchableOpacity
-                onPress={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+            <View style={styles.descriptionCard}>
+              <Text
+                style={styles.description}
+                numberOfLines={isDescriptionExpanded ? undefined : 3}
               >
-                <Text style={styles.readMoreText}>
-                  {isDescriptionExpanded ? "Read Less" : "Read More"}
-                </Text>
-              </TouchableOpacity>
-            )}
+                {listing.description || "No description available"}
+              </Text>
+              {listing.description && listing.description.length > 150 && (
+                <TouchableOpacity
+                  style={styles.readMoreButton}
+                  onPress={() =>
+                    setIsDescriptionExpanded(!isDescriptionExpanded)}
+                >
+                  <Text style={styles.readMoreText}>
+                    {isDescriptionExpanded ? "Read Less" : "Read More"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Seller Info */}
           <Pressable style={styles.sellerInfo} onPress={handleViewProfile}>
-            <View style={styles.sellerDetails}>
-              <View style={styles.sellerHeader}>
-                <Text style={styles.sectionTitle}>Seller Information</Text>
-                <View style={styles.viewAllAds}>
-                  <Text style={styles.viewAllAdsText}>View all ads</Text>
-                  <Ionicons
-                    name="chevron-forward-outline"
-                    size={16}
-                    color={Colors.primary}
-                  />
-                </View>
-              </View>
-              <View style={styles.sellerMain}>
-                <Image
-                  source={{
-                    uri: sellerInfo?.avatar_url ||
-                      "https://via.placeholder.com/50x50",
-                  }}
-                  style={styles.sellerAvatar}
-                  contentFit="cover"
-                />
-                <View style={styles.sellerStats}>
-                  <View style={styles.sellerTopRow}>
-                    <View style={styles.sellerLeft}>
-                      <View style={styles.sellerNameRow}>
-                        <Text style={styles.sellerName} numberOfLines={1}>
-                          {sellerInfo?.full_name || sellerInfo?.username ||
-                            "Seller"}
-                        </Text>
-                        {/* Verified Badge Placeholder */}
-                        <View style={styles.verifiedBadge}>
-                          <Ionicons
-                            name="checkmark"
-                            size={12}
-                            color={Colors.white}
-                          />
-                        </View>
-                      </View>
-                      {/* Active Status */}
-                      <Text style={styles.activeStatusText}>Active today</Text>
+            <View style={styles.sellerMain}>
+              <Image
+                source={{
+                  uri: sellerInfo?.avatar_url ||
+                    "https://via.placeholder.com/50x50",
+                }}
+                style={styles.sellerAvatar}
+                contentFit="cover"
+              />
+              <View style={styles.sellerContent}>
+                <View style={styles.sellerTopRow}>
+                  <View style={styles.nameBadgeRow}>
+                    <Text style={styles.sellerName} numberOfLines={1}>
+                      {sellerInfo?.full_name || sellerInfo?.username ||
+                        "Seller"}
+                    </Text>
+                    <View style={styles.verifiedBadge}>
+                      <Ionicons
+                        name="checkmark"
+                        size={10}
+                        color={Colors.white}
+                      />
                     </View>
                   </View>
-                  <View style={styles.sellerBottomRow}>
-                    {/* Joined Date Placeholder */}
-                    <View style={styles.joinedPill}>
-                      <Text style={styles.joinedText}>Joined 2022</Text>
-                    </View>
-                    {/* Reply Time Placeholder */}
-                    <Text style={styles.replyText}>
-                      Typically replies within an hour
+                  <View style={styles.viewAllAds}>
+                    <Text style={styles.viewAllAdsText}>View all ads</Text>
+                    <Ionicons
+                      name="chevron-forward-outline"
+                      size={14}
+                      color={Colors.primary}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.sellerBottomRow}>
+                  <View style={styles.infoPill}>
+                    <Text style={styles.pillText}>Joined 2022</Text>
+                  </View>
+                  <View style={styles.infoPill}>
+                    <Text style={styles.pillText}>
+                      Replies within an hour
                     </Text>
                   </View>
                 </View>
@@ -751,6 +751,7 @@ export default function ListingDetails() {
             onClose={() => setContextMenuVisible(false)}
             items={contextMenuItems}
             onItemPress={handleContextMenuItemPress}
+            position={{ x: SCREEN_WIDTH, y: insets.top + 55 }}
           />
         </Suspense>
       )}
@@ -806,7 +807,7 @@ const styles = StyleSheet.create({
   },
   imageDotsContainer: {
     position: "absolute",
-    bottom: 20,
+    bottom: 40,
     left: 0,
     right: 0,
     flexDirection: "row",
@@ -827,7 +828,7 @@ const styles = StyleSheet.create({
   },
   imageCounterContainer: {
     position: "absolute",
-    bottom: 20,
+    bottom: 40,
     right: 16,
     zIndex: 10,
   },
@@ -854,7 +855,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 8,
+    marginBottom: 4,
   },
   productTitle: {
     flex: 1,
@@ -864,10 +865,17 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     marginRight: 16,
   },
-  priceLocationRow: {
+  locationViewsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 12,
+  },
+  dotSeparator: {
+    color: Colors.grey,
+    marginHorizontal: 6,
+    fontSize: 12,
+  },
+  priceRow: {
     marginBottom: 16,
   },
   currentPrice: {
@@ -875,18 +883,11 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: Colors.primary,
   },
-  statsLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flexShrink: 1,
-    justifyContent: "flex-end",
-  },
   locationContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    maxWidth: "50%",
+    maxWidth: "60%",
   },
   locationText: {
     fontSize: 12,
@@ -930,53 +931,45 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   // --- Specifications Card Styles ---
-  specsCard: {
+  specsContainer: {
     marginVertical: 12,
+  },
+  specsCard: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: Colors.white,
+    backgroundColor: "#F0F8FF",
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.lightgrey,
     marginHorizontal: 4,
-  },
-  specsTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: Colors.black,
-    marginBottom: 16,
   },
   specsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
   },
   specWrapper: {
-    width: "50%",
+    width: "33.33%",
     marginBottom: 16,
+    paddingRight: 8,
   },
-  specItem: {
-    paddingRight: 12,
-  },
+  specItem: {},
   specIconLabel: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
     marginBottom: 4,
   },
   specLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.grey,
   },
   specValue: {
     fontSize: 14,
     fontWeight: "600",
     color: Colors.black,
-    marginLeft: 26,
+    marginLeft: 0,
   },
   expandSpecsButton: {
     marginTop: 8,
-    alignItems: "center",
+    alignSelf: "flex-end",
   },
   expandSpecsText: {
     fontSize: 14,
@@ -987,13 +980,18 @@ const styles = StyleSheet.create({
   descriptionContainer: {
     marginVertical: 12,
   },
-
+  descriptionCard: {
+    padding: 16,
+    backgroundColor: "#F0F8FF",
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: Colors.black,
-    marginBottom: 8,
-    paddingHorizontal: 0,
+    marginBottom: 12,
+    paddingHorizontal: 4,
   },
   description: {
     fontSize: 16,
@@ -1001,47 +999,21 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 8,
   },
+  readMoreButton: {
+    alignSelf: "flex-end",
+    marginTop: 4,
+  },
   readMoreText: {
     fontSize: 14,
     color: Colors.primary,
     fontWeight: "600",
-    marginBottom: 8,
   },
   sellerInfo: {
-    backgroundColor: Colors.white,
+    backgroundColor: "#F0F8FF",
     borderRadius: 8,
-    padding: 16,
+    padding: 12,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: Colors.lightgrey,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
     marginHorizontal: 4,
-  },
-  sellerHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  viewAllAds: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  viewAllAdsText: {
-    fontSize: 14,
-    color: Colors.primary,
-    fontWeight: "600",
-  },
-  sellerDetails: {
-    gap: 4,
   },
   sellerMain: {
     flexDirection: "row",
@@ -1049,65 +1021,62 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sellerAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
-  sellerStats: {
+  sellerContent: {
     flex: 1,
+    gap: 4,
   },
   sellerTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
-  sellerLeft: {
-    flex: 1,
-    gap: 2,
-  },
-  sellerNameRow: {
+  nameBadgeRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
   sellerName: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "700",
     color: Colors.black,
   },
   verifiedBadge: {
-    backgroundColor: "#007AFF",
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    backgroundColor: Colors.green,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     justifyContent: "center",
     alignItems: "center",
   },
-  activeStatusText: {
+  viewAllAds: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  viewAllAdsText: {
     fontSize: 12,
-    color: "#22C55E",
+    color: Colors.primary,
     fontWeight: "600",
   },
   sellerBottomRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 6,
     gap: 8,
   },
-  joinedPill: {
-    backgroundColor: Colors.lightgrey,
+  infoPill: {
+    backgroundColor: "#4A4A4A",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  joinedText: {
-    fontSize: 12,
-    color: Colors.grey,
+  pillText: {
+    fontSize: 10,
+    color: Colors.white,
     fontWeight: "500",
-  },
-  replyText: {
-    fontSize: 12,
-    color: Colors.grey,
   },
   safetyTips: {
     backgroundColor: "#F0F8FF",
@@ -1161,7 +1130,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   relatedCardWrapper: {
-    width: (SCREEN_WIDTH - 48) / 2,
+    width: (SCREEN_WIDTH - 52) / 2,
   },
   seeAllText: {
     fontSize: 14,
@@ -1187,14 +1156,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     backgroundColor: Colors.primary,
     borderRadius: 8,
-    gap: 8,
+    gap: 6,
+    minHeight: 44,
   },
   bottomContactButtonText: {
     color: Colors.white,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
   },
   bottomDirectionsButton: {
@@ -1202,12 +1173,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     backgroundColor: Colors.white,
     borderWidth: 1.5,
     borderColor: Colors.primary,
     borderRadius: 8,
-    gap: 8,
+    minHeight: 44,
   },
 
   loadingContainer: {

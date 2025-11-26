@@ -213,7 +213,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
       enableDynamicSizing
     >
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.keyboardAvoid}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
       >
@@ -587,6 +587,9 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: "500",
     marginRight: 4,
+  },
+  keyboardAvoid: {
+    width: "100%",
   },
 });
 
