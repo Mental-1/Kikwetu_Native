@@ -168,16 +168,11 @@ const StickyBottomBar = ({
         {isLoadingDirections
           ? <ActivityIndicator size="small" color={Colors.primary} />
           : (
-            <>
-              <Ionicons
-                name="navigate-outline"
-                size={20}
-                color={Colors.primary}
-              />
-              <Text style={styles.bottomDirectionsButtonText}>
-                Get Directions
-              </Text>
-            </>
+            <Ionicons
+              name="navigate-outline"
+              size={24}
+              color={Colors.primary}
+            />
           )}
       </TouchableOpacity>
     </View>
@@ -253,13 +248,8 @@ export default function ListingDetails() {
     try {
       if (savedStatus?.isSaved) {
         await unsaveListing.mutateAsync(id);
-        showSuccessAlert(
-          "Removed from Saved",
-          "Listing removed from your saved items",
-        );
       } else {
         await saveListing.mutateAsync({ listingId: id });
-        showSuccessAlert("Saved!", "Listing added to your saved items");
       }
     } catch (error) {
       showErrorAlert("Error", "Failed to update saved status.");
@@ -534,6 +524,7 @@ export default function ListingDetails() {
               style={[
                 styles.badge,
                 listing.is_available ? styles.badgeAvailable : styles.badgeSold,
+                { marginLeft: "auto" },
               ]}
             >
               <Text style={styles.badgeText}>{listingStatus}</Text>
@@ -855,7 +846,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     backgroundColor: Colors.white,
-    marginTop: -20,
+    marginTop: -24,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
@@ -996,11 +987,13 @@ const styles = StyleSheet.create({
   descriptionContainer: {
     marginVertical: 12,
   },
+
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: Colors.black,
     marginBottom: 8,
+    paddingHorizontal: 0,
   },
   description: {
     fontSize: 16,
@@ -1216,11 +1209,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 8,
   },
-  bottomDirectionsButtonText: {
-    color: Colors.primary,
-    fontSize: 16,
-    fontWeight: "600",
-  },
+
   loadingContainer: {
     flex: 1,
     justifyContent: "center",

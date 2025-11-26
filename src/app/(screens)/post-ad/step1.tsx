@@ -1,20 +1,18 @@
-import BottomSheet from '@/components/BottomSheet';
-import CustomDialog from '@/components/ui/CustomDialog';
+import CustomDialog from "@/components/ui/CustomDialog";
 import CustomLoader from "@/components/ui/CustomLoader";
 import {
   useCategories,
   useSubcategoriesByCategory,
-} from '@/hooks/useCategories';
-import { Colors } from '@/src/constants/constant';
-import { useStores } from '@/src/hooks/useStores';
-import { useAppStore } from '@/stores/useAppStore';
-import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
-import { getLocationWithAddress } from '@/utils/locationUtils';
-import { Ionicons } from '@expo/vector-icons';
-import { FlashList } from "@shopify/flash-list";
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+} from "@/hooks/useCategories";
+import { Colors } from "@/src/constants/constant";
+import { useStores } from "@/src/hooks/useStores";
+import { useAppStore } from "@/stores/useAppStore";
+import { createAlertHelpers, useCustomAlert } from "@/utils/alertUtils";
+import { getLocationWithAddress } from "@/utils/locationUtils";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Keyboard,
@@ -27,44 +25,40 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Step1() {
   const router = useRouter();
-  const {
-    title,
-    description,
-    price,
-    isNegotiable,
-    location,
-    condition,
-    categoryId,
-    subcategoryId,
-    storeId,
-    tags,
-    setTitle,
-    setDescription,
-    setPrice,
-    setIsNegotiable,
-    setLocation,
-    setLatitude,
-    setLongitude,
-    setCondition,
-    setCategoryId,
-    setSubcategoryId,
-    setStoreId,
-    setTags,
-  } = useAppStore((state) => state.postAd);
 
-  const [tagInput, setTagInput] = useState('');
-  const [priceInput, setPriceInput] = useState('');
+  // Atomic selectors to prevent full re-renders
+  const title = useAppStore((state) => state.postAd.title);
+  const description = useAppStore((state) => state.postAd.description);
+  const price = useAppStore((state) => state.postAd.price);
+  const isNegotiable = useAppStore((state) => state.postAd.isNegotiable);
+  const location = useAppStore((state) => state.postAd.location);
+  const condition = useAppStore((state) => state.postAd.condition);
+  const categoryId = useAppStore((state) => state.postAd.categoryId);
+  const subcategoryId = useAppStore((state) => state.postAd.subcategoryId);
+  const storeId = useAppStore((state) => state.postAd.storeId);
+  const tags = useAppStore((state) => state.postAd.tags);
 
-  const [isStoreSheetVisible, setIsStoreSheetVisible] = useState(false);
+  const setTitle = useAppStore((state) => state.postAd.setTitle);
+  const setDescription = useAppStore((state) => state.postAd.setDescription);
+  const setPrice = useAppStore((state) => state.postAd.setPrice);
+  const setIsNegotiable = useAppStore((state) => state.postAd.setIsNegotiable);
+  const setLocation = useAppStore((state) => state.postAd.setLocation);
+  const setLatitude = useAppStore((state) => state.postAd.setLatitude);
+  const setLongitude = useAppStore((state) => state.postAd.setLongitude);
+  const setCondition = useAppStore((state) => state.postAd.setCondition);
+  const setTags = useAppStore((state) => state.postAd.setTags);
+
+  const [tagInput, setTagInput] = useState("");
+  const [priceInput, setPriceInput] = useState("");
 
   useEffect(() => {
     if (price === null || price === undefined) {
-      setPriceInput('');
+      setPriceInput("");
     } else {
       setPriceInput(price.toLocaleString());
     }
@@ -76,56 +70,50 @@ export default function Step1() {
   const { showAlert, AlertComponent } = useCustomAlert();
   const alertHelpers = useMemo(
     () => createAlertHelpers(showAlert),
-    [showAlert]
+    [showAlert],
   );
   const { locationSuccess: showLocationSuccessAlert, error: showErrorAlert } =
     alertHelpers;
 
-  const { data: categories, isLoading: categoriesLoading } = useCategories();
+  const { data: categories } = useCategories();
   const { data: subcategories } = useSubcategoriesByCategory(categoryId);
-  const {
-    data: stores,
-    isLoading: storesLoading,
-    error: storesError,
-  } = useStores();
-
-  const safeStores = storesError ? [] : stores || [];
+  const { data: stores } = useStores();
 
   const handleBack = () => {
-    router.push('/(tabs)/listings');
+    router.push("/(tabs)/listings");
   };
 
   const handleNext = () => {
     if (!title.trim()) {
-      Alert.alert('Required Field', 'Please enter a title for your listing');
+      Alert.alert("Required Field", "Please enter a title for your listing");
       return;
     }
     if (!description.trim()) {
-      Alert.alert('Required Field', 'Please enter a description');
+      Alert.alert("Required Field", "Please enter a description");
       return;
     }
     if (!price) {
-      Alert.alert('Required Field', 'Please enter a price');
+      Alert.alert("Required Field", "Please enter a price");
       return;
     }
     if (!location.trim()) {
-      Alert.alert('Required Field', 'Please enter a location');
+      Alert.alert("Required Field", "Please enter a location");
       return;
     }
     if (!condition) {
-      Alert.alert('Required Field', 'Please select a condition');
+      Alert.alert("Required Field", "Please select a condition");
       return;
     }
     if (!categoryId) {
-      Alert.alert('Required Field', 'Please select a category');
+      Alert.alert("Required Field", "Please select a category");
       return;
     }
-    router.push('/(screens)/post-ad/step2');
+    router.push("/(screens)/post-ad/step2");
   };
 
   const formatPrice = (value: string) => {
-    const numericValue = value.replace(/\D/g, '');
-    if (numericValue === '') return '';
+    const numericValue = value.replace(/\D/g, "");
+    if (numericValue === "") return "";
     return parseInt(numericValue).toLocaleString();
   };
 
@@ -135,18 +123,18 @@ export default function Step1() {
   };
 
   const handlePriceBlur = () => {
-    const numericValue = priceInput.replace(/\D/g, '');
+    const numericValue = priceInput.replace(/\D/g, "");
     setPrice(numericValue ? parseFloat(numericValue) : null);
   };
 
   const addTag = () => {
     const trimmedTag = tagInput.trim();
     if (trimmedTag && !tags.includes(trimmedTag)) {
-      const cleanTag = trimmedTag.startsWith('#')
+      const cleanTag = trimmedTag.startsWith("#")
         ? trimmedTag.slice(1)
         : trimmedTag;
       setTags([...tags, cleanTag]);
-      setTagInput('');
+      setTagInput("");
     }
   };
 
@@ -164,28 +152,29 @@ export default function Step1() {
     try {
       const locationData = await getLocationWithAddress();
       if (locationData) {
-        const locationText =
-          locationData.address ||
-          `${locationData.latitude.toFixed(
-            6
-          )}, ${locationData.longitude.toFixed(6)}`;
+        const locationText = locationData.address ||
+          `${
+            locationData.latitude.toFixed(
+              6,
+            )
+          }, ${locationData.longitude.toFixed(6)}`;
         setLocation(locationText);
         setLatitude(locationData.latitude);
         setLongitude(locationData.longitude);
         showLocationSuccessAlert(
-          'Your location has been automatically detected and filled in.'
+          "Your location has been automatically detected and filled in.",
         );
       } else {
         showErrorAlert(
-          'Location Error',
-          'Unable to detect your location. Please enter it manually.'
+          "Location Error",
+          "Unable to detect your location. Please enter it manually.",
         );
       }
     } catch (error) {
-      console.error('Location error:', error);
+      console.error("Location error:", error);
       showErrorAlert(
-        'Location Error',
-        'Failed to get your location. Please check your location permissions and try again, or enter your location manually.'
+        "Location Error",
+        "Failed to get your location. Please check your location permissions and try again, or enter your location manually.",
       );
     } finally {
       setIsLoadingLocation(false);
@@ -196,44 +185,21 @@ export default function Step1() {
     setShowLocationDialog(false);
   };
 
-  const renderStoreItem = useCallback(({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={[
-        styles.sheetItem,
-        storeId === item.id && styles.sheetItemSelected
-      ]}
-      onPress={() => {
-        setStoreId(item.id);
-        setIsStoreSheetVisible(false);
-      }}
-    >
-      <Text style={[
-        styles.sheetItemText,
-        storeId === item.id && styles.sheetItemTextSelected
-      ]}>
-        {item.name}
-      </Text>
-      {storeId === item.id && (
-        <Ionicons name="checkmark" size={20} color={Colors.primary} />
-      )}
-    </TouchableOpacity>
-  ), [storeId]);
-
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={{ flex: 1 }}>
-          <StatusBar style='dark' />
+          <StatusBar style="dark" />
           {/* Header */}
-          <SafeAreaView style={styles.header} edges={['top']}>
+          <SafeAreaView style={styles.header} edges={["top"]}>
             <TouchableOpacity
               style={styles.backButton}
               onPress={handleBack}
             >
-              <Ionicons name='chevron-back' size={24} color={Colors.black} />
+              <Ionicons name="chevron-back" size={24} color={Colors.black} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Post Ad - Details</Text>
             <View style={styles.placeholder} />
@@ -242,15 +208,15 @@ export default function Step1() {
           <ScrollView
             style={styles.content}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps='handled'
-            removeClippedSubviews={false}
+            keyboardShouldPersistTaps="handled"
+            removeClippedSubviews={true}
           >
             {/* Title */}
             <View style={styles.section}>
               <Text style={styles.label}>Title *</Text>
               <TextInput
                 style={styles.input}
-                placeholder='Enter listing title'
+                placeholder="Enter listing title"
                 placeholderTextColor={Colors.grey}
                 value={title}
                 onChangeText={setTitle}
@@ -264,7 +230,7 @@ export default function Step1() {
               <Text style={styles.label}>Description *</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder='Describe your item in detail'
+                placeholder="Describe your item in detail"
                 placeholderTextColor={Colors.grey}
                 value={description}
                 onChangeText={setDescription}
@@ -285,7 +251,15 @@ export default function Step1() {
                   <Text style={styles.label}>Category *</Text>
                   <TouchableOpacity
                     style={styles.dropdown}
-                    onPress={() => router.push('./select-category')}
+                    onPress={() =>
+                      router.push({
+                        pathname: "./select-option",
+                        params: {
+                          type: "category",
+                          title: "Select Category",
+                          categoryId: categoryId?.toString(),
+                        },
+                      })}
                     activeOpacity={0.7}
                   >
                     <Text
@@ -297,9 +271,13 @@ export default function Step1() {
                     >
                       {categoryId
                         ? categories?.find((c) => c.id === categoryId)?.name
-                        : 'Select Category'}
+                        : "Select Category"}
                     </Text>
-                    <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={Colors.grey}
+                    />
                   </TouchableOpacity>
                 </View>
 
@@ -314,8 +292,12 @@ export default function Step1() {
                     onPress={() => {
                       if (categoryId) {
                         router.push({
-                          pathname: './select-subcategory',
-                          params: { categoryId: categoryId },
+                          pathname: "./select-option",
+                          params: {
+                            type: "subcategory",
+                            title: "Select Subcategory",
+                            categoryId: categoryId.toString(),
+                          },
                         });
                       }
                     }}
@@ -331,13 +313,17 @@ export default function Step1() {
                       numberOfLines={1}
                     >
                       {!categoryId
-                        ? 'Select category first'
+                        ? "Select category first"
                         : subcategoryId
-                          ? subcategories?.find((s) => s.id === subcategoryId)
-                            ?.name
-                          : 'Subcategory'}
+                        ? subcategories?.find((s) => s.id === subcategoryId)
+                          ?.name
+                        : "Subcategory"}
                     </Text>
-                    <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={Colors.grey}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -348,7 +334,14 @@ export default function Step1() {
               <Text style={styles.label}>Store (Optional)</Text>
               <TouchableOpacity
                 style={styles.dropdown}
-                onPress={() => setIsStoreSheetVisible(true)}
+                onPress={() =>
+                  router.push({
+                    pathname: "./select-option",
+                    params: {
+                      type: "store",
+                      title: "Select Store",
+                    },
+                  })}
                 activeOpacity={0.7}
               >
                 <Text
@@ -358,10 +351,14 @@ export default function Step1() {
                   ]}
                 >
                   {storeId
-                    ? safeStores.find((s) => s.id === storeId)?.name
-                    : 'Select Store (Optional)'}
+                    ? stores?.find((s) => s.id === storeId)?.name
+                    : "Select Store (Optional)"}
                 </Text>
-                <Ionicons name="chevron-down" size={20} color={Colors.grey} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={Colors.grey}
+                />
               </TouchableOpacity>
             </View>
 
@@ -370,22 +367,18 @@ export default function Step1() {
               <Text style={styles.label}>Price (Kes) *</Text>
               <TextInput
                 style={styles.input}
-                placeholder='Enter price'
+                placeholder="Enter price"
                 placeholderTextColor={Colors.grey}
                 value={priceInput}
                 onChangeText={handlePriceChange}
                 onBlur={handlePriceBlur}
-                keyboardType='numeric'
+                keyboardType="numeric"
               />
 
               {/* Negotiable Checkbox */}
               <TouchableOpacity
                 style={styles.checkboxContainer}
-                onPress={() => {
-                  requestAnimationFrame(() => {
-                    setIsNegotiable(!isNegotiable);
-                  });
-                }}
+                onPress={() => setIsNegotiable(!isNegotiable)}
                 activeOpacity={0.7}
               >
                 <View
@@ -395,7 +388,7 @@ export default function Step1() {
                   ]}
                 >
                   {isNegotiable && (
-                    <Ionicons name='checkmark' size={16} color={Colors.white} />
+                    <Ionicons name="checkmark" size={16} color={Colors.white} />
                   )}
                 </View>
                 <Text style={styles.checkboxLabel}>Price is negotiable</Text>
@@ -408,13 +401,10 @@ export default function Step1() {
               <View style={styles.locationContainer}>
                 <TextInput
                   style={[styles.input, styles.locationInput]}
-                  placeholder='Enter location'
+                  placeholder="Enter location"
                   placeholderTextColor={Colors.grey}
                   value={location}
-                  onChangeText={(text) => {
-                    console.log('Location input changed to:', text);
-                    setLocation(text);
-                  }}
+                  onChangeText={setLocation}
                 />
                 <TouchableOpacity
                   style={[
@@ -425,11 +415,9 @@ export default function Step1() {
                   disabled={isLoadingLocation}
                   activeOpacity={0.7}
                 >
-                  {isLoadingLocation ? (
-                    <CustomLoader />
-                  ) : (
+                  {isLoadingLocation ? <CustomLoader /> : (
                     <Ionicons
-                      name='location-outline'
+                      name="location-outline"
                       size={20}
                       color={Colors.primary}
                     />
@@ -442,18 +430,14 @@ export default function Step1() {
             <View style={styles.section}>
               <Text style={styles.label}>Condition *</Text>
               <View style={styles.conditionContainer}>
-                {['New', 'Like New', 'Good', 'Used'].map((cond) => (
+                {["New", "Like New", "Good", "Used"].map((cond) => (
                   <TouchableOpacity
                     key={cond}
                     style={[
                       styles.conditionButton,
                       condition === cond && styles.conditionButtonSelected,
                     ]}
-                    onPress={() => {
-                      requestAnimationFrame(() => {
-                        setCondition(cond);
-                      });
-                    }}
+                    onPress={() => setCondition(cond)}
                     activeOpacity={condition === cond ? 1 : 0.7}
                   >
                     <Text
@@ -477,19 +461,19 @@ export default function Step1() {
               <View style={styles.tagInputContainer}>
                 <TextInput
                   style={[styles.input, styles.tagInput]}
-                  placeholder='Add a tag (e.g., electronics, furniture)'
+                  placeholder="Add a tag (e.g., electronics, furniture)"
                   placeholderTextColor={Colors.grey}
                   value={tagInput}
                   onChangeText={setTagInput}
                   onSubmitEditing={addTag}
-                  returnKeyType='done'
+                  returnKeyType="done"
                 />
                 <TouchableOpacity
                   style={styles.addTagButton}
                   onPress={addTag}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name='add' size={20} color={Colors.white} />
+                  <Ionicons name="add" size={20} color={Colors.white} />
                 </TouchableOpacity>
               </View>
 
@@ -504,7 +488,7 @@ export default function Step1() {
                       activeOpacity={0.7}
                     >
                       <Text style={styles.tagText}>#{tag}</Text>
-                      <Ionicons name='close' size={16} color={Colors.white} />
+                      <Ionicons name="close" size={16} color={Colors.white} />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -513,7 +497,7 @@ export default function Step1() {
           </ScrollView>
 
           {/* Next Button */}
-          <SafeAreaView edges={['bottom']}>
+          <SafeAreaView edges={["bottom"]}>
             <View style={styles.footer}>
               <TouchableOpacity
                 style={styles.nextButton}
@@ -521,58 +505,25 @@ export default function Step1() {
                 activeOpacity={0.7}
               >
                 <Text style={styles.nextButtonText}>Next: Add Media</Text>
-                <Ionicons name='chevron-forward' size={20} color={Colors.white} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={Colors.white}
+                />
               </TouchableOpacity>
             </View>
           </SafeAreaView>
 
-          {/* Bottom Sheets */}
-
-          {/* Store Sheet */}
-          <BottomSheet
-            visible={isStoreSheetVisible}
-            onClose={() => setIsStoreSheetVisible(false)}
-            snapPoints={['60%']}
-            enableDynamicSizing={false}
-          >
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Select Store</Text>
-              <TouchableOpacity onPress={() => setIsStoreSheetVisible(false)}>
-                <Ionicons name="close" size={24} color={Colors.black} />
-              </TouchableOpacity>
-            </View>
-            <View style={{ flex: 1 }}>
-              <TouchableOpacity
-                style={styles.createStoreItem}
-                onPress={() => {
-                  setIsStoreSheetVisible(false);
-                  router.push('/(screens)/(dashboard)/stores/store-create');
-                }}
-              >
-                <Ionicons name="add-circle-outline" size={24} color={Colors.primary} />
-                <Text style={styles.createStoreText}>Create New Store</Text>
-              </TouchableOpacity>
-              <FlashList
-                data={safeStores}
-                renderItem={renderStoreItem}
-                keyExtractor={(item) => item.id.toString()}
-                ListEmptyComponent={
-                  <Text style={styles.emptyListText}>No stores available</Text>
-                }
-              />
-            </View>
-          </BottomSheet>
-
           {/* Custom Location Permission Dialog */}
           <CustomDialog
             visible={showLocationDialog}
-            title='Location Permission'
-            message='Allow Kikwetu to access your location for automatic detection?'
-            confirmText='Allow'
-            denyText='Deny'
+            title="Location Permission"
+            message="Allow Kikwetu to access your location for automatic detection?"
+            confirmText="Allow"
+            denyText="Deny"
             onConfirm={handleLocationConfirm}
             onDeny={handleLocationDeny}
-            icon='location-outline'
+            icon="location-outline"
             iconColor={Colors.primary}
           />
 
@@ -590,9 +541,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.white,
@@ -604,7 +555,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.black,
   },
   placeholder: {
@@ -619,7 +570,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.black,
     marginBottom: 8,
   },
@@ -635,16 +586,16 @@ const styles = StyleSheet.create({
   },
   textArea: {
     height: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   characterCount: {
     fontSize: 12,
     color: Colors.grey,
-    textAlign: 'right',
+    textAlign: "right",
     marginTop: 4,
   },
   rowContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   halfWidth: {
@@ -657,9 +608,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderWidth: 1,
     borderColor: Colors.lightgrey,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   disabledDropdown: {
     backgroundColor: Colors.background,
@@ -675,8 +626,8 @@ const styles = StyleSheet.create({
     color: Colors.grey,
   },
   checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 12,
   },
   checkbox: {
@@ -686,8 +637,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.grey,
     marginRight: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   checkboxChecked: {
     backgroundColor: Colors.primary,
@@ -698,8 +649,8 @@ const styles = StyleSheet.create({
     color: Colors.black,
   },
   locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   locationInput: {
     flex: 1,
@@ -712,15 +663,15 @@ const styles = StyleSheet.create({
     borderWidth: 0.6,
     padding: 12,
     minWidth: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   locationButtonLoading: {
     opacity: 0.7,
   },
   conditionContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   conditionButton: {
@@ -738,14 +689,14 @@ const styles = StyleSheet.create({
   conditionText: {
     fontSize: 14,
     color: Colors.black,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   conditionTextSelected: {
     color: Colors.white,
   },
   tagInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   tagInput: {
     flex: 1,
@@ -757,8 +708,8 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginTop: 12,
     gap: 8,
   },
@@ -767,14 +718,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   tagText: {
     color: Colors.white,
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   footer: {
     padding: 16,
@@ -783,68 +734,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderRadius: 8,
     paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
   nextButtonText: {
     color: Colors.white,
     fontSize: 16,
-    fontWeight: '600',
-  },
-  // Sheet Styles
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightgrey,
-    marginBottom: 8,
-  },
-  sheetTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.black,
-  },
-  sheetItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.lightgrey,
-  },
-  sheetItemSelected: {
-    backgroundColor: '#f5f5f5',
-  },
-  sheetItemText: {
-    fontSize: 16,
-    color: Colors.black,
-  },
-  sheetItemTextSelected: {
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  createStoreItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightgrey,
-    gap: 12,
-  },
-  createStoreText: {
-    fontSize: 16,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  emptyListText: {
-    textAlign: 'center',
-    padding: 20,
-    color: Colors.grey,
+    fontWeight: "600",
   },
 });

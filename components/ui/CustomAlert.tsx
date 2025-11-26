@@ -1,15 +1,22 @@
-import { Colors } from '@/src/constants/constant';
-import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import React from 'react';
-import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors } from "@/src/constants/constant";
+import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import React from "react";
+import {
+  Dimensions,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 interface AlertButton {
   text: string;
   onPress?: () => void;
-  style?: 'default' | 'destructive' | 'cancel';
+  style?: "default" | "destructive" | "cancel";
   color?: string;
 }
 
@@ -26,7 +33,7 @@ const CustomAlert = React.memo(({
   visible,
   title,
   message,
-  buttons = [{ text: 'OK' }],
+  buttons = [{ text: "OK" }],
   icon,
   iconColor = Colors.primary,
 }: CustomAlertProps) => {
@@ -35,7 +42,7 @@ const CustomAlert = React.memo(({
   }, []);
 
   const handleRequestClose = React.useCallback(() => {
-    const cancelButton = buttons.find(btn => btn.style === 'cancel');
+    const cancelButton = buttons.find((btn) => btn.style === "cancel");
     if (cancelButton && cancelButton.onPress) {
       cancelButton.onPress();
     } else if (buttons.length > 0 && buttons[0].onPress) {
@@ -54,16 +61,16 @@ const CustomAlert = React.memo(({
     >
       <View style={styles.overlay}>
         <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
-        
+
         <View style={styles.alertContainer}>
           <View style={styles.alert}>
             {/* Icon */}
             {icon && (
               <View style={styles.iconContainer}>
-                <Ionicons 
-                  name={icon} 
-                  size={48} 
-                  color={iconColor} 
+                <Ionicons
+                  name={icon}
+                  size={48}
+                  color={iconColor}
                 />
               </View>
             )}
@@ -72,13 +79,11 @@ const CustomAlert = React.memo(({
             <Text style={styles.title}>{title}</Text>
 
             {/* Message */}
-            {message && (
-              <Text style={styles.message}>{message}</Text>
-            )}
+            {message && <Text style={styles.message}>{message}</Text>}
 
             {/* Separator Line */}
             {message ? <View style={styles.separator} /> : null}
-            
+
             {/* Buttons */}
             <View style={styles.buttonsContainer}>
               {buttons.map((button, index) => (
@@ -88,14 +93,22 @@ const CustomAlert = React.memo(({
                     onPress={() => handleButtonPress(button.onPress)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[
-                      styles.buttonText,
-                      { color: button.color || (button.style === 'destructive' ? Colors.red : '#007AFF') }
-                    ]}>
+                    <Text
+                      style={[
+                        styles.buttonText,
+                        {
+                          color: button.color || (button.style === "destructive"
+                            ? Colors.red
+                            : "#007AFF"),
+                        },
+                      ]}
+                    >
                       {button.text}
                     </Text>
                   </TouchableOpacity>
-                  {index < buttons.length - 1 && <View style={styles.buttonSeparator} />}
+                  {index < buttons.length - 1 && (
+                    <View style={styles.buttonSeparator} />
+                  )}
                 </React.Fragment>
               ))}
             </View>
@@ -106,14 +119,14 @@ const CustomAlert = React.memo(({
   );
 });
 
-CustomAlert.displayName = 'CustomAlert';
+CustomAlert.displayName = "CustomAlert";
 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   alertContainer: {
     width: width * 0.75,
@@ -124,8 +137,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 24,
     paddingHorizontal: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 10,
@@ -139,43 +152,43 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.black,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 8,
     lineHeight: 22,
   },
   message: {
     fontSize: 16,
     color: Colors.grey,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 22,
     marginBottom: 16,
   },
   separator: {
     height: 0.5,
-    backgroundColor: '#E5E5E7',
-    width: '100%',
+    backgroundColor: "#E5E5E7",
+    width: "100%",
     marginBottom: 16,
   },
   button: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
   },
   buttonsContainer: {
-    width: '100%',
-    flexDirection: 'column',
+    width: "100%",
+    flexDirection: "column",
   },
   buttonSeparator: {
     height: 0.5,
-    backgroundColor: '#E5E5E7',
-    width: '100%',
+    backgroundColor: "#E5E5E7",
+    width: "100%",
   },
   buttonText: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 

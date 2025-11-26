@@ -1,8 +1,8 @@
-import { Colors } from '@/src/constants/constant';
-import * as Location from 'expo-location';
-import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import MapView, { Marker, PROVIDER_DEFAULT, Region } from 'react-native-maps';
+import { Colors } from "@/src/constants/constant";
+import * as Location from "expo-location";
+import React, { useEffect, useRef, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import MapView, { Marker, PROVIDER_DEFAULT, Region } from "react-native-maps";
 
 interface MapViewComponentProps {
   markers?: {
@@ -27,7 +27,7 @@ const MapViewComponent: React.FC<MapViewComponentProps> = React.memo(({
   onMarkerPress,
   onRegionChange,
   showUserLocation = true,
-  style
+  style,
 }) => {
   const [region, setRegion] = useState<Region>(
     initialRegion || {
@@ -35,22 +35,23 @@ const MapViewComponent: React.FC<MapViewComponentProps> = React.memo(({
       longitude: 36.8219,
       latitudeDelta: 0.0922,
       longitudeDelta: 0.0421,
-    }
+    },
   );
-  
-  // Note: userLocation and locationPermissionGranted are prepared for future use
-  // Currently not used since showsUserLocation is set to false
-  const [, setUserLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
-  
+
+  const [, setUserLocation] = useState<
+    {
+      latitude: number;
+      longitude: number;
+    } | null
+  >(null);
+
   const [, setLocationPermissionGranted] = useState(false);
   const hasRequestedLocation = useRef(false);
   const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
-    // Prevent multiple simultaneous location requests
+    let isCancelled = false;
+
     if (!showUserLocation || hasRequestedLocation.current) {
       return;
     }
@@ -59,30 +60,31 @@ const MapViewComponent: React.FC<MapViewComponentProps> = React.memo(({
 
     const getCurrentLocation = async () => {
       try {
-        // Request permissions
         const { status } = await Location.requestForegroundPermissionsAsync();
-        
-        if (status !== 'granted') {
-          console.log('Location permission denied');
-          setLocationPermissionGranted(false);
+
+        if (isCancelled) return;
+
+        if (status !== "granted") {
+          console.log("Location permission denied");
+          if (!isCancelled) setLocationPermissionGranted(false);
           return;
         }
 
-        setLocationPermissionGranted(true);
+        if (!isCancelled) setLocationPermissionGranted(true);
 
-        // Get current position with a reasonable timeout
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
-        
+
+        if (isCancelled) return;
+
         const userCoords = {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         };
-        
+
         setUserLocation(userCoords);
-        
-        // Center map on user location only if no initial region was provided
+
         if (!initialRegion) {
           setRegion({
             ...userCoords,
@@ -91,12 +93,18 @@ const MapViewComponent: React.FC<MapViewComponentProps> = React.memo(({
           });
         }
       } catch (error) {
-        console.error('Error getting location:', error);
-        setLocationPermissionGranted(false);
+        if (!isCancelled) {
+          console.error("Error getting location:", error);
+          setLocationPermissionGranted(false);
+        }
       }
     };
 
     getCurrentLocation();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [showUserLocation, initialRegion]);
 
   const handleRegionChange = (newRegion: Region) => {
@@ -124,7 +132,6 @@ const MapViewComponent: React.FC<MapViewComponentProps> = React.memo(({
         loadingIndicatorColor={Colors.primary}
         loadingBackgroundColor={Colors.background}
       >
-        {/* Markers will be rendered here when markers prop is implemented */}
         {markers.length > 0 && markers.map((marker) => (
           <Marker
             key={marker.id}
@@ -139,7 +146,7 @@ const MapViewComponent: React.FC<MapViewComponentProps> = React.memo(({
   );
 });
 
-MapViewComponent.displayName = 'MapViewComponent';
+MapViewComponent.displayName = "MapViewComponent";
 
 const styles = StyleSheet.create({
   container: {
@@ -147,8 +154,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   map: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
 });
 
