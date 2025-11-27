@@ -350,10 +350,7 @@ const PlansBilling = () => {
                     <Pressable
                         style={({ pressed }) => [
                             styles.pickPlanButton,
-                            {
-                                backgroundColor: plan.color,
-                                opacity: pressed ? 0.8 : 1,
-                            },
+                            { opacity: pressed ? 0.8 : 1 },
                         ]}
                         onPress={() => handlePickPlan(plan.id)}
                     >
@@ -907,7 +904,7 @@ const styles = StyleSheet.create({
     },
     plansContainer: {
         gap: 16,
-        alignItems: "stretch",
+        width: "100%",
     },
     planCard: {
         backgroundColor: Colors.white,
@@ -921,8 +918,8 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.05,
         shadowRadius: 2,
-        borderWidth: 2,
-        borderColor: "transparent",
+        borderWidth: 1,
+        borderColor: Colors.lightgrey,
         position: "relative",
         width: "100%",
     },

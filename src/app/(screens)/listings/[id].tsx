@@ -1,8 +1,8 @@
 import ListingCard from "@/components/ListingCard";
 import LikeButton from "@/components/animated/LikeButton";
-import ReviewsSection from "@/src/components/ReviewsSection";
 import CustomLoader from "@/components/ui/CustomLoader";
 import { useCategories } from "@/hooks/useCategories";
+import ReviewsSection from "@/src/components/ReviewsSection";
 import { getAttributeIcon } from "@/src/constants/attributeIcons";
 import { Colors } from "@/src/constants/constant";
 import { useSimilarListings } from "@/src/hooks/useApiListings";
@@ -13,7 +13,8 @@ import {
 } from "@/src/hooks/useApiSavedListings";
 import { useListingDetails } from "@/src/hooks/useListingDetails";
 import { useProfileById } from "@/src/hooks/useProfile";
-import { ApiListing } from "@/src/types/api.types";
+import { getListingReviews } from "@/src/services/reviewsService";
+import { ApiListing, Review } from "@/src/types/api.types";
 import { openDirections } from "@/src/utils/directionUtils";
 import { createAlertHelpers, useCustomAlert } from "@/utils/alertUtils";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,7 +23,15 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -76,20 +85,19 @@ const SpecificationsCard = ({ listing }: { listing: ApiListing }) => {
   const { data: categories } = useCategories();
 
   const specs = useMemo(() => {
-    if (!listing?.attributes || !listing?.category_id || !categories) return [];
+    if (!listing?.category_id || !categories) return [];
 
     const category = categories.find((c) => c.id === listing.category_id);
     const schema = category?.attribute_schema;
 
     if (!schema?.fields) return [];
 
-    return schema.fields
-      .map((field) => {
-        const value = listing.attributes?.[field.key];
+    return schema.fields.map((field) => {
+      const value = listing.attributes?.[field.key];
+      let displayValue = "None";
 
-        if (value === null || value === undefined || value === "") return null;
-
-        let displayValue = value.toString();
+      if (value !== null && value !== undefined && value !== "") {
+        displayValue = value.toString();
 
         if (field.type === "number") {
           const numValue = Number(value);
@@ -103,16 +111,14 @@ const SpecificationsCard = ({ listing }: { listing: ApiListing }) => {
             }
           }
         }
+      }
 
-        return {
-          label: field.label,
-          value: displayValue,
-          icon: getAttributeIcon(field.key),
-        };
-      })
-      .filter((item): item is { label: string; value: string; icon: any } =>
-        item !== null
-      );
+      return {
+        label: field.label,
+        value: displayValue,
+        icon: getAttributeIcon(field.key),
+      };
+    });
   }, [listing, categories]);
 
   if (specs.length === 0) return null;
@@ -217,11 +223,23 @@ export default function ListingDetails() {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [contextMenuVisible, setContextMenuVisible] = useState(false);
   const [showSafetyTips, setShowSafetyTips] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   const { showAlert, AlertComponent } = useCustomAlert();
   const { success: showSuccessAlert, error: showErrorAlert } =
     createAlertHelpers(showAlert);
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    if (id) {
+      setLoadingReviews(true);
+      getListingReviews(id as string)
+        .then(setReviews)
+        .catch((err) => console.error("Error fetching reviews:", err))
+        .finally(() => setLoadingReviews(false));
+    }
+  }, [id]);
 
   const images = useMemo(
     () =>
@@ -625,6 +643,16 @@ export default function ListingDetails() {
               </View>
             </View>
           </Pressable>
+
+          {/* Reviews Section */}
+          <ReviewsSection
+            reviews={reviews}
+            averageRating={sellerInfo?.rating || 0}
+            totalReviews={reviews.length}
+            onShowAll={() => {
+              setShowReviewModal(true);
+            }}
+          />
 
           {/* Safety Tips */}
           <Pressable

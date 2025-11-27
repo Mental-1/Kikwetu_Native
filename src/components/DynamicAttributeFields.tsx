@@ -1,9 +1,12 @@
-import AttributeInputField from '@/src/components/AttributeInputField';
-import ModalPicker from '@/src/components/ModalPicker';
-import { AttributeField, AttributeSchema } from '@/src/types/categoryAttributes';
-import { useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
-import { View } from 'react-native';
+import AttributeInputField from "@/src/components/AttributeInputField";
+import ModalPicker from "@/src/components/ModalPicker";
+import {
+    AttributeField,
+    AttributeSchema,
+} from "@/src/types/categoryAttributes";
+import { useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
+import { View } from "react-native";
 
 interface DynamicAttributeFieldsProps {
     schema: AttributeSchema;
@@ -13,11 +16,15 @@ interface DynamicAttributeFieldsProps {
 
 export default function DynamicAttributeFields({
     schema,
-    values,
+    values = {},
     onChange,
 }: DynamicAttributeFieldsProps) {
     const router = useRouter();
     const [modalField, setModalField] = useState<AttributeField | null>(null);
+
+    if (!schema?.fields || !Array.isArray(schema.fields)) {
+        return null;
+    }
 
     const handleSelectField = useCallback(
         (field: AttributeField) => {
@@ -26,9 +33,9 @@ export default function DynamicAttributeFields({
                 setModalField(field);
             } else {
                 router.push({
-                    pathname: './select-option',
+                    pathname: "./select-option",
                     params: {
-                        type: 'attribute',
+                        type: "attribute",
                         title: `Select ${field.label}`,
                         attributeKey: field.key,
                         options: JSON.stringify(field.options || []),
@@ -36,7 +43,7 @@ export default function DynamicAttributeFields({
                 });
             }
         },
-        [router]
+        [router],
     );
 
     const handleModalSelect = useCallback(
@@ -46,14 +53,14 @@ export default function DynamicAttributeFields({
                 setModalField(null);
             }
         },
-        [modalField, onChange]
+        [modalField, onChange],
     );
 
     const handleTextChange = useCallback(
         (key: string, value: string) => {
             onChange(key, value);
         },
-        [onChange]
+        [onChange],
     );
 
     const handleNumberChange = useCallback(
@@ -61,7 +68,7 @@ export default function DynamicAttributeFields({
             const numValue = value ? parseFloat(value) : null;
             onChange(key, numValue);
         },
-        [onChange]
+        [onChange],
     );
 
     return (
@@ -70,7 +77,7 @@ export default function DynamicAttributeFields({
                 const value = values[field.key];
 
                 switch (field.type) {
-                    case 'select':
+                    case "select":
                         return (
                             <AttributeInputField
                                 key={field.key}
@@ -83,7 +90,7 @@ export default function DynamicAttributeFields({
                             />
                         );
 
-                    case 'number':
+                    case "number":
                         return (
                             <AttributeInputField
                                 key={field.key}
@@ -93,11 +100,12 @@ export default function DynamicAttributeFields({
                                 required={field.required}
                                 type="number"
                                 keyboardType="numeric"
-                                onChangeText={(text) => handleNumberChange(field.key, text)}
+                                onChangeText={(text) =>
+                                    handleNumberChange(field.key, text)}
                             />
                         );
 
-                    case 'text':
+                    case "text":
                         return (
                             <AttributeInputField
                                 key={field.key}
@@ -106,7 +114,8 @@ export default function DynamicAttributeFields({
                                 placeholder={field.placeholder}
                                 required={field.required}
                                 type="text"
-                                onChangeText={(text) => handleTextChange(field.key, text)}
+                                onChangeText={(text) =>
+                                    handleTextChange(field.key, text)}
                             />
                         );
 

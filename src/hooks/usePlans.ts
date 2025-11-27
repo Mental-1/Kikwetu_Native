@@ -70,7 +70,7 @@ export const usePlans = (billingCycle?: 'monthly' | 'annual'): UsePlansReturn =>
     try {
       const response = await plansService.deletePlan(id);
       if (response.success) {
-        await fetchPlans(); // Refresh the list
+        await fetchPlans();
         return true;
       } else {
         setError(response.message || 'Failed to delete plan');
