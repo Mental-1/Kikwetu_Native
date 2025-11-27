@@ -10,7 +10,6 @@ import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, {
-  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -570,9 +569,9 @@ const styles = StyleSheet.create({
 
 const MapScreen = () => (
   <GestureHandlerRootView style={{ flex: 1 }}>
-    <Suspense fallback={<MapLoading />}>
+    <MapErrorBoundary>
       <MapScreenContent />
-    </Suspense>
+    </MapErrorBoundary>
   </GestureHandlerRootView>
 );
 

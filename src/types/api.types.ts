@@ -238,3 +238,11 @@ export interface PaystackPaymentResponse {
   reference: string;
   transactionId: string;
 }
+export interface Review {
+    id: string;
+    reviewerName: string;
+    avatar: string;
+    rating: number;
+    comment: string;
+    date: string;
+}

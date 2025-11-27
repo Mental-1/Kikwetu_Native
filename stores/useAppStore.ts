@@ -53,6 +53,7 @@ interface PostAdState {
   tags: string[];
   storeId?: string;
   isDraft: boolean;
+  attributes: Record<string, any>;
   setTitle: (title: string) => void;
   setDescription: (description: string) => void;
   setPrice: (price: number | null) => void;
@@ -71,6 +72,8 @@ interface PostAdState {
   setTags: (tags: string[]) => void;
   setStoreId: (id: string) => void;
   setIsDraft: (isDraft: boolean) => void;
+  setAttributes: (attributes: Record<string, any>) => void;
+  setAttribute: (key: string, value: any) => void;
   resetPostAd: () => void;
 }
 
@@ -102,6 +105,7 @@ export const useAppStore = create<AppState>()(
         uploadedMedia: [],
         tags: [],
         isDraft: false,
+        attributes: {},
 
         setTitle: (title) =>
           set((state) => ({ postAd: { ...state.postAd, title } })),
@@ -142,6 +146,15 @@ export const useAppStore = create<AppState>()(
           set((state) => ({ postAd: { ...state.postAd, storeId } })),
         setIsDraft: (isDraft) =>
           set((state) => ({ postAd: { ...state.postAd, isDraft } })),
+        setAttributes: (attributes) =>
+          set((state) => ({ postAd: { ...state.postAd, attributes } })),
+        setAttribute: (key, value) =>
+          set((state) => ({
+            postAd: {
+              ...state.postAd,
+              attributes: { ...state.postAd.attributes, [key]: value },
+            },
+          })),
         resetPostAd: () =>
           set((state) => ({
             postAd: {
@@ -162,6 +175,7 @@ export const useAppStore = create<AppState>()(
               tags: [],
               storeId: undefined,
               isDraft: false,
+              attributes: {},
             },
           })),
       },

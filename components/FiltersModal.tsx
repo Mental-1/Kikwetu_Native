@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   resetText: { fontSize: 16, color: Colors.primary, fontWeight: "600" },
-  modalContent: { flex: 1, padding: 20 },
+  modalContent: { flexGrow: 0, flexShrink: 1, padding: 20 },
   section: { marginBottom: 24 },
   sectionTitle: {
     fontSize: 16,

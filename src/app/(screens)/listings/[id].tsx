@@ -1,7 +1,9 @@
 import ListingCard from "@/components/ListingCard";
 import LikeButton from "@/components/animated/LikeButton";
+import ReviewsSection from "@/src/components/ReviewsSection";
 import CustomLoader from "@/components/ui/CustomLoader";
 import { useCategories } from "@/hooks/useCategories";
+import { getAttributeIcon } from "@/src/constants/attributeIcons";
 import { Colors } from "@/src/constants/constant";
 import { useSimilarListings } from "@/src/hooks/useApiListings";
 import {
@@ -69,39 +71,51 @@ const SpecItem = ({ iconName, label, value }: SpecItemProps) => (
   </View>
 );
 
-// Placeholder for a detailed Specification structure (needs to be adjusted based on actual listing data)
 const SpecificationsCard = ({ listing }: { listing: ApiListing }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { data: categories } = useCategories();
 
-  const specs = useMemo(() => [
-    {
-      label: "Year",
-      value: listing.attributes?.year?.toString() || "N/A",
-      icon: "calendar-outline",
-    },
-    {
-      label: "Mileage",
-      value: listing.attributes?.mileage
-        ? `${listing.attributes.mileage.toLocaleString()} km`
-        : "N/A",
-      icon: "speedometer-outline",
-    },
-    {
-      label: "Transmission",
-      value: listing.attributes?.transmission || "Automatic",
-      icon: "settings-outline",
-    },
-    {
-      label: "Color",
-      value: listing.attributes?.color || "Not Specified",
-      icon: "color-palette-outline",
-    },
-    {
-      label: "Bedrooms",
-      value: listing.attributes?.bedrooms?.toString() || "N/A",
-      icon: "bed-outline",
-    },
-  ], [listing]);
+  const specs = useMemo(() => {
+    if (!listing?.attributes || !listing?.category_id || !categories) return [];
+
+    const category = categories.find((c) => c.id === listing.category_id);
+    const schema = category?.attribute_schema;
+
+    if (!schema?.fields) return [];
+
+    return schema.fields
+      .map((field) => {
+        const value = listing.attributes?.[field.key];
+
+        if (value === null || value === undefined || value === "") return null;
+
+        let displayValue = value.toString();
+
+        if (field.type === "number") {
+          const numValue = Number(value);
+          if (!isNaN(numValue)) {
+            if (field.key === "mileage") {
+              displayValue = `${numValue.toLocaleString()} km`;
+            } else if (field.key === "square_feet") {
+              displayValue = `${numValue.toLocaleString()} sq ft`;
+            } else if (field.key !== "year") {
+              displayValue = numValue.toLocaleString();
+            }
+          }
+        }
+
+        return {
+          label: field.label,
+          value: displayValue,
+          icon: getAttributeIcon(field.key),
+        };
+      })
+      .filter((item): item is { label: string; value: string; icon: any } =>
+        item !== null
+      );
+  }, [listing, categories]);
+
+  if (specs.length === 0) return null;
 
   const visibleSpecs = specs.slice(0, 6);
   const hiddenSpecs = specs.slice(6);
@@ -446,7 +460,6 @@ export default function ListingDetails() {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         bounces={true}
-        // Add padding to ensure content scrolls above the sticky bar
         contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
       >
         {/* Image Section*/}
@@ -1146,7 +1159,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: Colors.white,
-    borderTopWidth: 1,
+    borderTopWidth: 0.6,
     borderTopColor: Colors.lightgrey,
     gap: 12,
     zIndex: 5,

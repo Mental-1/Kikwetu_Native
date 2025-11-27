@@ -1,3 +1,4 @@
+import DynamicAttributeFields from "@/src/components/DynamicAttributeFields";
 import CustomDialog from "@/components/ui/CustomDialog";
 import CustomLoader from "@/components/ui/CustomLoader";
 import {
@@ -12,7 +13,7 @@ import { getLocationWithAddress } from "@/utils/locationUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Keyboard,
@@ -31,7 +32,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function Step1() {
   const router = useRouter();
 
-  // Atomic selectors to prevent re-renders
   const title = useAppStore((state) => state.postAd.title);
   const description = useAppStore((state) => state.postAd.description);
   const price = useAppStore((state) => state.postAd.price);
@@ -42,6 +42,7 @@ export default function Step1() {
   const subcategoryId = useAppStore((state) => state.postAd.subcategoryId);
   const storeId = useAppStore((state) => state.postAd.storeId);
   const tags = useAppStore((state) => state.postAd.tags);
+  const attributes = useAppStore((state) => state.postAd.attributes);
 
   const setTitle = useAppStore((state) => state.postAd.setTitle);
   const setDescription = useAppStore((state) => state.postAd.setDescription);
@@ -52,6 +53,8 @@ export default function Step1() {
   const setLongitude = useAppStore((state) => state.postAd.setLongitude);
   const setCondition = useAppStore((state) => state.postAd.setCondition);
   const setTags = useAppStore((state) => state.postAd.setTags);
+  const setAttribute = useAppStore((state) => state.postAd.setAttribute);
+  const setAttributes = useAppStore((state) => state.postAd.setAttributes);
 
   const [tagInput, setTagInput] = useState("");
   const [priceInput, setPriceInput] = useState("");
@@ -85,6 +88,17 @@ export default function Step1() {
   } = useStores();
 
   const safeStores = storesError ? [] : stores || [];
+
+  const attributeSchema = useMemo(() => {
+    if (!categoryId || !categories) return null;
+    const category = categories.find((c) => c.id === categoryId);
+    return category?.attribute_schema || null;
+  }, [categoryId, categories]);
+
+  // Clear attributes when category changes
+  useEffect(() => {
+    setAttributes({});
+  }, [categoryId, setAttributes]);
 
   const handleBack = () => {
     router.push("/(tabs)/listings");
@@ -335,6 +349,18 @@ export default function Step1() {
                 </View>
               </View>
             </View>
+
+            {/* Dynamic Attributes */}
+            {categoryId && attributeSchema && (
+              <View style={styles.section}>
+                <Text style={styles.sectionHeader}>Additional Details</Text>
+                <DynamicAttributeFields
+                  schema={attributeSchema}
+                  values={attributes}
+                  onChange={setAttribute}
+                />
+              </View>
+            )}
 
             {/* Store Selection */}
             <View style={styles.section}>
@@ -591,6 +617,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Colors.black,
     marginBottom: 8,
+  },
+  sectionHeader: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.black,
+    marginBottom: 12,
   },
   input: {
     backgroundColor: Colors.white,

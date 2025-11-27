@@ -109,13 +109,16 @@ export default function SelectOption() {
 
                 case "subcategory":
                     setSubcategoryId(Number(item.id));
-                    router.dismissAll();
-                    router.push("/(screens)/post-ad/step1" as any);
+                    router.back();
+                    router.back();
                     break;
 
                 case "attribute":
+                    if (attributeKey) {
+                        const { setAttribute } = useAppStore.getState().postAd;
+                        setAttribute(attributeKey, item.name);
+                    }
                     router.back();
-                    router.setParams({ [`${attributeKey}_value`]: item.name });
                     break;
             }
         },
