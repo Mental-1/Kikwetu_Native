@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// Base listing validation schema
 export const listingSchema = z.object({
   title: z
     .string()
@@ -86,11 +85,18 @@ export const listingSchema = z.object({
 // Step 1 validation (basic info)
 export const step1Schema = z.object({
   title: listingSchema.shape.title,
+  description: listingSchema.shape.description,
   category_id: listingSchema.shape.category_id,
   subcategory_id: listingSchema.shape.subcategory_id,
   condition: listingSchema.shape.condition,
   price: listingSchema.shape.price,
-  store_id: listingSchema.shape.store_id,
+  location: listingSchema.shape.location,
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
+  tags: z.array(z.string()).max(10),
+  negotiable: z.boolean(),
+  store_id: z.string().optional(),
+  attributes: z.record(z.string(), z.any()),
 });
 
 // Step 2 validation (media and location)
@@ -173,12 +179,12 @@ export function validateCompleteListing(
       return {
         success: false,
         errors: error.issues.reduce((acc, err) => {
-          acc[err.path.join('.')] = err.message;
+          acc[err.path.join(".")] = err.message;
           return acc;
         }, {} as Record<string, string>),
       };
     }
-    return { success: false, errors: { general: 'Validation failed' } };
+    return { success: false, errors: { general: "Validation failed" } };
   }
 }
 

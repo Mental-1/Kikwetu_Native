@@ -8,17 +8,27 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { View } from "react-native";
 
+import { Step1FormData } from "@/src/utils/listingValidation";
+import {
+    Control,
+    Controller,
+    UseFormSetValue,
+    UseFormWatch,
+} from "react-hook-form";
+
 interface DynamicAttributeFieldsProps {
     schema: AttributeSchema;
-    values: Record<string, any>;
-    onChange: (key: string, value: any) => void;
+    control: Control<Step1FormData>;
+    setValue: UseFormSetValue<Step1FormData>;
+    watch: UseFormWatch<Step1FormData>;
 }
 
-export default function DynamicAttributeFields({
+const DynamicAttributeFields = React.memo(({
     schema,
-    values = {},
-    onChange,
-}: DynamicAttributeFieldsProps) {
+    control,
+    setValue,
+    watch,
+}: DynamicAttributeFieldsProps) => {
     const router = useRouter();
     const [modalField, setModalField] = useState<AttributeField | null>(null);
 
@@ -49,32 +59,23 @@ export default function DynamicAttributeFields({
     const handleModalSelect = useCallback(
         (value: string) => {
             if (modalField) {
-                onChange(modalField.key, value);
+                const currentAttributes = watch("attributes") || {};
+                setValue("attributes", {
+                    ...currentAttributes,
+                    [modalField.key]: value,
+                });
                 setModalField(null);
             }
         },
-        [modalField, onChange],
+        [modalField, setValue, watch],
     );
 
-    const handleTextChange = useCallback(
-        (key: string, value: string) => {
-            onChange(key, value);
-        },
-        [onChange],
-    );
-
-    const handleNumberChange = useCallback(
-        (key: string, value: string) => {
-            const numValue = value ? parseFloat(value) : null;
-            onChange(key, numValue);
-        },
-        [onChange],
-    );
+    const attributes = watch("attributes") || {};
 
     return (
         <View>
             {schema.fields.map((field) => {
-                const value = values[field.key];
+                const value = attributes[field.key];
 
                 switch (field.type) {
                     case "select":
@@ -92,30 +93,49 @@ export default function DynamicAttributeFields({
 
                     case "number":
                         return (
-                            <AttributeInputField
+                            <Controller
                                 key={field.key}
-                                label={field.label}
-                                value={value}
-                                placeholder={field.placeholder}
-                                required={field.required}
-                                type="number"
-                                keyboardType="numeric"
-                                onChangeText={(text) =>
-                                    handleNumberChange(field.key, text)}
+                                control={control}
+                                name={`attributes.${field.key}`}
+                                render={(
+                                    { field: { onChange, onBlur, value } },
+                                ) => (
+                                    <AttributeInputField
+                                        label={field.label}
+                                        value={value}
+                                        placeholder={field.placeholder}
+                                        required={field.required}
+                                        type="number"
+                                        keyboardType="numeric"
+                                        onChangeText={(text) => {
+                                            const num = text
+                                                ? parseFloat(text)
+                                                : null;
+                                            onChange(num);
+                                        }}
+                                    />
+                                )}
                             />
                         );
 
                     case "text":
                         return (
-                            <AttributeInputField
+                            <Controller
                                 key={field.key}
-                                label={field.label}
-                                value={value}
-                                placeholder={field.placeholder}
-                                required={field.required}
-                                type="text"
-                                onChangeText={(text) =>
-                                    handleTextChange(field.key, text)}
+                                control={control}
+                                name={`attributes.${field.key}`}
+                                render={(
+                                    { field: { onChange, onBlur, value } },
+                                ) => (
+                                    <AttributeInputField
+                                        label={field.label}
+                                        value={value}
+                                        placeholder={field.placeholder}
+                                        required={field.required}
+                                        type="text"
+                                        onChangeText={onChange}
+                                    />
+                                )}
                             />
                         );
 
@@ -130,11 +150,15 @@ export default function DynamicAttributeFields({
                     visible={!!modalField}
                     title={`Select ${modalField.label}`}
                     options={modalField.options || []}
-                    selectedValue={values[modalField.key]}
+                    selectedValue={attributes[modalField.key]}
                     onSelect={handleModalSelect}
                     onClose={() => setModalField(null)}
                 />
             )}
         </View>
     );
-}
+});
+
+DynamicAttributeFields.displayName = "DynamicAttributeFields";
+
+export default DynamicAttributeFields;

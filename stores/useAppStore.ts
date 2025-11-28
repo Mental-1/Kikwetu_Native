@@ -60,7 +60,11 @@ interface PostAdState {
   setCategoryId: (id: number | null) => void;
   setSubcategoryId: (id: number | null) => void;
   setCondition: (condition: string) => void;
-  setLocation: (location: string, lat?: number, long?: number) => void;
+  setLocation: (
+    location: string,
+    lat?: number | null,
+    long?: number | null,
+  ) => void;
   setLatitude: (latitude: number | null) => void;
   setLongitude: (longitude: number | null) => void;
   setIsNegotiable: (isNegotiable: boolean) => void;
@@ -70,7 +74,7 @@ interface PostAdState {
     uploadedMedia: { uri: string; id: string; type: "image" | "video" }[],
   ) => void;
   setTags: (tags: string[]) => void;
-  setStoreId: (id: string) => void;
+  setStoreId: (id: string | undefined) => void;
   setIsDraft: (isDraft: boolean) => void;
   setAttributes: (attributes: Record<string, any>) => void;
   setAttribute: (key: string, value: any) => void;

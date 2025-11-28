@@ -1,28 +1,28 @@
+import { useCategories } from "@/hooks/useCategories";
 import DynamicAttributeFields from "@/src/components/DynamicAttributeFields";
-import CustomDialog from "@/components/ui/CustomDialog";
-import CustomLoader from "@/components/ui/CustomLoader";
-import {
-  useCategories,
-  useSubcategoriesByCategory,
-} from "@/hooks/useCategories";
+import CategorySubcategorySection from "@/src/components/post-ad/CategorySubcategorySection";
+import ConditionSection from "@/src/components/post-ad/ConditionSection";
+import LocationSection from "@/src/components/post-ad/LocationSection";
+import PriceNegotiableSection from "@/src/components/post-ad/PriceNegotiableSection";
+import StoreSelectionSection from "@/src/components/post-ad/StoreSelectionSection";
+import TagsSection from "@/src/components/post-ad/TagsSection";
+import TitleDescriptionSection from "@/src/components/post-ad/TitleDescriptionSection";
 import { Colors } from "@/src/constants/constant";
-import { useStores } from "@/src/hooks/useStores";
+import { Step1FormData, step1Schema } from "@/src/utils/listingValidation";
 import { useAppStore } from "@/stores/useAppStore";
-import { createAlertHelpers, useCustomAlert } from "@/utils/alertUtils";
-import { getLocationWithAddress } from "@/utils/locationUtils";
 import { Ionicons } from "@expo/vector-icons";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import {
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -32,62 +32,85 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function Step1() {
   const router = useRouter();
 
-  const title = useAppStore((state) => state.postAd.title);
-  const description = useAppStore((state) => state.postAd.description);
-  const price = useAppStore((state) => state.postAd.price);
-  const isNegotiable = useAppStore((state) => state.postAd.isNegotiable);
-  const location = useAppStore((state) => state.postAd.location);
-  const condition = useAppStore((state) => state.postAd.condition);
-  const categoryId = useAppStore((state) => state.postAd.categoryId);
-  const subcategoryId = useAppStore((state) => state.postAd.subcategoryId);
-  const storeId = useAppStore((state) => state.postAd.storeId);
-  const tags = useAppStore((state) => state.postAd.tags);
-  const attributes = useAppStore((state) => state.postAd.attributes);
+  const defaultValues = useAppStore.getState().postAd;
 
-  const setTitle = useAppStore((state) => state.postAd.setTitle);
-  const setDescription = useAppStore((state) => state.postAd.setDescription);
-  const setPrice = useAppStore((state) => state.postAd.setPrice);
-  const setIsNegotiable = useAppStore((state) => state.postAd.setIsNegotiable);
-  const setLocation = useAppStore((state) => state.postAd.setLocation);
-  const setLatitude = useAppStore((state) => state.postAd.setLatitude);
-  const setLongitude = useAppStore((state) => state.postAd.setLongitude);
-  const setCondition = useAppStore((state) => state.postAd.setCondition);
-  const setTags = useAppStore((state) => state.postAd.setTags);
-  const setAttribute = useAppStore((state) => state.postAd.setAttribute);
-  const setAttributes = useAppStore((state) => state.postAd.setAttributes);
+  const methods = useForm<Step1FormData>({
+    defaultValues: {
+      title: defaultValues.title,
+      description: defaultValues.description,
+      price: defaultValues.price ?? 0,
+      category_id: defaultValues.categoryId ?? 0,
+      subcategory_id: defaultValues.subcategoryId === null
+        ? undefined
+        : defaultValues.subcategoryId,
+      condition: defaultValues.condition,
+      location: defaultValues.location,
+      latitude: defaultValues.latitude === null
+        ? undefined
+        : defaultValues.latitude,
+      longitude: defaultValues.longitude === null
+        ? undefined
+        : defaultValues.longitude,
+      tags: defaultValues.tags ?? [],
+      negotiable: defaultValues.isNegotiable ?? false,
+      store_id: defaultValues.storeId === undefined
+        ? undefined
+        : defaultValues.storeId,
+      attributes: defaultValues.attributes ?? {},
+    },
+    resolver: zodResolver(step1Schema),
+    mode: "onBlur",
+  });
 
-  const [tagInput, setTagInput] = useState("");
-  const [priceInput, setPriceInput] = useState("");
+  const { handleSubmit, setValue } = methods;
 
-  // Initialize price input
-  React.useEffect(() => {
-    if (price === null || price === undefined) {
-      setPriceInput("");
-    } else {
-      setPriceInput(price.toLocaleString());
-    }
-  }, []);
+  const categoryId = useWatch({
+    control: methods.control,
+    name: "category_id",
+  });
 
-  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  const [showLocationDialog, setShowLocationDialog] = useState(false);
-
-  const { showAlert, AlertComponent } = useCustomAlert();
-  const alertHelpers = useMemo(
-    () => createAlertHelpers(showAlert),
-    [showAlert],
-  );
-  const { locationSuccess: showLocationSuccessAlert, error: showErrorAlert } =
-    alertHelpers;
-
-  const { data: categories, isLoading: categoriesLoading } = useCategories();
-  const { data: subcategories } = useSubcategoriesByCategory(categoryId);
   const {
-    data: stores,
-    isLoading: storesLoading,
-    error: storesError,
-  } = useStores();
+    setTitle,
+    setDescription,
+    setPrice,
+    setIsNegotiable,
+    setLocation,
+    setCondition,
+    setTags,
+    setAttributes,
+    setCategoryId,
+    setSubcategoryId,
+    setStoreId,
+  } = useAppStore((state) => state.postAd);
 
-  const safeStores = storesError ? [] : stores || [];
+  const globalCategoryId = useAppStore((state) => state.postAd.categoryId);
+  const globalSubcategoryId = useAppStore((state) =>
+    state.postAd.subcategoryId
+  );
+  const globalStoreId = useAppStore((state) => state.postAd.storeId);
+
+  useEffect(() => {
+    if (globalCategoryId !== categoryId) {
+      setValue("category_id", globalCategoryId ?? 0);
+    }
+  }, [globalCategoryId, categoryId, setValue]);
+
+  useEffect(() => {
+    if (globalSubcategoryId !== null) {
+      setValue(
+        "subcategory_id",
+        globalSubcategoryId === null ? undefined : globalSubcategoryId,
+      );
+    }
+  }, [globalSubcategoryId, setValue]);
+
+  useEffect(() => {
+    if (globalStoreId !== undefined) {
+      setValue("store_id", globalStoreId);
+    }
+  }, [globalStoreId, setValue]);
+
+  const { data: categories } = useCategories();
 
   const attributeSchema = useMemo(() => {
     if (!categoryId || !categories) return null;
@@ -95,7 +118,6 @@ export default function Step1() {
     return category?.attribute_schema || null;
   }, [categoryId, categories]);
 
-  // Clear attributes when category changes
   useEffect(() => {
     setAttributes({});
   }, [categoryId, setAttributes]);
@@ -104,107 +126,27 @@ export default function Step1() {
     router.push("/(tabs)/listings");
   };
 
-  const handleNext = () => {
-    if (!title.trim()) {
-      Alert.alert("Required Field", "Please enter a title for your listing");
-      return;
-    }
-    if (!description.trim()) {
-      Alert.alert("Required Field", "Please enter a description");
-      return;
-    }
-    if (!price) {
-      Alert.alert("Required Field", "Please enter a price");
-      return;
-    }
-    if (!location.trim()) {
-      Alert.alert("Required Field", "Please enter a location");
-      return;
-    }
-    if (!condition) {
-      Alert.alert("Required Field", "Please select a condition");
-      return;
-    }
-    if (!categoryId) {
-      Alert.alert("Required Field", "Please select a category");
-      return;
-    }
+  const onSubmit = (data: Step1FormData) => {
+    setTitle(data.title);
+    setDescription(data.description);
+    setPrice(data.price);
+    setLocation(
+      data.location,
+      data.latitude ?? null,
+      data.longitude ?? null,
+    );
+    setCondition(data.condition);
+    setCategoryId(data.category_id);
+    setSubcategoryId(data.subcategory_id ?? null);
+    setStoreId(data.store_id);
+    setTags(data.tags);
+    setIsNegotiable(data.negotiable);
+    setAttributes(data.attributes);
+
     router.push("/(screens)/post-ad/step2");
   };
 
-  const formatPrice = (value: string) => {
-    const numericValue = value.replace(/\D/g, "");
-    if (numericValue === "") return "";
-    return parseInt(numericValue).toLocaleString();
-  };
-
-  const handlePriceChange = (text: string) => {
-    const formatted = formatPrice(text);
-    setPriceInput(formatted);
-  };
-
-  const handlePriceBlur = () => {
-    const numericValue = priceInput.replace(/\D/g, "");
-    setPrice(numericValue ? parseFloat(numericValue) : null);
-  };
-
-  const addTag = () => {
-    const trimmedTag = tagInput.trim();
-    if (trimmedTag && !tags.includes(trimmedTag)) {
-      const cleanTag = trimmedTag.startsWith("#")
-        ? trimmedTag.slice(1)
-        : trimmedTag;
-      setTags([...tags, cleanTag]);
-      setTagInput("");
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
-  };
-
-  const requestLocation = () => {
-    setShowLocationDialog(true);
-  };
-
-  const handleLocationConfirm = async () => {
-    setShowLocationDialog(false);
-    setIsLoadingLocation(true);
-    try {
-      const locationData = await getLocationWithAddress();
-      if (locationData) {
-        const locationText = locationData.address ||
-          `${
-            locationData.latitude.toFixed(
-              6,
-            )
-          }, ${locationData.longitude.toFixed(6)}`;
-        setLocation(locationText);
-        setLatitude(locationData.latitude);
-        setLongitude(locationData.longitude);
-        showLocationSuccessAlert(
-          "Your location has been automatically detected and filled in.",
-        );
-      } else {
-        showErrorAlert(
-          "Location Error",
-          "Unable to detect your location. Please enter it manually.",
-        );
-      }
-    } catch (error) {
-      console.error("Location error:", error);
-      showErrorAlert(
-        "Location Error",
-        "Failed to get your location. Please check your location permissions and try again, or enter your location manually.",
-      );
-    } finally {
-      setIsLoadingLocation(false);
-    }
-  };
-
-  const handleLocationDeny = () => {
-    setShowLocationDialog(false);
-  };
+  const handleNext = handleSubmit(onSubmit);
 
   return (
     <KeyboardAvoidingView
@@ -226,315 +168,36 @@ export default function Step1() {
             <View style={styles.placeholder} />
           </SafeAreaView>
 
-          <ScrollView
-            style={styles.content}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            removeClippedSubviews={false}
-          >
-            {/* Title */}
-            <View style={styles.section}>
-              <Text style={styles.label}>Title *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter listing title"
-                placeholderTextColor={Colors.grey}
-                value={title}
-                onChangeText={setTitle}
-                maxLength={100}
-              />
-              <Text style={styles.characterCount}>{title.length}/100</Text>
-            </View>
+          <FormProvider {...methods}>
+            <ScrollView
+              style={styles.content}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              removeClippedSubviews={false}
+            >
+              <TitleDescriptionSection />
+              <CategorySubcategorySection />
 
-            {/* Description */}
-            <View style={styles.section}>
-              <Text style={styles.label}>Description *</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Describe your item in detail"
-                placeholderTextColor={Colors.grey}
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={4}
-                maxLength={500}
-              />
-              <Text style={styles.characterCount}>
-                {description.length}/500
-              </Text>
-            </View>
-
-            {/* Category and Subcategory */}
-            <View style={styles.section}>
-              <View style={styles.rowContainer}>
-                {/* Category Trigger */}
-                <View style={styles.halfWidth}>
-                  <Text style={styles.label}>Category *</Text>
-                  <TouchableOpacity
-                    style={styles.dropdown}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(screens)/post-ad/select-option" as any,
-                        params: {
-                          type: "category",
-                          title: "Select Category",
-                          categoryId: categoryId?.toString(),
-                        },
-                      })}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.dropdownText,
-                        !categoryId && styles.placeholderText,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {categoryId
-                        ? categories?.find((c) => c.id === categoryId)?.name
-                        : "Select Category"}
-                    </Text>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={20}
-                      color={Colors.grey}
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Subcategory Trigger */}
-                <View style={styles.halfWidth}>
-                  <Text style={styles.label}>Subcategory</Text>
-                  <TouchableOpacity
-                    style={[
-                      styles.dropdown,
-                      !categoryId && styles.disabledDropdown,
-                    ]}
-                    onPress={() => {
-                      if (categoryId) {
-                        router.push({
-                          pathname: "/(screens)/post-ad/select-option" as any,
-                          params: {
-                            type: "subcategory",
-                            title: "Select Subcategory",
-                            categoryId: categoryId.toString(),
-                          },
-                        });
-                      }
-                    }}
-                    disabled={!categoryId}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.dropdownText,
-                        (!subcategoryId || !categoryId) &&
-                        styles.placeholderText,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {!categoryId
-                        ? "Select category first"
-                        : subcategoryId
-                        ? subcategories?.find((s) => s.id === subcategoryId)
-                          ?.name
-                        : "Subcategory"}
-                    </Text>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={20}
-                      color={Colors.grey}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-
-            {/* Dynamic Attributes */}
-            {categoryId && attributeSchema && (
-              <View style={styles.section}>
-                <Text style={styles.sectionHeader}>Additional Details</Text>
-                <DynamicAttributeFields
-                  schema={attributeSchema}
-                  values={attributes}
-                  onChange={setAttribute}
-                />
-              </View>
-            )}
-
-            {/* Store Selection */}
-            <View style={styles.section}>
-              <Text style={styles.label}>Store (Optional)</Text>
-              <TouchableOpacity
-                style={styles.dropdown}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(screens)/post-ad/select-option" as any,
-                    params: {
-                      type: "store",
-                      title: "Select Store",
-                    },
-                  })}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.dropdownText,
-                    !storeId && styles.placeholderText,
-                  ]}
-                >
-                  {storeId
-                    ? stores?.find((s) => s.id === storeId)?.name
-                    : "Select Store (Optional)"}
-                </Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={Colors.grey}
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* Price */}
-            <View style={styles.section}>
-              <Text style={styles.label}>Price (Kes) *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter price"
-                placeholderTextColor={Colors.grey}
-                value={priceInput}
-                onChangeText={handlePriceChange}
-                onBlur={handlePriceBlur}
-                keyboardType="numeric"
-              />
-
-              {/* Negotiable Checkbox */}
-              <TouchableOpacity
-                style={styles.checkboxContainer}
-                onPress={() => {
-                  setIsNegotiable(!isNegotiable);
-                }}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    styles.checkbox,
-                    isNegotiable && styles.checkboxChecked,
-                  ]}
-                >
-                  {isNegotiable && (
-                    <Ionicons name="checkmark" size={16} color={Colors.white} />
-                  )}
-                </View>
-                <Text style={styles.checkboxLabel}>Price is negotiable</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Location */}
-            <View style={styles.section}>
-              <Text style={styles.label}>Location *</Text>
-              <View style={styles.locationContainer}>
-                <TextInput
-                  style={[styles.input, styles.locationInput]}
-                  placeholder="Enter location"
-                  placeholderTextColor={Colors.grey}
-                  value={location}
-                  onChangeText={(text) => {
-                    console.log("Location input changed to:", text);
-                    setLocation(text);
-                  }}
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.locationButton,
-                    isLoadingLocation && styles.locationButtonLoading,
-                  ]}
-                  onPress={requestLocation}
-                  disabled={isLoadingLocation}
-                  activeOpacity={0.7}
-                >
-                  {isLoadingLocation ? <CustomLoader /> : (
-                    <Ionicons
-                      name="location-outline"
-                      size={20}
-                      color={Colors.primary}
-                    />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Condition */}
-            <View style={styles.section}>
-              <Text style={styles.label}>Condition *</Text>
-              <View style={styles.conditionContainer}>
-                {["New", "Like New", "Good", "Used"].map((cond) => (
-                  <TouchableOpacity
-                    key={cond}
-                    style={[
-                      styles.conditionButton,
-                      condition === cond && styles.conditionButtonSelected,
-                    ]}
-                    onPress={() => {
-                      setCondition(cond);
-                    }}
-                    activeOpacity={condition === cond ? 1 : 0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.conditionText,
-                        condition === cond && styles.conditionTextSelected,
-                      ]}
-                    >
-                      {cond}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Tags */}
-            <View style={styles.section}>
-              <Text style={styles.label}>
-                Tags (for search and classification)
-              </Text>
-              <View style={styles.tagInputContainer}>
-                <TextInput
-                  style={[styles.input, styles.tagInput]}
-                  placeholder="Add a tag (e.g., electronics, furniture)"
-                  placeholderTextColor={Colors.grey}
-                  value={tagInput}
-                  onChangeText={setTagInput}
-                  onSubmitEditing={addTag}
-                  returnKeyType="done"
-                />
-                <TouchableOpacity
-                  style={styles.addTagButton}
-                  onPress={addTag}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="add" size={20} color={Colors.white} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Display Tags */}
-              {tags.length > 0 && (
-                <View style={styles.tagsContainer}>
-                  {tags.map((tag, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.tag}
-                      onPress={() => removeTag(tag)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.tagText}>#{tag}</Text>
-                      <Ionicons name="close" size={16} color={Colors.white} />
-                    </TouchableOpacity>
-                  ))}
+              {/* Dynamic Attributes */}
+              {categoryId && attributeSchema && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionHeader}>Additional Details</Text>
+                  <DynamicAttributeFields
+                    schema={attributeSchema}
+                    control={methods.control}
+                    setValue={setValue}
+                    watch={methods.watch}
+                  />
                 </View>
               )}
-            </View>
-          </ScrollView>
+
+              <StoreSelectionSection />
+              <PriceNegotiableSection />
+              <LocationSection />
+              <ConditionSection />
+              <TagsSection />
+            </ScrollView>
+          </FormProvider>
 
           {/* Next Button */}
           <SafeAreaView edges={["bottom"]}>
@@ -553,26 +216,6 @@ export default function Step1() {
               </TouchableOpacity>
             </View>
           </SafeAreaView>
-
-          {/* Bottom Sheets */}
-
-          {/* Store Sheet */}
-
-          {/* Custom Location Permission Dialog */}
-          <CustomDialog
-            visible={showLocationDialog}
-            title="Location Permission"
-            message="Allow Kikwetu to access your location for automatic detection?"
-            confirmText="Allow"
-            denyText="Deny"
-            onConfirm={handleLocationConfirm}
-            onDeny={handleLocationDeny}
-            icon="location-outline"
-            iconColor={Colors.primary}
-          />
-
-          {/* Custom Alert */}
-          <AlertComponent />
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -812,5 +455,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     padding: 20,
     color: Colors.grey,
+  },
+  errorText: {
+    color: Colors.red,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  inputError: {
+    borderColor: Colors.red,
   },
 });
