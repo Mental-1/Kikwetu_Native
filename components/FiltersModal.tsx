@@ -1,7 +1,13 @@
 import { useSubcategoriesByCategory } from "@/hooks/useCategories";
 import { Colors } from "@/src/constants/constant";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Dimensions,
   KeyboardAvoidingView,
@@ -14,6 +20,7 @@ import {
   View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Chip } from "react-native-paper";
 import Animated, {
   Easing,
   useAnimatedProps,
@@ -27,6 +34,7 @@ import BottomSheet from "./BottomSheet";
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 const { width } = Dimensions.get("window");
 const SLIDER_WIDTH = width - 80;
+const DEBOUNCE_DELAY = 500;
 
 type Category = { id: number; name: string; emoji?: string };
 
@@ -69,6 +77,9 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
   );
   const [showAllCategories, setShowAllCategories] = useState(false);
 
+  const priceDebounceRef = useRef<number | undefined>(undefined);
+  const distanceDebounceRef = useRef<number | undefined>(undefined);
+
   React.useEffect(() => {
     if (visible && initialFilters) {
       setFilters((prev) => ({ ...prev, ...initialFilters }));
@@ -78,6 +89,14 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
       }
     }
   }, [visible, initialFilters]);
+  useEffect(() => {
+    return () => {
+      if (priceDebounceRef.current) clearTimeout(priceDebounceRef.current);
+      if (distanceDebounceRef.current) {
+        clearTimeout(distanceDebounceRef.current);
+      }
+    };
+  }, []);
 
   const conditionOptions = ["New", "Like New", "Used", "Refurbished"];
 
@@ -125,6 +144,27 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
     }));
   };
 
+  const handlePriceChange = useCallback((type: "min" | "max", text: string) => {
+    setPriceInputs((prev) => ({ ...prev, [type]: text }));
+
+    if (priceDebounceRef.current) {
+      clearTimeout(priceDebounceRef.current);
+    }
+
+    priceDebounceRef.current = setTimeout(() => {
+      const value = parseInt(text, 10);
+      if (!isNaN(value)) {
+        setFilters((prev) => ({
+          ...prev,
+          priceRange: {
+            ...prev.priceRange,
+            [type]: value,
+          },
+        }));
+      }
+    }, DEBOUNCE_DELAY);
+  }, []);
+
   const handleApply = () => {
     const parsedMin = Number.parseInt(priceInputs.min ?? "", 10);
     const parsedMax = Number.parseInt(priceInputs.max ?? "", 10);
@@ -153,9 +193,16 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
   const translateX = useSharedValue((filters.distance / 100) * SLIDER_WIDTH);
   const context = useSharedValue({ x: 0 });
 
-  const updateDistanceState = (dist: number) => {
-    setFilters((prev) => ({ ...prev, distance: dist }));
-  };
+  // Debounced distance update
+  const updateDistanceState = useCallback((dist: number) => {
+    if (distanceDebounceRef.current) {
+      clearTimeout(distanceDebounceRef.current);
+    }
+
+    distanceDebounceRef.current = setTimeout(() => {
+      setFilters((prev) => ({ ...prev, distance: dist }));
+    }, DEBOUNCE_DELAY);
+  }, []);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -190,17 +237,17 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
   });
 
   const CategorySkeleton = () => (
-    <View style={styles.pillsContainer}>
+    <View style={styles.chipsContainer}>
       {Array.from({ length: 6 }).map((_, i) => (
-        <View key={i} style={styles.skeletonPill} />
+        <View key={i} style={styles.skeletonChip} />
       ))}
     </View>
   );
 
   const SubcategorySkeleton = () => (
-    <View style={styles.pillsContainer}>
+    <View style={styles.chipsContainer}>
       {Array.from({ length: 4 }).map((_, i) => (
-        <View key={i} style={styles.skeletonPill} />
+        <View key={i} style={styles.skeletonChip} />
       ))}
     </View>
   );
@@ -213,7 +260,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
     >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
       >
         <View style={styles.modalHeader}>
@@ -244,28 +291,26 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
             <Text style={styles.sectionTitle}>Category</Text>
             {isLoading ? <CategorySkeleton /> : (
               <>
-                <View style={styles.pillsContainer}>
+                <View style={styles.chipsContainer}>
                   {displayedCategories.map((category) => (
-                    <TouchableOpacity
+                    <Chip
                       key={category.id}
-                      style={[
-                        styles.pill,
-                        selectedCategoryId === category.id &&
-                        styles.selectedPill,
-                      ]}
+                      mode="outlined"
+                      selected={selectedCategoryId === category.id}
                       onPress={() => handleCategorySelect(category.id)}
-                      activeOpacity={0.7}
+                      style={[
+                        styles.chip,
+                        selectedCategoryId === category.id &&
+                        styles.selectedChip,
+                      ]}
+                      textStyle={[
+                        styles.chipText,
+                        selectedCategoryId === category.id &&
+                        styles.selectedChipText,
+                      ]}
                     >
-                      <Text
-                        style={[
-                          styles.pillText,
-                          selectedCategoryId === category.id &&
-                          styles.selectedPillText,
-                        ]}
-                      >
-                        {category.emoji} {category.name}
-                      </Text>
-                    </TouchableOpacity>
+                      {category.emoji} {category.name}
+                    </Chip>
                   ))}
                 </View>
                 {!showAllCategories && categoryOptions.length > 8 && (
@@ -308,15 +353,12 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
               {subcategoriesLoading
                 ? <SubcategorySkeleton />
                 : (
-                  <View style={styles.pillsContainer}>
+                  <View style={styles.chipsContainer}>
                     {subcategoryOptions.map((subcategory) => (
-                      <TouchableOpacity
+                      <Chip
                         key={subcategory.id}
-                        style={[
-                          styles.pill,
-                          filters.subcategoryId === subcategory.id &&
-                          styles.selectedPill,
-                        ]}
+                        mode="outlined"
+                        selected={filters.subcategoryId === subcategory.id}
                         onPress={() =>
                           setFilters((prev) => ({
                             ...prev,
@@ -324,18 +366,19 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
                               ? null
                               : subcategory.id,
                           }))}
-                        activeOpacity={0.7}
+                        style={[
+                          styles.chip,
+                          filters.subcategoryId === subcategory.id &&
+                          styles.selectedChip,
+                        ]}
+                        textStyle={[
+                          styles.chipText,
+                          filters.subcategoryId === subcategory.id &&
+                          styles.selectedChipText,
+                        ]}
                       >
-                        <Text
-                          style={[
-                            styles.pillText,
-                            filters.subcategoryId === subcategory.id &&
-                            styles.selectedPillText,
-                          ]}
-                        >
-                          {subcategory.name}
-                        </Text>
-                      </TouchableOpacity>
+                        {subcategory.name}
+                      </Chip>
                     ))}
                   </View>
                 )}
@@ -344,28 +387,26 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Condition</Text>
-            <View style={styles.pillsContainer}>
+            <View style={styles.chipsContainer}>
               {conditionOptions.map((condition) => (
-                <TouchableOpacity
+                <Chip
                   key={condition}
-                  style={[
-                    styles.pill,
-                    filters.condition.includes(condition) &&
-                    styles.selectedPill,
-                  ]}
+                  mode="outlined"
+                  selected={filters.condition.includes(condition)}
                   onPress={() => handleConditionToggle(condition)}
-                  activeOpacity={0.7}
+                  style={[
+                    styles.chip,
+                    filters.condition.includes(condition) &&
+                    styles.selectedChip,
+                  ]}
+                  textStyle={[
+                    styles.chipText,
+                    filters.condition.includes(condition) &&
+                    styles.selectedChipText,
+                  ]}
                 >
-                  <Text
-                    style={[
-                      styles.pillText,
-                      filters.condition.includes(condition) &&
-                      styles.selectedPillText,
-                    ]}
-                  >
-                    {condition}
-                  </Text>
-                </TouchableOpacity>
+                  {condition}
+                </Chip>
               ))}
             </View>
           </View>
@@ -378,8 +419,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
                 <TextInput
                   style={styles.priceInput}
                   value={priceInputs.min}
-                  onChangeText={(text) =>
-                    setPriceInputs((prev) => ({ ...prev, min: text }))}
+                  onChangeText={(text) => handlePriceChange("min", text)}
                   placeholder="0"
                   keyboardType="numeric"
                   placeholderTextColor={Colors.grey}
@@ -390,8 +430,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
                 <TextInput
                   style={styles.priceInput}
                   value={priceInputs.max}
-                  onChangeText={(text) =>
-                    setPriceInputs((prev) => ({ ...prev, max: text }))}
+                  onChangeText={(text) => handlePriceChange("max", text)}
                   placeholder="1000000"
                   keyboardType="numeric"
                   placeholderTextColor={Colors.grey}
@@ -479,21 +518,28 @@ const styles = StyleSheet.create({
     color: Colors.black,
     marginBottom: 12,
   },
-  pillsContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  pill: {
+  chipsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
     backgroundColor: Colors.white,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderWidth: 1,
     borderColor: Colors.lightgrey,
   },
-  selectedPill: {
+  selectedChip: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
-  pillText: { fontSize: 14, color: Colors.black, fontWeight: "500" },
-  selectedPillText: { color: Colors.white, fontWeight: "600" },
+  chipText: {
+    fontSize: 14,
+    color: Colors.black,
+    fontWeight: "500",
+  },
+  selectedChipText: {
+    color: Colors.white,
+    fontWeight: "600",
+  },
   priceRangeContainer: { flexDirection: "row", gap: 12 },
   priceInputContainer: { flex: 1 },
   priceLabel: { fontSize: 14, color: Colors.grey, marginBottom: 8 },
@@ -560,12 +606,12 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   applyButtonText: { fontSize: 16, fontWeight: "700", color: Colors.white },
-  skeletonPill: {
+  skeletonChip: {
     backgroundColor: Colors.lightgrey,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    height: 36,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    height: 32,
     width: 80,
     marginRight: 8,
     marginBottom: 8,

@@ -1,7 +1,7 @@
 import { Colors } from "@/src/constants/constant";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -114,12 +114,10 @@ const PlanCard: React.FC<PlanCardProps> = ({
                         ))}
                     </View>
 
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.pickPlanButton,
-                            { opacity: pressed ? 0.8 : 1 },
-                        ]}
+                    <TouchableOpacity
+                        style={styles.pickPlanButton}
                         onPress={onPick}
+                        activeOpacity={0.8}
                     >
                         <Text style={styles.pickPlanButtonText}>Pick Plan</Text>
                         <Ionicons
@@ -127,7 +125,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                             size={18}
                             color={Colors.white}
                         />
-                    </Pressable>
+                    </TouchableOpacity>
                 </View>
             </Animated.View>
         </Pressable>
