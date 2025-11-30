@@ -1,22 +1,21 @@
-import CustomLoader from "@/components/ui/CustomLoader";
 import {
     useCategories,
     useSubcategoriesByCategory,
 } from "@/hooks/useCategories";
 import { Colors } from "@/src/constants/constant";
-import { useAppStore } from "@/stores/useAppStore";
-import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useMemo, useState } from "react";
+import { StyleSheet, View } from "react-native";
 import {
-    StyleSheet,
+    ActivityIndicator,
+    Appbar,
+    Divider,
+    List,
+    Searchbar,
     Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
+} from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type SelectionType = "category" | "subcategory" | "attribute";
@@ -42,12 +41,8 @@ export default function SelectOption() {
         options?: string;
     }>();
 
-    const { setCategoryId, setSubcategoryId } = useAppStore((state) =>
-        state.postAd
-    );
     const [searchQuery, setSearchQuery] = useState("");
 
-    // Fetch data based on type
     const parsedCategoryId = categoryId ? parseInt(categoryId) : null;
     const categoriesQuery = useCategories();
     const subcategoriesQuery = useSubcategoriesByCategory(
@@ -81,7 +76,6 @@ export default function SelectOption() {
         }
     }, [type, categoriesQuery, subcategoriesQuery, optionsParam]);
 
-    // Filter data based on search
     const filteredData = useMemo(() => {
         if (!rawData) return [];
         if (!searchQuery.trim()) return rawData;
@@ -90,13 +84,10 @@ export default function SelectOption() {
         );
     }, [rawData, searchQuery]);
 
-    // Handle selection based on type
     const handleSelect = useCallback(
         (item: OptionItem) => {
             switch (type) {
                 case "category":
-                    setCategoryId(Number(item.id));
-                    setSubcategoryId(null);
                     router.push({
                         pathname: "/(screens)/post-ad/select-option" as any,
                         params: {
@@ -108,39 +99,49 @@ export default function SelectOption() {
                     break;
 
                 case "subcategory":
-                    setSubcategoryId(Number(item.id));
-                    router.back();
-                    router.back();
+                    router.navigate({
+                        pathname: "/(screens)/post-ad/step1",
+                        params: {
+                            categoryId: categoryId,
+                            subcategoryId: item.id.toString(),
+                        },
+                    });
                     break;
 
                 case "attribute":
-                    if (attributeKey) {
-                        const { setAttribute } = useAppStore.getState().postAd;
-                        setAttribute(attributeKey, item.name);
-                    }
-                    router.back();
+                    router.navigate({
+                        pathname: "/(screens)/post-ad/step1",
+                        params: {
+                            attributeKey: attributeKey,
+                            attributeValue: item.name,
+                        },
+                    });
                     break;
             }
         },
-        [type, setCategoryId, setSubcategoryId, router, attributeKey],
+        [type, categoryId, attributeKey, router],
     );
 
     const renderItem = useCallback(
         ({ item }: { item: OptionItem }) => (
-            <TouchableOpacity
-                style={styles.item}
-                onPress={() => handleSelect(item)}
-                activeOpacity={0.7}
-            >
-                <Text style={styles.itemText}>{item.name}</Text>
-                <Ionicons
-                    name={type === "subcategory"
-                        ? "checkmark-circle-outline"
-                        : "chevron-forward"}
-                    size={20}
-                    color={Colors.grey}
+            <React.Fragment>
+                <List.Item
+                    title={item.name}
+                    onPress={() => handleSelect(item)}
+                    right={(props) => (
+                        <List.Icon
+                            {...props}
+                            icon={type === "subcategory"
+                                ? "check"
+                                : "chevron-right"}
+                            color={Colors.grey}
+                        />
+                    )}
+                    style={styles.item}
+                    titleStyle={styles.itemText}
                 />
-            </TouchableOpacity>
+                <Divider />
+            </React.Fragment>
         ),
         [handleSelect, type],
     );
@@ -149,51 +150,32 @@ export default function SelectOption() {
         <View style={styles.container}>
             <StatusBar style="dark" />
             <SafeAreaView style={styles.header} edges={["top"]}>
-                <View style={styles.headerTop}>
-                    <TouchableOpacity
-                        onPress={() => router.back()}
-                        style={styles.backButton}
-                    >
-                        <Ionicons
-                            name="chevron-back"
-                            size={24}
-                            color={Colors.black}
-                        />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>{title}</Text>
-                    <View style={styles.placeholder} />
-                </View>
+                <Appbar.Header style={styles.appbar} statusBarHeight={0}>
+                    <Appbar.BackAction onPress={() => router.back()} />
+                    <Appbar.Content
+                        title={title}
+                        titleStyle={styles.headerTitle}
+                    />
+                </Appbar.Header>
                 <View style={styles.searchContainer}>
-                    <Ionicons
-                        name="search"
-                        size={20}
-                        color={Colors.grey}
-                        style={styles.searchIcon}
-                    />
-                    <TextInput
-                        style={styles.searchInput}
+                    <Searchbar
                         placeholder={`Search ${title.toLowerCase()}...`}
-                        placeholderTextColor={Colors.grey}
-                        value={searchQuery}
                         onChangeText={setSearchQuery}
-                        autoFocus={false}
+                        value={searchQuery}
+                        style={styles.searchBar}
+                        inputStyle={styles.searchInput}
+                        elevation={0}
                     />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery("")}>
-                            <Ionicons
-                                name="close-circle"
-                                size={20}
-                                color={Colors.grey}
-                            />
-                        </TouchableOpacity>
-                    )}
                 </View>
             </SafeAreaView>
 
             {isLoading
                 ? (
                     <View style={styles.loadingContainer}>
-                        <CustomLoader />
+                        <ActivityIndicator
+                            size="large"
+                            color={Colors.primary}
+                        />
                     </View>
                 )
                 : (
@@ -228,43 +210,27 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: Colors.lightgrey,
     },
-    headerTop: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-    },
-    backButton: {
-        padding: 4,
-        marginLeft: -4,
+    appbar: {
+        backgroundColor: Colors.white,
+        elevation: 0,
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: "bold",
         color: Colors.black,
     },
-    placeholder: {
-        width: 32,
-    },
     searchContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: Colors.background,
-        marginHorizontal: 16,
-        marginBottom: 12,
-        paddingHorizontal: 12,
-        height: 44,
-        borderRadius: 8,
+        paddingHorizontal: 16,
+        paddingBottom: 12,
+        backgroundColor: Colors.white,
     },
-    searchIcon: {
-        marginRight: 8,
+    searchBar: {
+        backgroundColor: Colors.background,
+        borderRadius: 8,
+        height: 44,
     },
     searchInput: {
-        flex: 1,
-        fontSize: 16,
-        color: Colors.black,
-        height: "100%",
+        minHeight: 0, // Fix for searchbar height issue
     },
     loadingContainer: {
         flex: 1,
@@ -278,19 +244,12 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
     },
     item: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingVertical: 16,
-        paddingHorizontal: 16,
         backgroundColor: Colors.white,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.lightgrey,
+        paddingVertical: 8,
     },
     itemText: {
         fontSize: 16,
         color: Colors.black,
-        fontWeight: "500",
     },
     emptyContainer: {
         padding: 24,
