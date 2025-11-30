@@ -1,6 +1,4 @@
-import { supabase } from '@/lib/supabase';
-import { uploadImage } from '@/src/utils/imageUpload';
-import { IMAGE_PRESETS, processImage } from '@/utils/imageUtils';
+import { apiClient } from "./apiClient";
 
 export interface Profile {
   id: string;
@@ -36,7 +34,7 @@ export interface Profile {
   rating: number;
   referral_code?: string | null;
   reviews_count: number;
-  role: 'user' | 'admin' | 'moderator';
+  role: "user" | "admin" | "moderator";
   show_email: boolean;
   show_last_seen: boolean;
   show_phone: boolean;
@@ -63,6 +61,9 @@ export interface UpdateProfileData {
   timezone?: string;
   theme?: string;
   profile_visibility?: string;
+}
+
+export interface UpdatePreferencesData {
   email_notifications?: boolean;
   push_notifications?: boolean;
   sms_notifications?: boolean;
@@ -88,27 +89,17 @@ export interface ChangeEmailData {
 /**
  * Get current user's profile
  */
-export async function getCurrentProfile(): Promise<Profile | null> {
+export async function getCurrentProfile(): Promise<Profile> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
+    const response = await apiClient.get<Profile>("/user/profile");
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error || "Failed to fetch profile");
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (error) {
-      console.error('Error fetching profile:', error);
-      throw error;
-    }
-
-    return data;
+    return response.data;
   } catch (error) {
-    console.error('Error in getCurrentProfile:', error);
+    console.error("Error in getCurrentProfile:", error);
     throw error;
   }
 }
@@ -116,154 +107,86 @@ export async function getCurrentProfile(): Promise<Profile | null> {
 /**
  * Update user's profile
  */
-export async function updateProfile(profileData: UpdateProfileData): Promise<Profile> {
+export async function updateProfile(
+  profileData: UpdateProfileData,
+): Promise<Profile> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
+    const response = await apiClient.put<Profile>("/user/profile", profileData);
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error || "Failed to update profile");
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({
-        ...profileData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating profile:', error);
-      throw error;
-    }
-
-    return data;
+    return response.data;
   } catch (error) {
-    console.error('Error in updateProfile:', error);
+    console.error("Error in updateProfile:", error);
     throw error;
   }
 }
 
 /**
- * Upload and update user's avatar
+ * Get user preferences
+ */
+export async function getPreferences(): Promise<UpdatePreferencesData> {
+  try {
+    const response = await apiClient.get<UpdatePreferencesData>(
+      "/user/preferences",
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error || "Failed to fetch preferences");
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("Error in getPreferences:", error);
+    throw error;
+  }
+}
+
+/**
+ * Update user preferences
+ */
+export async function updatePreferences(
+  preferencesData: UpdatePreferencesData,
+): Promise<UpdatePreferencesData> {
+  try {
+    const response = await apiClient.put<UpdatePreferencesData>(
+      "/user/preferences",
+      preferencesData,
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error || "Failed to update preferences");
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("Error in updatePreferences:", error);
+    throw error;
+  }
+}
+
+/**
+ * Upload user avatar
  */
 export async function updateAvatar(imageUri: string): Promise<string> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
+    // TODO: Process image before upload (WebP conversion, resizing)
+    const response = await apiClient.post<{ avatar_url: string }>(
+      "/user/avatar",
+      {
+        imageUri,
+      },
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error || "Failed to upload avatar");
     }
 
-    // Process image with WebP conversion and profile-specific settings
-    const processedImage = await processImage(imageUri, IMAGE_PRESETS.PROFILE);
-
-    // Upload processed image to profiles bucket
-    const uploadResult = await uploadImage(processedImage.uri, {
-      bucket: 'profiles',
-      folder: 'avatars',
-    });
-
-    if (!uploadResult) {
-      throw new Error('Failed to upload avatar');
-    }
-
-    // Update profile with new avatar URL
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        avatar_url: uploadResult.url,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id);
-
-    if (error) {
-      console.error('Error updating avatar URL:', error);
-      throw error;
-    }
-
-    return uploadResult.url;
+    return response.data.avatar_url;
   } catch (error) {
-    console.error('Error in updateAvatar:', error);
-    throw error;
-  }
-}
-
-/**
- * Change user's password
- */
-export async function changePassword(passwordData: ChangePasswordData): Promise<void> {
-  try {
-    const { error } = await supabase.auth.updateUser({
-      password: passwordData.newPassword,
-    });
-
-    if (error) {
-      console.error('Error changing password:', error);
-      throw error;
-    }
-  } catch (error) {
-    console.error('Error in changePassword:', error);
-    throw error;
-  }
-}
-
-/**
- * Change user's email
- */
-export async function changeEmail(emailData: ChangeEmailData): Promise<void> {
-  try {
-    const { error } = await supabase.auth.updateUser({
-      email: emailData.newEmail,
-    });
-
-    if (error) {
-      console.error('Error changing email:', error);
-      throw error;
-    }
-
-    // Update profile email as well
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase
-        .from('profiles')
-        .update({
-          email: emailData.newEmail,
-          email_verified: false, // Reset verification status
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
-    }
-  } catch (error) {
-    console.error('Error in changeEmail:', error);
-    throw error;
-  }
-}
-
-/**
- * Enable/disable two-factor authentication
- */
-export async function toggleMFA(enabled: boolean): Promise<void> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        mfa_enabled: enabled,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id);
-
-    if (error) {
-      console.error('Error toggling MFA:', error);
-      throw error;
-    }
-  } catch (error) {
-    console.error('Error in toggleMFA:', error);
+    console.error("Error in updateAvatar:", error);
     throw error;
   }
 }
@@ -273,38 +196,69 @@ export async function toggleMFA(enabled: boolean): Promise<void> {
  */
 export async function deleteAvatar(): Promise<void> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
+    const response = await apiClient.delete<void>("/user/avatar");
 
-    // Get current profile to get avatar URL
-    const profile = await getCurrentProfile();
-    if (profile?.avatar_url) {
-      // Delete from storage
-      const fileName = profile.avatar_url.split('/').pop();
-      if (fileName) {
-        await supabase.storage
-          .from('profiles')
-          .remove([`avatars/${fileName}`]);
-      }
-    }
-
-    // Update profile to remove avatar URL
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        avatar_url: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id);
-
-    if (error) {
-      console.error('Error deleting avatar:', error);
-      throw error;
+    if (!response.success) {
+      throw new Error(response.error || "Failed to delete avatar");
     }
   } catch (error) {
-    console.error('Error in deleteAvatar:', error);
+    console.error("Error in deleteAvatar:", error);
+    throw error;
+  }
+}
+
+/**
+ * Delete user account
+ */
+export async function deleteAccount(): Promise<void> {
+  try {
+    const response = await apiClient.delete<void>("/user/account");
+
+    if (!response.success) {
+      throw new Error(response.error || "Failed to delete account");
+    }
+  } catch (error) {
+    console.error("Error in deleteAccount:", error);
+    throw error;
+  }
+}
+
+/**
+ * Initiate phone verification
+ */
+export async function verifyPhone(phoneNumber: string): Promise<void> {
+  try {
+    const response = await apiClient.post<void>("/user/verify-phone", {
+      phone_number: phoneNumber,
+    });
+
+    if (!response.success) {
+      throw new Error(
+        response.error || "Failed to initiate phone verification",
+      );
+    }
+  } catch (error) {
+    console.error("Error in verifyPhone:", error);
+    throw error;
+  }
+}
+
+/**
+ * Confirm phone verification
+ */
+export async function confirmPhoneVerification(
+  verificationCode: string,
+): Promise<void> {
+  try {
+    const response = await apiClient.post<void>("/user/confirm-phone", {
+      code: verificationCode,
+    });
+
+    if (!response.success) {
+      throw new Error(response.error || "Failed to confirm phone verification");
+    }
+  } catch (error) {
+    console.error("Error in confirmPhoneVerification:", error);
     throw error;
   }
 }
@@ -312,22 +266,61 @@ export async function deleteAvatar(): Promise<void> {
 /**
  * Get profile by ID (for viewing other users' profiles)
  */
-export async function getProfileById(profileId: string): Promise<Profile | null> {
+export async function getProfileById(
+  profileId: string,
+): Promise<Profile | null> {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', profileId)
-      .single();
+    const response = await apiClient.get<Profile>(`/user/${profileId}`);
 
-    if (error) {
-      console.error('Error fetching profile by ID:', error);
-      throw error;
+    if (!response.success || !response.data) {
+      throw new Error(response.error || "Failed to fetch profile");
     }
 
-    return data;
+    return response.data;
   } catch (error) {
-    console.error('Error in getProfileById:', error);
+    console.error("Error in getProfileById:", error);
+    throw error;
+  }
+}
+
+/**
+ * Toggle follow/unfollow a user
+ */
+export async function toggleFollowUser(
+  userId: string,
+): Promise<{ following: boolean }> {
+  try {
+    const response = await apiClient.post<{ following: boolean }>(
+      `/user/${userId}/toggle-follow`,
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error || "Failed to toggle follow");
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("Error in toggleFollowUser:", error);
+    throw error;
+  }
+}
+
+/**
+ * Check if current user is following another user
+ */
+export async function checkIfFollowing(userId: string): Promise<boolean> {
+  try {
+    const response = await apiClient.get<{ following: boolean }>(
+      `/user/${userId}/follow-status`,
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error || "Failed to check follow status");
+    }
+
+    return response.data.following;
+  } catch (error) {
+    console.error("Error in checkIfFollowing:", error);
     throw error;
   }
 }

@@ -1,17 +1,23 @@
 import {
-    changeEmail,
-    changePassword,
-    deleteAvatar,
-    getCurrentProfile,
-    getProfileById,
-    toggleMFA,
-    updateAvatar,
-    updateProfile,
-    type ChangeEmailData,
-    type ChangePasswordData,
-    type UpdateProfileData
+  deleteAvatar,
+  getCurrentProfile,
+  getProfileById,
+  updateAvatar,
+  updateProfile,
+  type UpdateProfileData
 } from '@/src/services/profileService';
+import { authService } from '@/src/services/auth.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+export interface ChangePasswordData {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangeEmailData {
+  newEmail: string;
+  currentPassword: string;
+}
 
 /**
  * Hook to fetch current user's profile
@@ -72,7 +78,8 @@ export function useUpdateAvatar() {
  */
 export function useChangePassword() {
   return useMutation({
-    mutationFn: (passwordData: ChangePasswordData) => changePassword(passwordData),
+    mutationFn: (passwordData: ChangePasswordData) => 
+      authService.changePassword(passwordData.currentPassword, passwordData.newPassword),
   });
 }
 
@@ -83,7 +90,8 @@ export function useChangeEmail() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (emailData: ChangeEmailData) => changeEmail(emailData),
+    mutationFn: (emailData: ChangeEmailData) => 
+      authService.changeEmail(emailData.newEmail, emailData.currentPassword),
     onSuccess: () => {
       // Invalidate and refetch profile data
       queryClient.invalidateQueries({ queryKey: ['profile'] });
@@ -98,7 +106,7 @@ export function useToggleMFA() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (enabled: boolean) => toggleMFA(enabled),
+    mutationFn: (enabled: boolean) => authService.toggleMFA(enabled),
     onSuccess: () => {
       // Invalidate and refetch profile data
       queryClient.invalidateQueries({ queryKey: ['profile'] });

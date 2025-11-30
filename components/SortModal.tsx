@@ -18,8 +18,7 @@ const sortOptions = [
   { value: "oldest", label: "Oldest First" },
   { value: "price-low", label: "Price: Low to High" },
   { value: "price-high", label: "Price: High to Low" },
-  { value: "popular", label: "Most Popular" },
-  { value: "rating", label: "Highest Rated" },
+  { value: "relevance", label: "Most Relevant" },
 ];
 
 const SortModal: React.FC<SortModalProps> = ({
@@ -68,6 +67,7 @@ const SortModal: React.FC<SortModalProps> = ({
         </View>
 
         <ScrollView
+          style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.sortOptionsContainer}
         >
@@ -109,7 +109,6 @@ const SortModal: React.FC<SortModalProps> = ({
 
 const styles = StyleSheet.create({
   modalContainer: {
-    paddingBottom: 20,
     flex: 1,
   },
   modalHeader: {

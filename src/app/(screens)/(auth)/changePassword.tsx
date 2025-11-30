@@ -1,8 +1,10 @@
-import { Colors } from '@/src/constants/constant';
-import { useChangePassword } from '@/src/hooks/useProfile';
-import { useCustomAlert } from '@/utils/alertUtils';
-import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import BottomSheet from "@/components/BottomSheet";
+import CustomLoader from "@/components/ui/CustomLoader";
+import { Colors } from "@/src/constants/constant";
+import { useChangePassword } from "@/src/hooks/useProfile";
+import { useCustomAlert } from "@/utils/alertUtils";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,9 +14,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
-import BottomSheet from '@/components/BottomSheet';
-import CustomLoader from '@/components/ui/CustomLoader';
+} from "react-native";
 
 interface ChangePasswordModalProps {
   visible: boolean;
@@ -27,32 +27,32 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
 }) => {
   const changePasswordMutation = useChangePassword();
   const { showAlert, AlertComponent } = useCustomAlert();
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const validatePassword = (
-    password: string
+    password: string,
   ): { isValid: boolean; message?: string } => {
     if (password.length < 8) {
       return {
         isValid: false,
-        message: 'Password must be at least 8 characters long.',
+        message: "Password must be at least 8 characters long.",
       };
     }
 
     if (!/(?=.*[a-zA-Z])/.test(password)) {
       return {
         isValid: false,
-        message: 'Password must contain at least one letter.',
+        message: "Password must contain at least one letter.",
       };
     }
 
     if (!/(?=.*\d)/.test(password)) {
       return {
         isValid: false,
-        message: 'Password must contain at least one number.',
+        message: "Password must contain at least one number.",
       };
     }
 
@@ -63,18 +63,18 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     // Validation
     if (!currentPassword.trim()) {
       showAlert({
-        title: 'Error',
-        message: 'Please enter your current password.',
-        buttons: [{ text: 'OK' }],
+        title: "Error",
+        message: "Please enter your current password.",
+        buttons: [{ text: "OK" }],
       });
       return;
     }
 
     if (!newPassword.trim()) {
       showAlert({
-        title: 'Error',
-        message: 'Please enter a new password.',
-        buttons: [{ text: 'OK' }],
+        title: "Error",
+        message: "Please enter a new password.",
+        buttons: [{ text: "OK" }],
       });
       return;
     }
@@ -82,27 +82,27 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     const passwordValidation = validatePassword(newPassword);
     if (!passwordValidation.isValid) {
       showAlert({
-        title: 'Weak Password',
+        title: "Weak Password",
         message: passwordValidation.message,
-        buttons: [{ text: 'OK' }],
+        buttons: [{ text: "OK" }],
       });
       return;
     }
 
     if (newPassword !== confirmPassword) {
       showAlert({
-        title: 'Error',
-        message: 'New password and confirmation do not match.',
-        buttons: [{ text: 'OK' }],
+        title: "Error",
+        message: "New password and confirmation do not match.",
+        buttons: [{ text: "OK" }],
       });
       return;
     }
 
     if (currentPassword === newPassword) {
       showAlert({
-        title: 'Error',
-        message: 'New password must be different from your current password.',
-        buttons: [{ text: 'OK' }],
+        title: "Error",
+        message: "New password must be different from your current password.",
+        buttons: [{ text: "OK" }],
       });
       return;
     }
@@ -115,28 +115,27 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       });
 
       showAlert({
-        title: 'Password Changed',
-        message: 'Your password has been successfully changed.',
+        title: "Password Changed",
+        message: "Your password has been successfully changed.",
         buttons: [
           {
-            text: 'OK',
+            text: "OK",
             onPress: () => {
-              setCurrentPassword('');
-              setNewPassword('');
-              setConfirmPassword('');
+              setCurrentPassword("");
+              setNewPassword("");
+              setConfirmPassword("");
               onClose();
             },
           },
         ],
       });
     } catch (error: any) {
-      console.error('Error changing password:', error);
+      console.error("Error changing password:", error);
       showAlert({
-        title: 'Error',
-        message:
-          error.message ||
-          'Failed to change password. Please check your current password and try again.',
-        buttons: [{ text: 'OK' }],
+        title: "Error",
+        message: error.message ||
+          "Failed to change password. Please check your current password and try again.",
+        buttons: [{ text: "OK" }],
       });
     } finally {
       setIsLoading(false);
@@ -144,9 +143,9 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   };
 
   const handleClose = () => {
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
     onClose();
   };
 
@@ -154,10 +153,13 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     <>
       <BottomSheet visible={visible} onClose={handleClose}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.keyboardAvoidingView}
         >
-          <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.scrollContainer}
+          >
             <View style={styles.modalContainer}>
               {/* Header */}
               <View style={styles.header}>
@@ -165,7 +167,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                   onPress={handleClose}
                   style={styles.closeButton}
                 >
-                  <Ionicons name='close' size={24} color={Colors.black} />
+                  <Ionicons name="close" size={24} color={Colors.black} />
                 </TouchableOpacity>
                 <Text style={styles.title}>Change Password</Text>
                 <View style={styles.placeholder} />
@@ -181,14 +183,14 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                   <Text style={styles.inputLabel}>Current Password</Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder='Enter your current password'
+                    placeholder="Enter your current password"
                     value={currentPassword}
                     onChangeText={setCurrentPassword}
                     secureTextEntry
-                    autoCapitalize='none'
+                    autoCapitalize="none"
                     autoCorrect={false}
-                    textContentType='password'
-                    autoComplete='password'
+                    textContentType="password"
+                    autoComplete="password"
                   />
                 </View>
 
@@ -196,14 +198,14 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                   <Text style={styles.inputLabel}>New Password</Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder='Enter new password'
+                    placeholder="Enter new password"
                     value={newPassword}
                     onChangeText={setNewPassword}
                     secureTextEntry
-                    autoCapitalize='none'
+                    autoCapitalize="none"
                     autoCorrect={false}
-                    textContentType='newPassword'
-                    autoComplete='new-password'
+                    textContentType="newPassword"
+                    autoComplete="new-password"
                   />
                   <Text style={styles.helpText}>
                     Must be at least 8 characters with letters and numbers
@@ -214,14 +216,14 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                   <Text style={styles.inputLabel}>Confirm New Password</Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder='Confirm new password'
+                    placeholder="Confirm new password"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry
-                    autoCapitalize='none'
+                    autoCapitalize="none"
                     autoCorrect={false}
-                    textContentType='newPassword'
-                    autoComplete='new-password'
+                    textContentType="newPassword"
+                    autoComplete="new-password"
                   />
                 </View>
 
@@ -230,11 +232,9 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                   onPress={handleChangePassword}
                   disabled={isLoading}
                 >
-                  {isLoading ? (
-                    <CustomLoader />
-                  ) : (
-                    <Text style={styles.buttonText}>Change Password</Text>
-                  )}
+                  {isLoading
+                    ? <CustomLoader />
+                    : <Text style={styles.buttonText}>Change Password</Text>}
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -259,18 +259,16 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'flex-end',
   },
   modalContainer: {
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    height: '100%',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
@@ -279,7 +277,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.black,
   },
   placeholder: {
@@ -300,7 +298,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.black,
     marginBottom: 8,
   },
@@ -323,7 +321,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderRadius: 8,
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   buttonDisabled: {
@@ -332,10 +330,10 @@ const styles = StyleSheet.create({
   buttonText: {
     color: Colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   cancelButton: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 12,
     marginTop: 12,
   },

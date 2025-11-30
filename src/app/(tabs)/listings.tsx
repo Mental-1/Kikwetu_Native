@@ -1,20 +1,29 @@
-import FiltersModal from '@/components/FiltersModal';
-import ListingCard from '@/components/ListingCard';
-import ListingsSkeleton from '@/components/ListingsSkeleton';
-import SortModal from '@/components/SortModal';
-import CustomLoader from '@/components/ui/CustomLoader';
-import { useCategories, useCategoryMutations } from '@/hooks/useCategories';
-import { Colors } from '@/src/constants/constant';
-import { useSaveListing, useUnsaveListing } from '@/src/hooks/useApiSavedListings';
-import { useListings } from '@/src/hooks/useListings';
-import { useAppStore } from '@/stores/useAppStore';
-import type { ListingItem } from '@/types/types';
-import { showErrorToast, showSuccessToast } from '@/utils/toast';
-import { Ionicons } from '@expo/vector-icons';
+import FiltersModal from "@/components/FiltersModal";
+import ListingCard from "@/components/ListingCard";
+import ListingsSkeleton from "@/components/ListingsSkeleton";
+import SortModal from "@/components/SortModal";
+import CustomLoader from "@/components/ui/CustomLoader";
+import { useCategories, useCategoryMutations } from "@/hooks/useCategories";
+import { Colors } from "@/src/constants/constant";
+import {
+  useSaveListing,
+  useUnsaveListing,
+} from "@/src/hooks/useApiSavedListings";
+import { useListings } from "@/src/hooks/useListings";
+import { useAppStore } from "@/stores/useAppStore";
+import type { ListingItem } from "@/types/types";
+import { showErrorToast, showSuccessToast } from "@/utils/toast";
+import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Animated,
   Dimensions,
@@ -22,11 +31,11 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 const ListingsLoading = () => (
   <View style={{ flex: 1, backgroundColor: Colors.background }}>
@@ -36,9 +45,18 @@ const ListingsLoading = () => (
 
 function ListingsContent() {
   const router = useRouter();
-  const { category, subcategory } = useLocalSearchParams<{ category: string; subcategory: string }>();
+  const { category, subcategory, sort } = useLocalSearchParams<
+    { category: string; subcategory: string; sort: string }
+  >();
   const { searchQuery, setSearchQuery } = useAppStore();
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+  const [sortBy, setSortBy] = useState(sort || "newest");
+
+  useEffect(() => {
+    if (sort) {
+      setSortBy(sort);
+    }
+  }, [sort]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -51,7 +69,6 @@ function ListingsContent() {
   }, [searchQuery]);
 
   const [isGridView, setIsGridView] = useState(true);
-  const [sortBy, setSortBy] = useState('newest');
   const [appliedFilters, setAppliedFilters] = useState<any>(null);
 
   useEffect(() => {
@@ -65,11 +82,15 @@ function ListingsContent() {
   }, [category, subcategory]);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  const [favoriteStates, setFavoriteStates] = useState<Record<string, boolean>>({});
+  const [favoriteStates, setFavoriteStates] = useState<Record<string, boolean>>(
+    {},
+  );
   const saveListingMutation = useSaveListing();
   const unsaveListingMutation = useUnsaveListing();
 
-  const flatListRef = useRef<React.ComponentRef<typeof FlashList<ListingItem>>>(null);
+  const flatListRef = useRef<React.ComponentRef<typeof FlashList<ListingItem>>>(
+    null,
+  );
   const [isFiltersModalVisible, setIsFiltersModalVisible] = useState(false);
   const [isSortModalVisible, setIsSortModalVisible] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -77,31 +98,34 @@ function ListingsContent() {
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { prefetchSubcategories } = useCategoryMutations();
 
-  const { 
-    data, 
-    isLoading, 
-    error, 
-    fetchNextPage, 
-    hasNextPage, 
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
     isFetchingNextPage,
-    refetch
-  } = useListings({ 
-    search: debouncedSearchQuery, 
-    ...appliedFilters, 
-    sortBy 
+    refetch,
+  } = useListings({
+    search: debouncedSearchQuery,
+    ...appliedFilters,
+    sortBy,
   });
 
-  const listings = data?.pages.flatMap(page => page.data) || [];
+  const listings = data?.pages.flatMap((page) => page.data) || [];
 
   useEffect(() => {
     if (error) {
-      showErrorToast(error.message || 'Failed to load listings', 'Network Error');
+      showErrorToast(
+        error.message || "Failed to load listings",
+        "Network Error",
+      );
     }
   }, [error]);
 
   useEffect(() => {
     if (categories && categories.length > 0) {
-        prefetchSubcategories();
+      prefetchSubcategories();
     }
   }, [categories, prefetchSubcategories]);
 
@@ -115,7 +139,7 @@ function ListingsContent() {
   }, []);
 
   const handleBackPress = () => {
-    router.push('/(tabs)/home');
+    router.push("/(tabs)/home");
   };
 
   const handleListingPress = (listingId: string) => {
@@ -124,20 +148,20 @@ function ListingsContent() {
 
   const handleListingFavoritePress = useCallback(async (listingId: string) => {
     const isCurrentlyFavorite = favoriteStates[listingId];
-    
+
     try {
       if (isCurrentlyFavorite) {
         await unsaveListingMutation.mutateAsync(listingId);
-        setFavoriteStates(prev => ({ ...prev, [listingId]: false }));
-        showSuccessToast('Removed from favorites');
+        setFavoriteStates((prev) => ({ ...prev, [listingId]: false }));
+        showSuccessToast("Removed from favorites");
       } else {
         await saveListingMutation.mutateAsync({ listingId });
-        setFavoriteStates(prev => ({ ...prev, [listingId]: true }));
-        showSuccessToast('Added to favorites');
+        setFavoriteStates((prev) => ({ ...prev, [listingId]: true }));
+        showSuccessToast("Added to favorites");
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
-      showErrorToast('Failed to update favorites');
+      console.error("Error toggling favorite:", error);
+      showErrorToast("Failed to update favorites");
     }
   }, [favoriteStates, saveListingMutation, unsaveListingMutation]);
 
@@ -157,20 +181,21 @@ function ListingsContent() {
   const handleApplyFilters = useCallback((filters: any) => {
     setAppliedFilters(filters);
     setIsFiltersModalVisible(false);
-    console.log('Applied filters:', filters);
+    console.log("Applied filters:", filters);
   }, []);
 
   const handleSortChange = useCallback((newSortBy: string) => {
     setSortBy(newSortBy);
+    router.setParams({ sort: newSortBy });
     setIsSortModalVisible(false);
-    console.log('Sort changed to:', newSortBy);
-  }, []);
+    console.log("Sort changed to:", newSortBy);
+  }, [router]);
 
   const getSearchDisplayText = () => {
-    if (!searchQuery) return 'All Items';
-    const words = searchQuery.trim().split(' ');
+    if (!searchQuery) return "All Items";
+    const words = searchQuery.trim().split(" ");
     if (words.length > 4) {
-      return words.slice(0, 4).join(' ') + '...';
+      return words.slice(0, 4).join(" ") + "...";
     }
     return searchQuery;
   };
@@ -180,10 +205,14 @@ function ListingsContent() {
       <ListingCard
         id={item.id}
         title={item.title}
-        price={item.price ? `Kes ${item.price.toLocaleString()}` : 'Price not set'}
-        condition={item.condition || 'Not specified'}
-        location={item.location || 'Location not specified'}
-        image={item.images && item.images.length > 0 ? item.images[0] : 'https://via.placeholder.com/200x140'}
+        price={item.price
+          ? `Kes ${item.price.toLocaleString()}`
+          : "Price not set"}
+        condition={item.condition || "Not specified"}
+        location={item.location || "Location not specified"}
+        image={item.images && item.images.length > 0
+          ? item.images[0]
+          : "https://via.placeholder.com/200x140"}
         description={item.description || undefined}
         views={item.views || 0}
         isFavorite={favoriteStates[item.id] || false}
@@ -198,10 +227,14 @@ function ListingsContent() {
     <ListingCard
       id={item.id}
       title={item.title}
-      price={item.price ? `Kes ${item.price.toLocaleString()}` : 'Price not set'}
-      condition={item.condition || 'Not specified'}
-      location={item.location || 'Location not specified'}
-      image={item.images && item.images.length > 0 ? item.images[0] : 'https://via.placeholder.com/200x140'}
+      price={item.price
+        ? `Kes ${item.price.toLocaleString()}`
+        : "Price not set"}
+      condition={item.condition || "Not specified"}
+      location={item.location || "Location not specified"}
+      image={item.images && item.images.length > 0
+        ? item.images[0]
+        : "https://via.placeholder.com/200x140"}
       description={item.description || undefined}
       views={item.views || 0}
       isFavorite={false}
@@ -214,18 +247,28 @@ function ListingsContent() {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-      
+
       {/* Header */}
-      <SafeAreaView style={styles.header} edges={['top']}>
+      <SafeAreaView style={styles.header} edges={["top"]}>
         <View style={styles.headerContent}>
           {/* Back Button */}
-          <Pressable style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.7 : 1 }]} onPress={handleBackPress}>
+          <Pressable
+            style={(
+              { pressed },
+            ) => [styles.backButton, { opacity: pressed ? 0.7 : 1 }]}
+            onPress={handleBackPress}
+          >
             <Ionicons name="chevron-back" size={24} color={Colors.black} />
           </Pressable>
 
           {/* Search Bar */}
           <View style={styles.searchContainer}>
-            <Ionicons name="search-outline" size={20} color={Colors.grey} style={styles.searchIcon} />
+            <Ionicons
+              name="search-outline"
+              size={20}
+              color={Colors.grey}
+              style={styles.searchIcon}
+            />
             <TextInput
               style={styles.searchInput}
               placeholder="Search..."
@@ -236,21 +279,36 @@ function ListingsContent() {
           </View>
 
           {/* View Toggle */}
-          <Pressable style={({ pressed }) => [styles.toggleButton, { opacity: pressed ? 0.7 : 1 }]} onPress={toggleView}>
-            <Ionicons 
-              name={isGridView ? "grid-outline" : "list-outline"} 
-              size={20} 
-              color={Colors.primary} 
+          <Pressable
+            style={(
+              { pressed },
+            ) => [styles.toggleButton, { opacity: pressed ? 0.7 : 1 }]}
+            onPress={toggleView}
+          >
+            <Ionicons
+              name={isGridView ? "grid-outline" : "list-outline"}
+              size={20}
+              color={Colors.primary}
             />
           </Pressable>
 
           {/* Filter Button */}
-          <Pressable style={({ pressed }) => [styles.sortButton, { opacity: pressed ? 0.7 : 1 }]} onPress={handleFilterToggle}>
+          <Pressable
+            style={(
+              { pressed },
+            ) => [styles.sortButton, { opacity: pressed ? 0.7 : 1 }]}
+            onPress={handleFilterToggle}
+          >
             <Ionicons name="options-outline" size={20} color={Colors.primary} />
           </Pressable>
 
           {/* Sort Button */}
-          <Pressable style={({ pressed }) => [styles.sortButton, { opacity: pressed ? 0.7 : 1 }]} onPress={handleSort}>
+          <Pressable
+            style={(
+              { pressed },
+            ) => [styles.sortButton, { opacity: pressed ? 0.7 : 1 }]}
+            onPress={handleSort}
+          >
             <Ionicons name="funnel-outline" size={20} color={Colors.primary} />
           </Pressable>
         </View>
@@ -273,82 +331,105 @@ function ListingsContent() {
 
       {/* Content */}
       <View style={styles.content}>
-        {isLoading ? (
-          <ListingsSkeleton viewMode={isGridView ? 'grid' : 'list'} count={6} />
-        ) : error ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error?.message || 'Something went wrong'}</Text>
-            <Pressable 
-              style={({ pressed }) => [styles.retryButton, { opacity: pressed ? 0.7 : 1 }]} 
-              onPress={() => {
-                refetch();
-                showErrorToast('Retrying to load listings...', 'Retry');
+        {isLoading
+          ? (
+            <ListingsSkeleton
+              viewMode={isGridView ? "grid" : "list"}
+              count={6}
+            />
+          )
+          : error
+          ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>
+                {error?.message || "Something went wrong"}
+              </Text>
+              <Pressable
+                style={(
+                  { pressed },
+                ) => [styles.retryButton, { opacity: pressed ? 0.7 : 1 }]}
+                onPress={() => {
+                  refetch();
+                  showErrorToast("Retrying to load listings...", "Retry");
+                }}
+              >
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </Pressable>
+            </View>
+          )
+          : listings.length === 0
+          ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No listings found</Text>
+              <Text style={styles.emptySubtext}>
+                {searchQuery
+                  ? "Try adjusting your search terms"
+                  : "Check back later for new listings"}
+              </Text>
+            </View>
+          )
+          : isGridView
+          ? (
+            <FlashList
+              ref={flatListRef}
+              key="grid"
+              data={listings as ListingItem[]}
+              renderItem={renderGridItem}
+              keyExtractor={(item) => item.id}
+              numColumns={2}
+              contentContainerStyle={styles.gridContainer}
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              onEndReached={() => {
+                if (hasNextPage && !isFetchingNextPage) {
+                  fetchNextPage();
+                }
               }}
-            >
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </Pressable>
-          </View>
-        ) : listings.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No listings found</Text>
-            <Text style={styles.emptySubtext}>
-              {searchQuery ? 'Try adjusting your search terms' : 'Check back later for new listings'}
-            </Text>
-          </View>
-        ) : isGridView ? (
-          <FlashList
-            ref={flatListRef}
-            key="grid"
-            data={listings as ListingItem[]}
-            renderItem={renderGridItem}
-            keyExtractor={(item) => item.id}
-            numColumns={2}
-            contentContainerStyle={styles.gridContainer}
-            showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            onEndReached={() => {
-              if (hasNextPage && !isFetchingNextPage) {
-                fetchNextPage();
-              }
-            }}
-            onEndReachedThreshold={0.1}
-            ListFooterComponent={() => 
-              isFetchingNextPage ? (
-                <View style={styles.loadingFooter}>
-                  <CustomLoader />
-                  <Text style={styles.loadingFooterText}>Loading more...</Text>
-                </View>
-              ) : null
-            }
-          />
-        ) : (
-          <FlashList
-            ref={flatListRef}
-            key="list"
-            data={listings as ListingItem[]}
-            renderItem={renderListItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContainer}
-            showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            onEndReached={() => {
-              if (hasNextPage && !isFetchingNextPage) {
-                fetchNextPage();
-              }
-            }}
-            onEndReachedThreshold={0.1}
-            ListFooterComponent={() => 
-              isFetchingNextPage ? (
-                <View style={styles.loadingFooter}>
-                  <CustomLoader />
-                  <Text style={styles.loadingFooterText}>Loading more...</Text>
-                </View>
-              ) : null
-            }
-          />
-        )}
+              onEndReachedThreshold={0.1}
+              ListFooterComponent={() =>
+                isFetchingNextPage
+                  ? (
+                    <View style={styles.loadingFooter}>
+                      <CustomLoader />
+                      <Text style={styles.loadingFooterText}>
+                        Loading more...
+                      </Text>
+                    </View>
+                  )
+                  : null}
+            />
+          )
+          : (
+            <FlashList
+              ref={flatListRef}
+              key="list"
+              data={listings as ListingItem[]}
+              renderItem={renderListItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContainer}
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              onEndReached={() => {
+                if (hasNextPage && !isFetchingNextPage) {
+                  fetchNextPage();
+                }
+              }}
+              onEndReachedThreshold={0.1}
+              ListFooterComponent={() =>
+                isFetchingNextPage
+                  ? (
+                    <View style={styles.loadingFooter}>
+                      <CustomLoader />
+                      <Text style={styles.loadingFooterText}>
+                        Loading more...
+                      </Text>
+                    </View>
+                  )
+                  : null}
+            />
+          )}
       </View>
 
       {/* Filters Modal */}
@@ -371,8 +452,10 @@ function ListingsContent() {
 
       {/* Back to Top Button */}
       {showBackToTop && (
-        <Pressable 
-          style={({ pressed }) => [styles.backToTopButton, { opacity: pressed ? 0.8 : 1 }]} 
+        <Pressable
+          style={(
+            { pressed },
+          ) => [styles.backToTopButton, { opacity: pressed ? 0.8 : 1 }]}
           onPress={scrollToTop}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -393,7 +476,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.4,
     borderBottomColor: Colors.lightgrey,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -402,8 +485,8 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
@@ -413,8 +496,8 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: Colors.white,
     borderRadius: 20,
     paddingHorizontal: 12,
@@ -440,9 +523,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
     zIndex: 1,
   },
   filterPill: {
@@ -450,23 +533,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   filterPillText: {
     color: Colors.white,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   resultsInfo: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     gap: 2,
   },
   resultsText: {
     fontSize: 14,
     color: Colors.black,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   sortText: {
     fontSize: 12,
@@ -492,15 +575,15 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 40,
   },
   errorText: {
     fontSize: 16,
     color: Colors.grey,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 20,
   },
   retryButton: {
@@ -512,30 +595,30 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: Colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 40,
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.black,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
     color: Colors.grey,
-    textAlign: 'center',
+    textAlign: "center",
   },
   loadingFooter: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 20,
     gap: 8,
   },
@@ -544,7 +627,7 @@ const styles = StyleSheet.create({
     color: Colors.grey,
   },
   backToTopButton: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     right: 20,
     zIndex: 1000,
@@ -552,10 +635,10 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 4,

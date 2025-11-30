@@ -180,8 +180,8 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
   const animatedThumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
   }));
-  const animatedProgressStyle = useAnimatedStyle(() => ({
-    width: translateX.value + 10,
+  const animatedFilledTrackStyle = useAnimatedStyle(() => ({
+    width: translateX.value,
   }));
 
   const animatedTextProps = useAnimatedProps(() => {
@@ -209,11 +209,10 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      snapPoints={["85%"]}
-      enableDynamicSizing
+      snapPoints={["90%"]}
     >
       <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
       >
@@ -236,7 +235,8 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
         </View>
 
         <ScrollView
-          style={styles.modalContent}
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.modalContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -411,7 +411,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
             <View style={styles.sliderContainer}>
               <View style={styles.sliderTrack} />
               <Animated.View
-                style={[styles.sliderProgress, animatedProgressStyle]}
+                style={[styles.sliderFilledTrack, animatedFilledTrackStyle]}
               />
               <GestureDetector gesture={panGesture}>
                 <Animated.View
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   resetText: { fontSize: 16, color: Colors.primary, fontWeight: "600" },
-  modalContent: { flexGrow: 0, flexShrink: 1, padding: 20 },
+  modalContent: { padding: 20, paddingBottom: 10 },
   section: { marginBottom: 24 },
   sectionTitle: {
     fontSize: 16,
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     width: "100%",
   },
-  sliderProgress: {
+  sliderFilledTrack: {
     height: 4,
     backgroundColor: Colors.primary,
     borderRadius: 2,
@@ -587,9 +587,6 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: "500",
     marginRight: 4,
-  },
-  keyboardAvoid: {
-    width: "100%",
   },
 });
 

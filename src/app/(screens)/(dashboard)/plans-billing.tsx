@@ -1,4 +1,6 @@
 import PaymentConfirmationSheet from "@/components/PaymentConfirmationSheet";
+import PlanCard from "@/components/PlanCard";
+import PlanUsageCard from "@/components/PlanUsageCard";
 import CustomLoader from "@/components/ui/CustomLoader";
 import { Colors } from "@/src/constants/constant";
 import {
@@ -16,6 +18,7 @@ import { StatusBar } from "expo-status-bar";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 interface SubscriptionPlan {
     id: string;
     name: string;
@@ -34,6 +37,7 @@ interface SubscriptionPlan {
     updatedAt: string;
     user_id?: string;
 }
+
 interface BillingTransaction {
     id: string;
     date: string;
@@ -44,6 +48,7 @@ interface BillingTransaction {
     invoiceUrl?: string;
     transaction_id?: string | null;
 }
+
 const PlansBilling = () => {
     const router = useRouter();
     const { showAlert, AlertComponent } = useCustomAlert();
@@ -55,6 +60,7 @@ const PlansBilling = () => {
     const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">(
         "monthly",
     );
+
     const { data: plansData, isLoading: plansLoading, error: plansError } =
         useSubscriptionPlans();
     const { data: currentSubscription, isLoading: subscriptionLoading } =
@@ -65,6 +71,7 @@ const PlansBilling = () => {
         error: historyError,
     } = useSubscriptionHistory();
     const cancelSubscriptionMutation = useCancelSubscription();
+
     const subscriptionPlans: SubscriptionPlan[] = useMemo(() => {
         return (plansData || []).map((plan: ApiSubscriptionPlan) => ({
             id: plan.id,
@@ -87,6 +94,7 @@ const PlansBilling = () => {
             user_id: plan.user_id,
         }));
     }, [plansData, currentSubscription]);
+
     const billingHistory: BillingTransaction[] = useMemo(() => {
         return (historyData || []).map((sub: ApiSubscription) => ({
             id: sub.id,
@@ -103,19 +111,21 @@ const PlansBilling = () => {
             transaction_id: sub.transaction_id,
         }));
     }, [historyData]);
+
     const handleBack = () => {
         router.back();
     };
-    // NEW: Just select the card, don't trigger payment
+
     const handleSelectPlan = (planId: string) => {
         const plan = subscriptionPlans.find((p) => p.id === planId);
         if (!plan) return;
         setSelectedPlanDetails(plan);
     };
-    // NEW: Trigger payment flow when "Pick Plan" button is pressed
+
     const handlePickPlan = (planId: string) => {
         const plan = subscriptionPlans.find((p) => p.id === planId);
         if (!plan) return;
+
         if (plan.id === "enterprise") {
             showAlert({
                 title: "Enterprise Plan",
@@ -140,6 +150,7 @@ const PlansBilling = () => {
             setIsPaymentSheetVisible(true);
         }
     };
+
     const handleProceedToPayment = () => {
         if (!selectedPlanDetails) return;
         setIsPaymentSheetVisible(false);
@@ -156,11 +167,13 @@ const PlansBilling = () => {
             },
         });
     };
+
     const handleCancelSubscription = () => {
         if (!currentSubscription) return;
         const planName =
             subscriptionPlans.find((p) => p.id === currentSubscription.plan_id)
                 ?.name || "your subscription";
+
         showAlert({
             title: "Cancel Subscription",
             message:
@@ -199,6 +212,7 @@ const PlansBilling = () => {
             iconColor: "#F44336",
         });
     };
+
     const handleReactivateSubscription = () => {
         if (!currentSubscription) return;
         showAlert({
@@ -210,6 +224,7 @@ const PlansBilling = () => {
             iconColor: Colors.primary,
         });
     };
+
     const handleViewAllTransactions = () => {
         showAlert({
             title: "View All Transactions",
@@ -228,6 +243,7 @@ const PlansBilling = () => {
             iconColor: Colors.primary,
         });
     };
+
     const handleDownloadInvoice = (transactionId: string) => {
         const transaction = billingHistory.find((t) => t.id === transactionId);
         if (transaction?.invoiceUrl) {
@@ -255,6 +271,7 @@ const PlansBilling = () => {
             });
         }
     };
+
     const getStatusColor = (status: "completed" | "pending" | "failed") => {
         switch (status) {
             case "completed":
@@ -267,6 +284,7 @@ const PlansBilling = () => {
                 return Colors.grey;
         }
     };
+
     const getStatusIcon = (status: "completed" | "pending" | "failed") => {
         switch (status) {
             case "completed":
@@ -278,104 +296,7 @@ const PlansBilling = () => {
             default:
         }
     };
-    const renderPlanCard = (plan: SubscriptionPlan) => (
-        <Pressable
-            key={plan.id}
-            style={({ pressed }) => [
-                styles.planCard,
-                selectedPlanDetails?.id === plan.id && styles.selectedPlan,
-                plan.isPopular && styles.popularPlan,
-                { opacity: pressed ? 0.8 : 1 },
-            ]}
-            onPress={() => handleSelectPlan(plan.id)}
-        >
-            {plan.isPopular && (
-                <View style={styles.popularBadge}>
-                    <Text style={styles.popularText}>Most Popular</Text>
-                </View>
-            )}
-            {plan.isCurrent && (
-                <View style={styles.currentBadge}>
-                    <Text style={styles.currentText}>Current Plan</Text>
-                </View>
-            )}
-            <View style={styles.planHeader}>
-                <View
-                    style={[styles.planIcon, {
-                        backgroundColor: plan.color + "20",
-                    }]}
-                >
-                    <Ionicons
-                        name={plan.icon as any}
-                        size={24}
-                        color={plan.color}
-                    />
-                </View>
-                <View style={styles.planInfo}>
-                    <Text style={styles.planName}>{plan.name}</Text>
-                    <View style={styles.priceContainer}>
-                        <Text style={styles.planPrice}>
-                            {billingCycle === "monthly"
-                                ? plan.price
-                                : plan.annualPrice}
-                        </Text>
-                        <Text style={styles.planPeriod}>
-                            /{billingCycle === "monthly" ? "month" : "year"}
-                        </Text>
-                    </View>
-                    {plan.annualDiscount && billingCycle === "annual" && (
-                        <View style={styles.discountBadge}>
-                            <Text style={styles.discountText}>
-                                {plan.annualDiscount}
-                            </Text>
-                        </View>
-                    )}
-                </View>
-            </View>
-            <View style={styles.featuresContainer}>
-                {plan.features.map((feature, index) => (
-                    <View key={index} style={styles.featureItem}>
-                        <Ionicons
-                            name="checkmark"
-                            size={16}
-                            color={Colors.primary}
-                        />
-                        <Text style={styles.featureText}>{feature}</Text>
-                    </View>
-                ))}
-            </View>
-            {/* NEW: Show "Pick Plan" button when card is selected */}
-            {selectedPlanDetails?.id === plan.id && (
-                <>
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.pickPlanButton,
-                            { opacity: pressed ? 0.8 : 1 },
-                        ]}
-                        onPress={() => handlePickPlan(plan.id)}
-                    >
-                        <Text style={styles.pickPlanButtonText}>Pick Plan</Text>
-                        <Ionicons
-                            name="arrow-forward"
-                            size={18}
-                            color={Colors.white}
-                        />
-                    </Pressable>
-                    <View
-                        style={[styles.selectedIndicator, {
-                            backgroundColor: plan.color,
-                        }]}
-                    >
-                        <Ionicons
-                            name="checkmark"
-                            size={20}
-                            color={Colors.white}
-                        />
-                    </View>
-                </>
-            )}
-        </Pressable>
-    );
+
     const renderTransaction = (transaction: BillingTransaction) => (
         <View key={transaction.id} style={styles.transactionCard}>
             <View style={styles.transactionHeader}>
@@ -421,6 +342,7 @@ const PlansBilling = () => {
             </Pressable>
         </View>
     );
+
     return (
         <View style={styles.container}>
             <StatusBar style="dark" />
@@ -456,6 +378,7 @@ const PlansBilling = () => {
                     />
                 </Pressable>
             </SafeAreaView>
+
             <ScrollView
                 style={styles.content}
                 showsVerticalScrollIndicator={false}
@@ -475,87 +398,12 @@ const PlansBilling = () => {
                         : currentSubscription
                         ? (() => {
                             const userPlan = getUserPlan();
-                            const usagePercentage =
-                                (userPlan.usedListings / userPlan.maxListings) *
-                                100;
-                            const isFull =
-                                userPlan.usedListings >= userPlan.maxListings;
-                            const progressColor = isFull
-                                ? "#F44336"
-                                : "#4CAF50";
-                            const getRenewalDateDisplay = () => {
-                                if (
-                                    userPlan.planName.toLowerCase() ===
-                                        "free" || !userPlan.renewalDate
-                                ) {
-                                    return "Forever";
-                                }
-                                try {
-                                    const date = new Date(userPlan.renewalDate);
-                                    if (isNaN(date.getTime())) {
-                                        return "Forever";
-                                    }
-                                    return date.toLocaleDateString("en-US", {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                    });
-                                } catch {
-                                    return "Forever";
-                                }
-                            };
                             return (
-                                <View style={styles.currentPlanCard}>
-                                    {/* Plan Name and Active Badge Row */}
-                                    <View style={styles.planHeaderRow}>
-                                        <Text style={styles.planNameText}>
-                                            {userPlan.planName}
-                                        </Text>
-                                        <View style={styles.activeBadge}>
-                                            <Text
-                                                style={styles.activeBadgeText}
-                                            >
-                                                Active
-                                            </Text>
-                                        </View>
-                                    </View>
-                                    {/* Usage Label and Stats Row */}
-                                    <View style={styles.usageStatsRow}>
-                                        <Text style={styles.usageLabel}>
-                                            Listings
-                                        </Text>
-                                        <Text style={styles.usageStats}>
-                                            {userPlan.usedListings} /{" "}
-                                            {userPlan.maxListings} Used
-                                        </Text>
-                                    </View>
-                                    {/* Progress Bar */}
-                                    <View style={styles.progressBarContainer}>
-                                        <View
-                                            style={styles.progressBarBackground}
-                                        >
-                                            <View
-                                                style={[
-                                                    styles.progressBarFill,
-                                                    {
-                                                        width: `${
-                                                            Math.min(
-                                                                usagePercentage,
-                                                                100,
-                                                            )
-                                                        }%`,
-                                                        backgroundColor:
-                                                            progressColor,
-                                                    },
-                                                ]}
-                                            />
-                                        </View>
-                                    </View>
-                                    {/* Renewal Date */}
-                                    <Text style={styles.renewalText}>
-                                        Renews on: {getRenewalDateDisplay()}
-                                    </Text>
-                                </View>
+                                <PlanUsageCard
+                                    planName={userPlan.planName}
+                                    usedListings={userPlan.usedListings}
+                                    maxListings={userPlan.maxListings}
+                                />
                             );
                         })()
                         : (
@@ -574,12 +422,14 @@ const PlansBilling = () => {
                             </View>
                         )}
                 </View>
+
                 {/* Subscription Plans */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Choose Your Plan</Text>
                     <Text style={styles.sectionSubtitle}>
                         Upgrade to unlock more features and capabilities
                     </Text>
+
                     {/* Billing Cycle Toggle */}
                     <View style={styles.billingToggleContainer}>
                         <View style={styles.toggleRow}>
@@ -591,6 +441,7 @@ const PlansBilling = () => {
                                     Billed monthly
                                 </Text>
                             </View>
+
                             <Pressable
                                 style={({ pressed }) => [
                                     styles.simpleToggle,
@@ -613,6 +464,7 @@ const PlansBilling = () => {
                                     ]}
                                 />
                             </Pressable>
+
                             <View style={styles.toggleLabelContainer}>
                                 <Text style={styles.billingToggleLabel}>
                                     Annual
@@ -623,6 +475,7 @@ const PlansBilling = () => {
                             </View>
                         </View>
                     </View>
+
                     <View style={styles.plansContainer}>
                         {plansLoading
                             ? (
@@ -650,10 +503,30 @@ const PlansBilling = () => {
                                 </View>
                             )
                             : (
-                                subscriptionPlans.map(renderPlanCard)
+                                subscriptionPlans.map((plan) => (
+                                    <PlanCard
+                                        key={plan.id}
+                                        id={plan.id}
+                                        name={plan.name}
+                                        price={plan.price}
+                                        annualPrice={plan.annualPrice}
+                                        billingCycle={billingCycle}
+                                        features={plan.features}
+                                        isPopular={plan.isPopular}
+                                        isCurrent={plan.isCurrent}
+                                        color={plan.color}
+                                        annualDiscount={plan.annualDiscount}
+                                        isSelected={selectedPlanDetails?.id ===
+                                            plan.id}
+                                        onSelect={() =>
+                                            handleSelectPlan(plan.id)}
+                                        onPick={() => handlePickPlan(plan.id)}
+                                    />
+                                ))
                             )}
                     </View>
                 </View>
+
                 {/* Billing History */}
                 <View style={styles.section}>
                     <View style={styles.billingHeader}>
@@ -667,6 +540,7 @@ const PlansBilling = () => {
                             <Text style={styles.viewAllText}>View All</Text>
                         </Pressable>
                     </View>
+
                     <View style={styles.transactionsContainer}>
                         {historyLoading
                             ? (
@@ -710,11 +584,14 @@ const PlansBilling = () => {
                             )}
                     </View>
                 </View>
+
                 {/* Bottom padding for better scrolling */}
                 <View style={styles.bottomPadding} />
             </ScrollView>
+
             {/* Custom Alert Component */}
             <AlertComponent />
+
             {/* Payment Confirmation Sheet */}
             {selectedPlanDetails && (
                 <PaymentConfirmationSheet
@@ -731,6 +608,7 @@ const PlansBilling = () => {
         </View>
     );
 };
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -834,10 +712,22 @@ const styles = StyleSheet.create({
     toggleThumbActive: {
         transform: [{ translateX: 24 }],
     },
-    currentPlanCard: {
+    loadingContainer: {
+        padding: 20,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    loadingText: {
+        marginTop: 10,
+        color: Colors.grey,
+        fontSize: 14,
+    },
+    emptyState: {
         backgroundColor: Colors.white,
         borderRadius: 12,
-        padding: 16,
+        padding: 24,
+        alignItems: "center",
+        justifyContent: "center",
         elevation: 1,
         shadowColor: "#000",
         shadowOffset: {
@@ -847,208 +737,36 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 2,
     },
-    planHeaderRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 16,
-    },
-    planNameText: {
-        fontSize: 20,
+    emptyStateText: {
+        fontSize: 16,
         fontWeight: "bold",
-        color: Colors.primary,
-    },
-    activeBadge: {
-        backgroundColor: "#E8F5E9",
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 12,
-    },
-    activeBadgeText: {
-        fontSize: 12,
-        fontWeight: "600",
-        color: "#4CAF50",
-    },
-    usageStatsRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 12,
-    },
-    usageLabel: {
-        fontSize: 14,
-        color: Colors.grey,
-    },
-    usageStats: {
-        fontSize: 14,
-        fontWeight: "600",
-        color: Colors.grey,
-    },
-    progressBarContainer: {
-        marginBottom: 8,
-    },
-    progressBarBackground: {
-        height: 8,
-        backgroundColor: Colors.lightgrey,
-        borderRadius: 4,
-        overflow: "hidden",
-    },
-    progressBarFill: {
-        height: "100%",
-        borderRadius: 4,
-    },
-    renewalText: {
-        fontSize: 12,
-        color: Colors.grey,
+        color: Colors.black,
         marginTop: 12,
+    },
+    emptyStateSubtext: {
+        fontSize: 14,
+        color: Colors.grey,
+        marginTop: 4,
     },
     plansContainer: {
         gap: 16,
         width: "100%",
     },
-    planCard: {
-        backgroundColor: Colors.white,
-        borderRadius: 12,
+    errorContainer: {
+        alignItems: "center",
+        justifyContent: "center",
         padding: 20,
-        elevation: 1,
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        borderWidth: 1,
-        borderColor: Colors.lightgrey,
-        position: "relative",
-        width: "100%",
     },
-    selectedPlan: {
-        borderColor: Colors.primary,
-        elevation: 3,
-        shadowColor: Colors.primary,
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-    },
-    popularPlan: {
-        borderColor: "#FF9800",
-    },
-    popularBadge: {
-        position: "absolute",
-        top: -8,
-        right: 16,
-        backgroundColor: "#FF9800",
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    popularText: {
-        color: Colors.white,
-        fontSize: 12,
-        fontWeight: "600",
-    },
-    currentBadge: {
-        position: "absolute",
-        top: -8,
-        left: 16,
-        backgroundColor: Colors.primary,
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    currentText: {
-        color: Colors.white,
-        fontSize: 12,
-        fontWeight: "600",
-    },
-    planHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 16,
-    },
-    planIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        justifyContent: "center",
-        alignItems: "center",
-        marginRight: 12,
-    },
-    planInfo: {
-        flex: 1,
-    },
-    planName: {
-        fontSize: 20,
+    errorText: {
+        fontSize: 16,
         fontWeight: "bold",
         color: Colors.black,
-        marginBottom: 4,
+        marginTop: 12,
     },
-    priceContainer: {
-        flexDirection: "row",
-        alignItems: "baseline",
-    },
-    planPrice: {
-        fontSize: 24,
-        fontWeight: "bold",
-        color: Colors.primary,
-    },
-    planPeriod: {
-        fontSize: 16,
-        color: Colors.grey,
-        marginLeft: 4,
-    },
-    discountBadge: {
-        backgroundColor: "#4CAF50",
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
-        marginTop: 4,
-        alignSelf: "flex-start",
-    },
-    discountText: {
-        fontSize: 12,
-        color: Colors.white,
-        fontWeight: "600",
-    },
-    featuresContainer: {
-        marginBottom: 16,
-    },
-    featureItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 8,
-    },
-    featureText: {
+    errorSubtext: {
         fontSize: 14,
-        color: Colors.black,
-        marginLeft: 8,
-        flex: 1,
-    },
-    pickPlanButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        paddingVertical: 14,
-        paddingHorizontal: 20,
-        borderRadius: 8,
-        marginTop: 8,
-        gap: 8,
-        backgroundColor: Colors.primary,
-    },
-    pickPlanButtonText: {
-        fontSize: 16,
-        fontWeight: "600",
-        color: Colors.white,
-    },
-    selectedIndicator: {
-        position: "absolute",
-        top: 16,
-        right: 16,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        justifyContent: "center",
-        alignItems: "center",
+        color: Colors.grey,
+        marginTop: 4,
     },
     billingHeader: {
         flexDirection: "row",
@@ -1059,7 +777,7 @@ const styles = StyleSheet.create({
     viewAllText: {
         fontSize: 14,
         color: Colors.primary,
-        fontWeight: "500",
+        fontWeight: "600",
     },
     transactionsContainer: {
         gap: 12,
@@ -1080,12 +798,10 @@ const styles = StyleSheet.create({
     transactionHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
-        alignItems: "flex-start",
         marginBottom: 12,
     },
     transactionInfo: {
         flex: 1,
-        marginRight: 12,
     },
     transactionDescription: {
         fontSize: 16,
@@ -1094,7 +810,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     transactionDate: {
-        fontSize: 14,
+        fontSize: 12,
         color: Colors.grey,
     },
     transactionAmount: {
@@ -1109,128 +825,42 @@ const styles = StyleSheet.create({
     statusContainer: {
         flexDirection: "row",
         alignItems: "center",
+        gap: 4,
     },
     statusText: {
         fontSize: 12,
         fontWeight: "500",
-        marginLeft: 4,
         textTransform: "capitalize",
     },
     downloadButton: {
         flexDirection: "row",
         alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
         paddingTop: 12,
-        borderTopWidth: 0.5,
-        borderTopColor: Colors.lightgrey,
+        borderTopWidth: 1,
+        borderTopColor: Colors.lightgrey + "40",
     },
     downloadText: {
         fontSize: 14,
         color: Colors.primary,
-        marginLeft: 4,
         fontWeight: "500",
-    },
-    bottomPadding: {
-        height: 24,
-    },
-    loadingContainer: {
-        alignItems: "center",
-        paddingVertical: 32,
-    },
-    loadingText: {
-        fontSize: 14,
-        color: Colors.grey,
-        marginTop: 12,
     },
     emptyHistory: {
-        paddingVertical: 32,
         alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        backgroundColor: Colors.white,
+        borderRadius: 12,
     },
     emptyHistoryText: {
-        fontSize: 14,
+        marginTop: 8,
         color: Colors.grey,
-    },
-    errorContainer: {
-        alignItems: "center",
-        paddingVertical: 32,
-    },
-    errorText: {
-        fontSize: 16,
-        color: Colors.grey,
-        marginTop: 12,
-        fontWeight: "500",
-    },
-    errorSubtext: {
         fontSize: 14,
-        color: Colors.grey,
-        marginTop: 4,
     },
-    emptyState: {
-        alignItems: "center",
-        paddingVertical: 32,
-    },
-    emptyStateText: {
-        fontSize: 16,
-        color: Colors.grey,
-        marginTop: 12,
-        fontWeight: "500",
-    },
-    emptyStateSubtext: {
-        fontSize: 14,
-        color: Colors.grey,
-        marginTop: 4,
-    },
-    subscriptionActions: {
-        marginTop: 16,
-        gap: 8,
-    },
-    cancelButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: "#F44336",
-        backgroundColor: "transparent",
-    },
-    cancelButtonText: {
-        fontSize: 14,
-        color: "#F44336",
-        fontWeight: "500",
-        marginLeft: 8,
-    },
-    reactivateButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: Colors.primary,
-        backgroundColor: "transparent",
-    },
-    reactivateButtonText: {
-        fontSize: 14,
-        color: Colors.primary,
-        fontWeight: "500",
-        marginLeft: 8,
-    },
-    paymentButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-        backgroundColor: Colors.primary,
-    },
-    paymentButtonText: {
-        fontSize: 14,
-        color: Colors.white,
-        fontWeight: "500",
-        marginLeft: 8,
+    bottomPadding: {
+        height: 40,
     },
 });
+
 export default PlansBilling;
