@@ -29,7 +29,7 @@
       "package": "com.kawa_ida.Kikwetu",
       "config": {
         "googleMaps": {
-          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY_HERE"
+          "apiKey": "AIzaSyCO1WBgMIoyITg7WJlAoGY4jn5uCVOITdc"
         }
       },
       "permissions": [

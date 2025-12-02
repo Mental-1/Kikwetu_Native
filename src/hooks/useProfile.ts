@@ -4,10 +4,10 @@ import {
   getProfileById,
   updateAvatar,
   updateProfile,
-  type UpdateProfileData
-} from '@/src/services/profileService';
-import { authService } from '@/src/services/auth.service';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+  type UpdateProfileData,
+} from "@/src/services/profileService";
+import { authService } from "@/src/services/auth.service";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface ChangePasswordData {
   currentPassword: string;
@@ -20,23 +20,34 @@ export interface ChangeEmailData {
 }
 
 /**
- * Hook to fetch current user's profile
+ * Hook to get users profile
+ * @returns
  */
 export function useProfile() {
   return useQuery({
-    queryKey: ['profile'],
+    queryKey: ["profile"],
     queryFn: getCurrentProfile,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 3,
+    staleTime: 5 * 60 * 1000,
+    retry: (failureCount, error) => {
+      if (
+        error?.message?.includes("401") ||
+        error?.message?.includes("unauthorized")
+      ) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 }
 
 /**
- * Hook to fetch a profile by ID
+ * Hook to get users profile by id
+ * @param profileId
+ * @returns
  */
 export function useProfileById(profileId: string) {
   return useQuery({
-    queryKey: ['profile', profileId],
+    queryKey: ["profile", profileId],
     queryFn: () => getProfileById(profileId),
     enabled: !!profileId,
     staleTime: 5 * 60 * 1000,
@@ -44,22 +55,26 @@ export function useProfileById(profileId: string) {
 }
 
 /**
- * Hook to update profile
+ * Hook to update users profile
+ * @returns
  */
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (profileData: UpdateProfileData) => updateProfile(profileData),
-    onSuccess: () => {
-      // Invalidate and refetch profile data
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    onSuccess: (data) => {
+      queryClient.setQueryData(["profile"], data);
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+    onError: (error) => {
+      console.error("Profile update error:", error);
     },
   });
 }
-
 /**
- * Hook to update avatar
+ * Hook to update users avatar
+ * @returns
  */
 export function useUpdateAvatar() {
   const queryClient = useQueryClient();
@@ -67,40 +82,53 @@ export function useUpdateAvatar() {
   return useMutation({
     mutationFn: (imageUri: string) => updateAvatar(imageUri),
     onSuccess: () => {
-      // Invalidate and refetch profile data
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+    onError: (error) => {
+      console.error("Avatar update error:", error);
     },
   });
 }
 
 /**
- * Hook to change password
+ * Hook to change users password
+ * @returns
  */
 export function useChangePassword() {
   return useMutation({
-    mutationFn: (passwordData: ChangePasswordData) => 
-      authService.changePassword(passwordData.currentPassword, passwordData.newPassword),
+    mutationFn: (passwordData: ChangePasswordData) =>
+      authService.changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword,
+      ),
+    onError: (error) => {
+      console.error("Password change error:", error);
+    },
   });
 }
 
 /**
- * Hook to change email
+ * Hook to change users email
+ * @returns
  */
 export function useChangeEmail() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (emailData: ChangeEmailData) => 
+    mutationFn: (emailData: ChangeEmailData) =>
       authService.changeEmail(emailData.newEmail, emailData.currentPassword),
     onSuccess: () => {
-      // Invalidate and refetch profile data
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+    onError: (error) => {
+      console.error("Email change error:", error);
     },
   });
 }
 
 /**
- * Hook to toggle MFA
+ * Hook to toggle MFA for the user
+ * @returns
  */
 export function useToggleMFA() {
   const queryClient = useQueryClient();
@@ -108,14 +136,16 @@ export function useToggleMFA() {
   return useMutation({
     mutationFn: (enabled: boolean) => authService.toggleMFA(enabled),
     onSuccess: () => {
-      // Invalidate and refetch profile data
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+    onError: (error) => {
+      console.error("MFA toggle error:", error);
     },
   });
 }
-
 /**
- * Hook to delete avatar
+ * Hook to delete users avatar
+ * @returns
  */
 export function useDeleteAvatar() {
   const queryClient = useQueryClient();
@@ -123,8 +153,10 @@ export function useDeleteAvatar() {
   return useMutation({
     mutationFn: deleteAvatar,
     onSuccess: () => {
-      // Invalidate and refetch profile data
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+    onError: (error) => {
+      console.error("Avatar delete error:", error);
     },
   });
 }

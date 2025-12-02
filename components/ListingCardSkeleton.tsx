@@ -1,15 +1,24 @@
-import { Colors } from '@/src/constants/constant';
-import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Colors } from "@/src/constants/constant";
+import React, { useEffect, useRef } from "react";
+import {
+  Animated,
+  Dimensions,
+  type StyleProp,
+  StyleSheet,
+  View,
+  type ViewStyle,
+} from "react-native";
 
 interface ListingCardSkeletonProps {
-  viewMode?: 'grid' | 'list';
+  viewMode?: "grid" | "list";
 }
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
 
-const ListingCardSkeleton: React.FC<ListingCardSkeletonProps> = ({ viewMode = 'grid' }) => {
+const ListingCardSkeleton: React.FC<ListingCardSkeletonProps> = (
+  { viewMode = "grid" },
+) => {
   const shimmerAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -25,7 +34,7 @@ const ListingCardSkeleton: React.FC<ListingCardSkeletonProps> = ({ viewMode = 'g
           duration: 1000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
     shimmer.start();
 
@@ -43,12 +52,12 @@ const ListingCardSkeleton: React.FC<ListingCardSkeletonProps> = ({ viewMode = 'g
     <Animated.View style={[styles.skeletonBox, style, shimmerStyle]} />
   );
 
-  if (viewMode === 'list') {
+  if (viewMode === "list") {
     return (
       <View style={styles.listCard}>
         {/* Image skeleton */}
         <SkeletonBox style={styles.listImageContainer} />
-        
+
         {/* Content skeleton */}
         <View style={styles.listContent}>
           {/* Title and favorite button row */}
@@ -78,7 +87,7 @@ const ListingCardSkeleton: React.FC<ListingCardSkeletonProps> = ({ viewMode = 'g
     <View style={styles.card}>
       {/* Image skeleton */}
       <SkeletonBox style={styles.imageContainer} />
-      
+
       {/* Content skeleton */}
       <View style={styles.content}>
         {/* Title skeleton */}
@@ -111,14 +120,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
     },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   imageContainer: {
     height: 140,
@@ -134,7 +143,7 @@ const styles = StyleSheet.create({
   },
   priceSkeleton: {
     height: 18,
-    width: '60%',
+    width: "60%",
     marginBottom: 4,
     borderRadius: 4,
   },
@@ -150,13 +159,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   locationSkeleton: {
     height: 12,
-    width: '70%',
+    width: "70%",
     borderRadius: 4,
   },
   viewsSkeleton: {
@@ -167,7 +176,7 @@ const styles = StyleSheet.create({
 
   // List view styles
   listCard: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: Colors.white,
     borderRadius: 8,
     marginBottom: 12,
@@ -176,7 +185,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.lightgrey,
     elevation: 1,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -192,17 +201,17 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flex: 1,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   listTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 4,
   },
   listTitleSkeleton: {
     height: 16,
-    width: '80%',
+    width: "80%",
     borderRadius: 4,
   },
   favoriteButtonSkeleton: {
@@ -212,24 +221,24 @@ const styles = StyleSheet.create({
   },
   listPriceSkeleton: {
     height: 18,
-    width: '50%',
+    width: "50%",
     marginBottom: 6,
     borderRadius: 4,
   },
   listDescriptionSkeleton: {
     height: 12,
-    width: '90%',
+    width: "90%",
     marginBottom: 8,
     borderRadius: 4,
   },
   listFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   listLocationSkeleton: {
     height: 12,
-    width: '60%',
+    width: "60%",
     borderRadius: 4,
   },
   listViewsSkeleton: {

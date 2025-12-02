@@ -2,7 +2,7 @@ import { Colors } from "@/src/constants/constant";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import BottomSheet from "./BottomSheet";
+import BottomSheet, { BottomSheetRef } from "./BottomSheet";
 
 interface SortModalProps {
   visible: boolean;
@@ -28,6 +28,15 @@ const SortModal: React.FC<SortModalProps> = ({
   onSortChange,
 }) => {
   const [tempSortBy, setTempSortBy] = useState(currentSortBy);
+  const bottomSheetRef = React.useRef<BottomSheetRef>(null);
+
+  React.useEffect(() => {
+    if (visible) {
+      bottomSheetRef.current?.expand();
+    } else {
+      bottomSheetRef.current?.close();
+    }
+  }, [visible]);
 
   const handleApply = () => {
     onSortChange(tempSortBy);
@@ -40,10 +49,11 @@ const SortModal: React.FC<SortModalProps> = ({
 
   return (
     <BottomSheet
-      visible={visible}
+      ref={bottomSheetRef}
       onClose={onClose}
       snapPoints={["50%"]}
       enableDynamicSizing={false}
+      initialIndex={-1}
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalHeader}>

@@ -1,7 +1,7 @@
 import { Colors } from "@/src/constants/constant";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
 import { FlashList } from "@shopify/flash-list";
+import React, { useState } from "react";
 import {
   Image,
   Keyboard,
@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import BottomSheet from "./BottomSheet";
+import BottomSheet, { BottomSheetRef } from "./BottomSheet";
 
 interface Review {
   id: string;
@@ -38,6 +38,15 @@ export default function WriteReviewModal({
   const [newReview, setNewReview] = useState("");
   const [rating, setRating] = useState(0);
   const [reviews] = useState<Review[]>([]);
+  const bottomSheetRef = React.useRef<BottomSheetRef>(null);
+
+  React.useEffect(() => {
+    if (visible) {
+      bottomSheetRef.current?.expand();
+    } else {
+      bottomSheetRef.current?.close();
+    }
+  }, [visible]);
 
   const formatCount = (count: number): string => {
     if (count >= 1000000) {
@@ -91,10 +100,11 @@ export default function WriteReviewModal({
 
   return (
     <BottomSheet
-      visible={visible}
+      ref={bottomSheetRef}
       onClose={onClose}
       snapPoints={["80%"]}
       enableDynamicSizing={false}
+      initialIndex={-1}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}

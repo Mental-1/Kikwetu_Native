@@ -1,21 +1,24 @@
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { BorderRadius, Spacing } from "@/constants/theme";
 import {
     useCategories,
     useSubcategoriesByCategory,
 } from "@/hooks/useCategories";
-import { Colors } from "@/src/constants/constant";
+import { useTheme } from "@/hooks/useTheme";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
 import {
     ActivityIndicator,
-    Appbar,
-    Divider,
-    List,
-    Searchbar,
-    Text,
-} from "react-native-paper";
+    Pressable,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type SelectionType = "category" | "subcategory" | "attribute";
@@ -23,10 +26,12 @@ type SelectionType = "category" | "subcategory" | "attribute";
 interface OptionItem {
     id: number | string;
     name: string;
+    icon?: string;
 }
 
 export default function SelectOption() {
     const router = useRouter();
+    const { theme } = useTheme();
     const {
         type,
         title,
@@ -89,7 +94,7 @@ export default function SelectOption() {
             switch (type) {
                 case "category":
                     router.push({
-                        pathname: "/(screens)/post-ad/select-option" as any,
+                        pathname: "./select-option",
                         params: {
                             type: "subcategory",
                             title: "Select Subcategory",
@@ -99,8 +104,8 @@ export default function SelectOption() {
                     break;
 
                 case "subcategory":
-                    router.navigate({
-                        pathname: "/(screens)/post-ad/step1",
+                    router.replace({
+                        pathname: "./step1",
                         params: {
                             categoryId: categoryId,
                             subcategoryId: item.id.toString(),
@@ -109,8 +114,8 @@ export default function SelectOption() {
                     break;
 
                 case "attribute":
-                    router.navigate({
-                        pathname: "/(screens)/post-ad/step1",
+                    router.replace({
+                        pathname: "./step1",
                         params: {
                             attributeKey: attributeKey,
                             attributeValue: item.name,
@@ -124,48 +129,110 @@ export default function SelectOption() {
 
     const renderItem = useCallback(
         ({ item }: { item: OptionItem }) => (
-            <React.Fragment>
-                <List.Item
-                    title={item.name}
-                    onPress={() => handleSelect(item)}
-                    right={(props) => (
-                        <List.Icon
-                            {...props}
-                            icon={type === "subcategory"
-                                ? "check"
-                                : "chevron-right"}
-                            color={Colors.grey}
+            <Pressable
+                onPress={() => handleSelect(item)}
+                style={({ pressed }) => [
+                    styles.item,
+                    {
+                        backgroundColor: pressed
+                            ? theme.backgroundDefault
+                            : theme.backgroundRoot,
+                        borderBottomColor: theme.border,
+                    },
+                ]}
+            >
+                {item.icon && (
+                    <View
+                        style={[
+                            styles.iconContainer,
+                            { backgroundColor: theme.backgroundDefault },
+                        ]}
+                    >
+                        <Feather
+                            name={item.icon as keyof typeof Feather.glyphMap}
+                            size={20}
+                            color={theme.primary}
                         />
-                    )}
-                    style={styles.item}
-                    titleStyle={styles.itemText}
+                    </View>
+                )}
+                <ThemedText style={styles.itemText}>{item.name}</ThemedText>
+                <Feather
+                    name={type === "subcategory" || type === "attribute"
+                        ? "check"
+                        : "chevron-right"}
+                    size={20}
+                    color={theme.textSecondary}
                 />
-                <Divider />
-            </React.Fragment>
+            </Pressable>
         ),
-        [handleSelect, type],
+        [handleSelect, type, theme],
     );
 
     return (
-        <View style={styles.container}>
-            <StatusBar style="dark" />
-            <SafeAreaView style={styles.header} edges={["top"]}>
-                <Appbar.Header style={styles.appbar} statusBarHeight={0}>
-                    <Appbar.BackAction onPress={() => router.back()} />
-                    <Appbar.Content
-                        title={title}
-                        titleStyle={styles.headerTitle}
-                    />
-                </Appbar.Header>
+        <ThemedView style={styles.container}>
+            <StatusBar style="auto" />
+            <SafeAreaView
+                style={[
+                    styles.header,
+                    {
+                        backgroundColor: theme.backgroundRoot,
+                        borderBottomColor: theme.border,
+                    },
+                ]}
+                edges={["top"]}
+            >
+                <View style={styles.headerContent}>
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        style={styles.backButton}
+                        hitSlop={8}
+                    >
+                        <Ionicons
+                            name="chevron-back"
+                            size={24}
+                            color={theme.text}
+                        />
+                    </TouchableOpacity>
+                    <ThemedText type="h4" style={styles.headerTitle}>
+                        {title}
+                    </ThemedText>
+                    <View style={styles.headerSpacer} />
+                </View>
                 <View style={styles.searchContainer}>
-                    <Searchbar
-                        placeholder={`Search ${title.toLowerCase()}...`}
-                        onChangeText={setSearchQuery}
-                        value={searchQuery}
-                        style={styles.searchBar}
-                        inputStyle={styles.searchInput}
-                        elevation={0}
-                    />
+                    <View
+                        style={[
+                            styles.searchInputContainer,
+                            { backgroundColor: theme.backgroundDefault },
+                        ]}
+                    >
+                        <Feather
+                            name="search"
+                            size={18}
+                            color={theme.textSecondary}
+                        />
+                        <TextInput
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            placeholder={`Search ${title.toLowerCase()}...`}
+                            placeholderTextColor={theme.textSecondary}
+                            style={[styles.searchInput, { color: theme.text }]}
+                            returnKeyType="search"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                        {searchQuery.length > 0 && (
+                            <Pressable
+                                onPress={() => setSearchQuery("")}
+                                hitSlop={8}
+                            >
+                                <Feather
+                                    name="x"
+                                    size={18}
+                                    color={theme.textSecondary}
+                                />
+                            </Pressable>
+                        )}
+                    </View>
                 </View>
             </SafeAreaView>
 
@@ -174,7 +241,7 @@ export default function SelectOption() {
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator
                             size="large"
-                            color={Colors.primary}
+                            color={theme.primary}
                         />
                     </View>
                 )
@@ -188,49 +255,61 @@ export default function SelectOption() {
                             contentContainerStyle={styles.listContent}
                             ListEmptyComponent={
                                 <View style={styles.emptyContainer}>
-                                    <Text style={styles.emptyText}>
+                                    <ThemedText
+                                        type="body"
+                                        style={{ color: theme.textSecondary }}
+                                    >
                                         No options found
-                                    </Text>
+                                    </ThemedText>
                                 </View>
                             }
                         />
                     </View>
                 )}
-        </View>
+        </ThemedView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.background,
     },
     header: {
-        backgroundColor: Colors.white,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.lightgrey,
+        borderBottomWidth: 0.5,
     },
-    appbar: {
-        backgroundColor: Colors.white,
-        elevation: 0,
+    headerContent: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.md,
+    },
+    backButton: {
+        padding: Spacing.xs,
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: Colors.black,
+        flex: 1,
+        textAlign: "center",
+    },
+    headerSpacer: {
+        width: 40,
     },
     searchContainer: {
-        paddingHorizontal: 16,
-        paddingBottom: 12,
-        backgroundColor: Colors.white,
+        paddingHorizontal: Spacing.lg,
+        paddingBottom: Spacing.md,
     },
-    searchBar: {
-        backgroundColor: Colors.background,
-        borderRadius: 8,
+    searchInputContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: Spacing.md,
         height: 44,
+        borderRadius: BorderRadius.xs,
+        gap: Spacing.sm,
     },
     searchInput: {
-        minHeight: 0, // Fix for searchbar height issue
+        flex: 1,
+        fontSize: 16,
+        paddingVertical: 0,
     },
     loadingContainer: {
         flex: 1,
@@ -241,22 +320,30 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     listContent: {
-        paddingBottom: 20,
+        paddingBottom: Spacing.xl,
     },
     item: {
-        backgroundColor: Colors.white,
-        paddingVertical: 8,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: Spacing.lg,
+        paddingHorizontal: Spacing.xl,
+        borderBottomWidth: 0.5,
+        minHeight: 56,
+        gap: Spacing.md,
     },
-    itemText: {
-        fontSize: 16,
-        color: Colors.black,
-    },
-    emptyContainer: {
-        padding: 24,
+    iconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: BorderRadius.xs,
+        justifyContent: "center",
         alignItems: "center",
     },
-    emptyText: {
+    itemText: {
+        flex: 1,
         fontSize: 16,
-        color: Colors.grey,
+    },
+    emptyContainer: {
+        padding: Spacing["3xl"],
+        alignItems: "center",
     },
 });

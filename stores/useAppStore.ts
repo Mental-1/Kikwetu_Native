@@ -47,6 +47,7 @@ interface PostAdState {
   latitude: number | null;
   longitude: number | null;
   isNegotiable: boolean;
+  offerDelivery: boolean;
   images: string[];
   videos: string[];
   uploadedMedia: { uri: string; id: string; type: "image" | "video" }[];
@@ -54,31 +55,16 @@ interface PostAdState {
   storeId?: string;
   isDraft: boolean;
   attributes: Record<string, any>;
-  setTitle: (title: string) => void;
-  setDescription: (description: string) => void;
-  setPrice: (price: number | null) => void;
-  setCategoryId: (id: number | null) => void;
-  setSubcategoryId: (id: number | null) => void;
-  setCondition: (condition: string) => void;
-  setLocation: (
-    location: string,
-    lat?: number | null,
-    long?: number | null,
+  setField: <
+    K extends keyof Omit<PostAdState, "setField" | "setFormData" | "resetForm">,
+  >(
+    field: K,
+    value: PostAdState[K],
   ) => void;
-  setLatitude: (latitude: number | null) => void;
-  setLongitude: (longitude: number | null) => void;
-  setIsNegotiable: (isNegotiable: boolean) => void;
-  setImages: (images: string[]) => void;
-  setVideos: (videos: string[]) => void;
-  setUploadedMedia: (
-    uploadedMedia: { uri: string; id: string; type: "image" | "video" }[],
+  setFormData: (
+    data: Partial<Omit<PostAdState, "setField" | "setFormData" | "resetForm">>,
   ) => void;
-  setTags: (tags: string[]) => void;
-  setStoreId: (id: string | undefined) => void;
-  setIsDraft: (isDraft: boolean) => void;
-  setAttributes: (attributes: Record<string, any>) => void;
-  setAttribute: (key: string, value: any) => void;
-  resetPostAd: () => void;
+  resetForm: () => void;
 }
 
 interface AppState {
@@ -87,6 +73,30 @@ interface AppState {
   postAd: PostAdState;
 }
 
+const initialPostAdState: Omit<
+  PostAdState,
+  "setField" | "setFormData" | "resetForm"
+> = {
+  title: "",
+  description: "",
+  price: null,
+  categoryId: null,
+  subcategoryId: null,
+  condition: "New",
+  location: "",
+  latitude: null,
+  longitude: null,
+  isNegotiable: false,
+  offerDelivery: false,
+  images: [],
+  videos: [],
+  uploadedMedia: [],
+  tags: [],
+  storeId: undefined,
+  isDraft: false,
+  attributes: {},
+};
+
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
@@ -94,92 +104,29 @@ export const useAppStore = create<AppState>()(
       setSearchQuery: (query) => set({ searchQuery: query }),
 
       postAd: {
-        title: "",
-        description: "",
-        price: null,
-        categoryId: null,
-        subcategoryId: null,
-        condition: "New",
-        location: "",
-        latitude: null,
-        longitude: null,
-        isNegotiable: false,
-        images: [],
-        videos: [],
-        uploadedMedia: [],
-        tags: [],
-        isDraft: false,
-        attributes: {},
+        ...initialPostAdState,
 
-        setTitle: (title) =>
-          set((state) => ({ postAd: { ...state.postAd, title } })),
-        setDescription: (description) =>
-          set((state) => ({ postAd: { ...state.postAd, description } })),
-        setPrice: (price) =>
-          set((state) => ({ postAd: { ...state.postAd, price } })),
-        setCategoryId: (categoryId) =>
-          set((state) => ({ postAd: { ...state.postAd, categoryId } })),
-        setSubcategoryId: (subcategoryId) =>
-          set((state) => ({ postAd: { ...state.postAd, subcategoryId } })),
-        setCondition: (condition) =>
-          set((state) => ({ postAd: { ...state.postAd, condition } })),
-        setLocation: (location, latitude, longitude) =>
+        setField: (field, value) =>
           set((state) => ({
             postAd: {
               ...state.postAd,
-              location,
-              latitude: latitude ?? state.postAd.latitude,
-              longitude: longitude ?? state.postAd.longitude,
+              [field]: value,
             },
           })),
-        setLatitude: (latitude) =>
-          set((state) => ({ postAd: { ...state.postAd, latitude } })),
-        setLongitude: (longitude) =>
-          set((state) => ({ postAd: { ...state.postAd, longitude } })),
-        setIsNegotiable: (isNegotiable) =>
-          set((state) => ({ postAd: { ...state.postAd, isNegotiable } })),
-        setImages: (images) =>
-          set((state) => ({ postAd: { ...state.postAd, images } })),
-        setVideos: (videos) =>
-          set((state) => ({ postAd: { ...state.postAd, videos } })),
-        setUploadedMedia: (uploadedMedia) =>
-          set((state) => ({ postAd: { ...state.postAd, uploadedMedia } })),
-        setTags: (tags) =>
-          set((state) => ({ postAd: { ...state.postAd, tags } })),
-        setStoreId: (storeId) =>
-          set((state) => ({ postAd: { ...state.postAd, storeId } })),
-        setIsDraft: (isDraft) =>
-          set((state) => ({ postAd: { ...state.postAd, isDraft } })),
-        setAttributes: (attributes) =>
-          set((state) => ({ postAd: { ...state.postAd, attributes } })),
-        setAttribute: (key, value) =>
+
+        setFormData: (data) =>
           set((state) => ({
             postAd: {
               ...state.postAd,
-              attributes: { ...state.postAd.attributes, [key]: value },
+              ...data,
             },
           })),
-        resetPostAd: () =>
+
+        resetForm: () =>
           set((state) => ({
             postAd: {
               ...state.postAd,
-              title: "",
-              description: "",
-              price: null,
-              categoryId: null,
-              subcategoryId: null,
-              condition: "New",
-              location: "",
-              latitude: null,
-              longitude: null,
-              isNegotiable: false,
-              images: [],
-              videos: [],
-              uploadedMedia: [],
-              tags: [],
-              storeId: undefined,
-              isDraft: false,
-              attributes: {},
+              ...initialPostAdState,
             },
           })),
       },

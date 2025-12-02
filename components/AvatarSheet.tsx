@@ -1,86 +1,111 @@
 import { Colors } from "@/src/constants/constant";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import BottomSheet from "./BottomSheet";
+import BottomSheetModal, { BottomSheetModalRef } from "./BottomSheetModal";
 
 interface AvatarSheetProps {
-  visible: boolean;
-  onClose: () => void;
   onDashboard: () => void;
   onSignOut: () => void;
   userName?: string;
   userEmail?: string;
 }
 
-const AvatarSheet: React.FC<AvatarSheetProps> = (
-  { visible, onClose, onDashboard, onSignOut, userName, userEmail },
-) => {
-  const { bottom } = useSafeAreaInsets();
+export interface AvatarSheetRef {
+  present: () => void;
+  dismiss: () => void;
+}
 
-  return (
-    <BottomSheet
-      visible={visible}
-      onClose={onClose}
-      enableDynamicSizing={false}
-      snapPoints={["45%"]}
-    >
-      <View
-        style={[styles.dropdown]}
+const AvatarSheet = forwardRef<AvatarSheetRef, AvatarSheetProps>(
+  ({ onDashboard, onSignOut, userName, userEmail }, ref) => {
+    const bottomSheetRef = useRef<BottomSheetModalRef>(null);
+
+    useImperativeHandle(ref, () => ({
+      present: () => bottomSheetRef.current?.present(),
+      dismiss: () => bottomSheetRef.current?.dismiss(),
+    }));
+
+    const handleDashboard = useCallback(() => {
+      bottomSheetRef.current?.dismiss();
+      onDashboard();
+    }, [onDashboard]);
+
+    const handleSignOut = useCallback(() => {
+      bottomSheetRef.current?.dismiss();
+      onSignOut();
+    }, [onSignOut]);
+
+    return (
+      <BottomSheetModal
+        ref={bottomSheetRef}
+        snapPoints={["25%"]}
+        enableDynamicSizing={false}
       >
-        {/* User Info Header */}
-        <View style={styles.userHeader}>
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>
-              {userName?.charAt(0)?.toUpperCase() ||
-                userEmail?.charAt(0)?.toUpperCase() || "U"}
-            </Text>
-          </View>
-          <View style={styles.userInfo}>
-            <Text style={styles.userName} numberOfLines={1}>
-              {userName || "User"}
-            </Text>
-            <Text style={styles.userEmail} numberOfLines={1}>
-              {userEmail || ""}
-            </Text>
-          </View>
-        </View>
-
-        {/* Menu Options */}
-        <View style={styles.menuOptions}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={onDashboard}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuItemContent}>
-              <Ionicons name="grid-outline" size={20} color={Colors.primary} />
-              <Text style={styles.menuText}>Dashboard</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={onSignOut}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuItemContent}>
-              <Ionicons name="log-out-outline" size={20} color={Colors.red} />
-              <Text style={[styles.menuText, { color: Colors.red }]}>
-                Sign Out
+        <View style={[styles.dropdown]}>
+          {/* User Info Header */}
+          <View style={styles.userHeader}>
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>
+                {userName?.charAt(0)?.toUpperCase() ||
+                  userEmail?.charAt(0)?.toUpperCase() || "U"}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
-          </TouchableOpacity>
+            <View style={styles.userInfo}>
+              <Text style={styles.userName} numberOfLines={1}>
+                {userName || "User"}
+              </Text>
+              <Text style={styles.userEmail} numberOfLines={1}>
+                {userEmail || ""}
+              </Text>
+            </View>
+          </View>
+
+          {/* Menu Options */}
+          <View style={styles.menuOptions}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleDashboard}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuItemContent}>
+                <Ionicons
+                  name="grid-outline"
+                  size={20}
+                  color={Colors.primary}
+                />
+                <Text style={styles.menuText}>Dashboard</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleSignOut}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuItemContent}>
+                <Ionicons name="log-out-outline" size={20} color={Colors.red} />
+                <Text style={[styles.menuText, { color: Colors.red }]}>
+                  Sign Out
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={Colors.grey} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </BottomSheet>
-  );
-};
+      </BottomSheetModal>
+    );
+  },
+);
+
+AvatarSheet.displayName = "AvatarSheet";
 
 const styles = StyleSheet.create({
   dropdown: {

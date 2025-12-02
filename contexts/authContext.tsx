@@ -1,13 +1,34 @@
-import { authService } from '@/src/services/auth.service';
-import { AuthUser } from '@/src/types/api.types';
-import { clearTokens, getUserData, isAuthenticated, setUserData } from '@/src/utils/tokenManager';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { authService } from "@/src/services/auth.service";
+import { AuthUser } from "@/src/types/api.types";
+import {
+  clearTokens,
+  getAccessToken,
+  getUserData,
+  isAuthenticated,
+  isTokenExpired,
+  setTokens,
+  setUserData,
+} from "@/src/utils/tokenManager";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
+  isInitialized: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, username: string, fullName?: string, phoneNumber?: string) => Promise<{ error: any }>;
+  signUp: (
+    email: string,
+    password: string,
+    username: string,
+    fullName?: string,
+    phoneNumber?: string,
+  ) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   refreshUser: () => Promise<boolean>;
@@ -18,39 +39,73 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
-
 
 interface AuthProviderProps {
   children: React.ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(() => getUserData());
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  const refreshUserSession = useCallback(async (): Promise<boolean> => {
+    try {
+      const response = await authService.getSession();
+      if (response.success && response.data) {
+        setUser(response.data.user);
+        return true;
+      } else {
+        await clearTokens();
+        setUser(null);
+        return false;
+      }
+    } catch (error) {
+      console.error("Error refreshing session:", error);
+      await clearTokens();
+      setUser(null);
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
 
     const initializeAuth = async () => {
       try {
+        const cachedUser = await getUserData();
+        if (cachedUser && isMounted) {
+          setUser(cachedUser);
+        }
+
         const authenticated = await isAuthenticated();
 
-        if (!authenticated && user) {
-          const refreshed = await refreshUserSession();
-          if (!refreshed && isMounted) {
-            setUser(null);
+        if (authenticated) {
+          const token = await getAccessToken();
+          if (token && isTokenExpired(token)) {
+            const refreshed = await refreshUserSession();
+            if (!refreshed && isMounted) {
+              setUser(null);
+            }
+          } else if (isMounted && !cachedUser) {
+            await refreshUserSession();
           }
-        } else if (!authenticated && isMounted) {
+        } else if (isMounted) {
+          await clearTokens();
           setUser(null);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error("Error initializing auth:", error);
         if (isMounted) {
           setUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsInitialized(true);
         }
       }
     };
@@ -60,64 +115,51 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [refreshUserSession]);
 
   /**
-   * Refresh user session from API
+   * Sign in
+   * @param email
+   * @param password
+   * @returns
    */
-  const refreshUserSession = async (): Promise<boolean> => {
-    try {
-      const response = await authService.getSession();
-      if (response.success && response.data) {
-        setUser(response.data.user);
-        await setUserData(response.data.user);
-        return true;
-      } else {
-        // Token invalid, clear everything
-        await clearTokens();
-        setUser(null);
-        return false;
-      }
-    } catch (error) {
-      console.error('Error refreshing session:', error);
-      await clearTokens();
-      setUser(null);
-      return false;
-    }
-  };
-
-  /**
-   * Sign in with email and password
-   */
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
       setLoading(true);
       const response = await authService.login({ email, password });
 
       if (response.success && response.data) {
         setUser(response.data.user);
-        await setUserData(response.data.user);
         return { error: null };
       }
 
-      return { error: { message: response.error || 'Login failed' } };
+      return {
+        error: {
+          message: response.error || response.message || "Login failed",
+        },
+      };
     } catch (error: any) {
-      console.error('Sign in error:', error);
-      return { error: { message: error.message || 'Login failed' } };
+      console.error("Sign in error:", error);
+      return { error: { message: error.message || "Login failed" } };
     } finally {
       setLoading(false);
     }
-  };
-
-  /**
-   * Sign up new user
-   */
-  const signUp = async (
+  }, []);
+/**
+ * Sign up
+ * @param email
+ * @param password
+ * @param username
+ * @param fullName
+ * @param phoneNumber
+ * @returns
+ */
+  const signUp = useCallback(async (
     email: string,
     password: string,
     username: string,
     fullName?: string,
-    phoneNumber?: string
+    phoneNumber?: string,
   ) => {
     try {
       setLoading(true);
@@ -131,41 +173,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.success && response.data) {
         setUser(response.data.user);
-        await setUserData(response.data.user);
         return { error: null };
       }
 
-      return { error: { message: response.error || 'Registration failed' } };
+      return {
+        error: {
+          message: response.error || response.message || "Registration failed",
+        },
+      };
     } catch (error: any) {
-      console.error('Sign up error:', error);
-      return { error: { message: error.message || 'Registration failed' } };
+      console.error("Sign up error:", error);
+      return { error: { message: error.message || "Registration failed" } };
     } finally {
       setLoading(false);
     }
-  };
-
-  /**
-   * Sign out user
-   */
-  const signOut = async () => {
+  }, []);
+/**
+ * Sign out
+ * @returns
+ */
+  const signOut = useCallback(async () => {
     try {
       setLoading(true);
       await authService.logout();
+      setUser(null);
+      return { error: null };
     } catch (error: any) {
-      console.error('Sign out error:', error);
-      return { error: { message: error.message || 'Logout failed' } };
-    } finally {
+      console.error("Sign out error:", error);
       await clearTokens();
       setUser(null);
+      return { error: null };
+    } finally {
       setLoading(false);
     }
-    return { error: null };
-  };
-
-  /**
-   * Reset password
-   */
-  const resetPassword = async (email: string) => {
+  }, []);
+/**
+ * Reset password
+ * @param email
+ * @returns
+ */
+  const resetPassword = useCallback(async (email: string) => {
     try {
       setLoading(true);
       const response = await authService.forgotPassword(email);
@@ -174,25 +221,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { error: null };
       }
 
-      return { error: { message: response.error || 'Password reset failed' } };
+      return {
+        error: {
+          message: response.error || response.message ||
+            "Password reset failed",
+        },
+      };
     } catch (error: any) {
-      console.error('Reset password error:', error);
-      return { error: { message: error.message || 'Password reset failed' } };
+      console.error("Reset password error:", error);
+      return { error: { message: error.message || "Password reset failed" } };
     } finally {
       setLoading(false);
     }
-  };
-
-  /**
-   * Refresh user data
-   */
-  const refreshUser = async (): Promise<boolean> => {
+  }, []);
+/**
+ * Refreshes the user session
+ */
+  const refreshUser = useCallback(async (): Promise<boolean> => {
     return await refreshUserSession();
-  };
+  }, [refreshUserSession]);
 
   const value: AuthContextType = {
     user,
     loading,
+    isInitialized,
     signIn,
     signUp,
     signOut,

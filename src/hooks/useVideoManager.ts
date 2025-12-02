@@ -196,8 +196,6 @@ export function useOptimizedVideoPlayer(
 ) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPreloaded, setIsPreloaded] = useState(false);
-  
-  // Use HLS URL if available, fallback to regular video URL
   const finalVideoUrl = hlsUrl || videoUrl;
   
   const player = useVideoPlayer(finalVideoUrl, player => {
@@ -226,8 +224,6 @@ export function useOptimizedVideoPlayer(
   // Preload video when component mounts
   useEffect(() => {
     if (!isPreloaded) {
-      // Note: preload property may not exist on all video players
-      // This is a placeholder for the actual preload implementation
       setIsPreloaded(true);
     }
   }, [player, isPreloaded]);

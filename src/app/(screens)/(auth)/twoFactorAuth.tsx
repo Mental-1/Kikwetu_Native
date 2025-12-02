@@ -1,4 +1,8 @@
-import BottomSheet from "@/components/BottomSheet";
+import BottomSheetModal, {
+  BottomSheetModalRef,
+} from "@/components/BottomSheetModal";
+import BottomSheetScrollView from "@/components/BottomSheetScrollView";
+import BottomSheetTextInput from "@/components/BottomSheetTextInput";
 import CustomLoader from "@/components/ui/CustomLoader";
 import { supabase } from "@/lib/supabase";
 import { Colors } from "@/src/constants/constant";
@@ -6,457 +10,449 @@ import { useProfile, useToggleMFA } from "@/src/hooks/useProfile";
 import { createAlertHelpers, useCustomAlert } from "@/utils/alertUtils";
 import { copyToClipboard } from "@/utils/clipboardUtils";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import React, {
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Button } from "react-native-paper";
 import QRCode from "react-native-qrcode-svg";
 
-interface TwoFactorAuthModalProps {
-  visible: boolean;
-  onClose: () => void;
+export interface TwoFactorAuthModalRef {
+  present: () => void;
+  dismiss: () => void;
 }
 
-const TwoFactorAuthModal: React.FC<TwoFactorAuthModalProps> = (
-  { visible, onClose },
-) => {
-  const { data: profile } = useProfile();
-  const { showAlert, AlertComponent } = useCustomAlert();
-  const { success, error } = createAlertHelpers(showAlert);
-  const toggleMFAMutation = useToggleMFA();
-  const [verificationCode, setVerificationCode] = useState("");
-  const [secretKey, setSecretKey] = useState("");
-  const [qrCodeUrl, setQrCodeUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState<"setup" | "verify">("setup");
+const TwoFactorAuthModal = forwardRef<TwoFactorAuthModalRef, {}>(
+  (props, ref) => {
+    const { data: profile } = useProfile();
+    const { showAlert, AlertComponent } = useCustomAlert();
+    const { success, error } = createAlertHelpers(showAlert);
+    const toggleMFAMutation = useToggleMFA();
+    const [verificationCode, setVerificationCode] = useState("");
+    const [secretKey, setSecretKey] = useState("");
+    const [qrCodeUrl, setQrCodeUrl] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [step, setStep] = useState<"setup" | "verify">("setup");
+    const bottomSheetRef = useRef<BottomSheetModalRef>(null);
 
-  const generateSecretKey = async () => {
-    try {
-      setIsLoading(true);
+    useImperativeHandle(ref, () => ({
+      present: () => bottomSheetRef.current?.present(),
+      dismiss: () => bottomSheetRef.current?.dismiss(),
+    }));
 
-      // Use Supabase TOTP enrollment
-      const { data, error: enrollError } = await supabase.auth.mfa.enroll({
-        factorType: "totp",
-      });
+    const generateSecretKey = async () => {
+      try {
+        setIsLoading(true);
 
-      if (enrollError) {
-        throw enrollError;
-      }
-
-      if (!data) {
-        throw new Error("Failed to enroll MFA");
-      }
-
-      // Set the secret and QR code from Supabase
-      setSecretKey(data.totp.secret);
-      setQrCodeUrl(data.totp.qr_code);
-    } catch (err: any) {
-      console.error("Error generating secret key:", err);
-      showAlert({
-        title: "Error",
-        message: err.message ||
-          "Failed to generate 2FA setup. Please try again.",
-        buttons: [{ text: "OK" }],
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (visible && !profile?.mfa_enabled && !secretKey) {
-      generateSecretKey();
-    }
-  }, [visible, profile?.mfa_enabled]);
-
-  const handleSetup2FA = () => {
-    if (!secretKey) {
-      showAlert({
-        title: "Error",
-        message: "Please wait for the setup to complete.",
-        buttons: [{ text: "OK" }],
-      });
-      return;
-    }
-    setStep("verify");
-  };
-
-  const handleVerifyAndEnable = async () => {
-    if (!verificationCode.trim()) {
-      showAlert({
-        title: "Error",
-        message:
-          "Please enter the verification code from your authenticator app.",
-        buttons: [{ text: "OK" }],
-      });
-      return;
-    }
-
-    if (verificationCode.length !== 6) {
-      showAlert({
-        title: "Error",
-        message: "Verification code must be 6 digits.",
-        buttons: [{ text: "OK" }],
-      });
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-
-      // Get the list of factors to find the one we just enrolled
-      const { data: factors, error: factorsError } = await supabase.auth.mfa
-        .listFactors();
-
-      if (factorsError) {
-        throw factorsError;
-      }
-
-      // Find the most recent TOTP factor that's not verified
-      const totpFactor = factors?.totp?.find((f) => f.status === "unverified");
-
-      if (!totpFactor) {
-        throw new Error("No unverified TOTP factor found. Please try again.");
-      }
-
-      // Verify the TOTP code with Supabase
-      const { data: challengeData, error: challengeError } = await supabase.auth
-        .mfa.challenge({
-          factorId: totpFactor.id,
+        // Use Supabase TOTP enrollment
+        const { data, error: enrollError } = await supabase.auth.mfa.enroll({
+          factorType: "totp",
         });
 
-      if (challengeError) {
-        throw challengeError;
+        if (enrollError) {
+          throw enrollError;
+        }
+
+        if (!data) {
+          throw new Error("Failed to enroll MFA");
+        }
+
+        // Set the secret and QR code from Supabase
+        setSecretKey(data.totp.secret);
+        setQrCodeUrl(data.totp.qr_code);
+      } catch (err: any) {
+        console.error("Error generating secret key:", err);
+        showAlert({
+          title: "Error",
+          message: err.message ||
+            "Failed to generate 2FA setup. Please try again.",
+          buttons: [{ text: "OK" }],
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const handleSheetChanges = (index: number) => {
+      if (index >= 0 && !profile?.mfa_enabled && !secretKey) {
+        generateSecretKey();
+      }
+    };
+
+    const handleSetup2FA = () => {
+      if (!secretKey) {
+        showAlert({
+          title: "Error",
+          message: "Please wait for the setup to complete.",
+          buttons: [{ text: "OK" }],
+        });
+        return;
+      }
+      setStep("verify");
+    };
+
+    const handleVerifyAndEnable = async () => {
+      if (!verificationCode.trim()) {
+        showAlert({
+          title: "Error",
+          message:
+            "Please enter the verification code from your authenticator app.",
+          buttons: [{ text: "OK" }],
+        });
+        return;
       }
 
-      const { error: verifyError } = await supabase.auth.mfa.verify({
-        factorId: totpFactor.id,
-        challengeId: challengeData.id,
-        code: verificationCode,
-      });
-
-      if (verifyError) {
-        throw verifyError;
+      if (verificationCode.length !== 6) {
+        showAlert({
+          title: "Error",
+          message: "Verification code must be 6 digits.",
+          buttons: [{ text: "OK" }],
+        });
+        return;
       }
 
-      // Enable 2FA in the profile
-      await toggleMFAMutation.mutateAsync(true);
+      try {
+        setIsLoading(true);
 
-      showAlert({
-        title: "2FA Enabled",
-        message:
-          "Two-factor authentication has been successfully enabled for your account.",
-        buttons: [{
-          text: "OK",
-          onPress: () => {
-            setVerificationCode("");
-            setSecretKey("");
-            setQrCodeUrl("");
-            setStep("setup");
-            onClose();
-          },
-        }],
-      });
-    } catch (err: any) {
-      console.error("Error enabling 2FA:", err);
-      showAlert({
-        title: "Error",
-        message: err.message ||
-          "Failed to enable 2FA. Please check your code and try again.",
-        buttons: [{ text: "OK" }],
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        // Get the list of factors to find the one we just enrolled
+        const { data: factors, error: factorsError } = await supabase.auth.mfa
+          .listFactors();
 
-  const handleDisable2FA = async () => {
-    showAlert({
-      title: "Disable 2FA",
-      message: "This will make your account less secure.",
-      buttons: [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Disable",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setIsLoading(true);
-              const { data: factors } = await supabase.auth.mfa.listFactors();
-              const totpFactors = factors?.totp ?? [];
-              for (const factor of totpFactors) {
-                if (factor.status === "verified") {
-                  await supabase.auth.mfa.unenroll({ factorId: factor.id });
+        if (factorsError) {
+          throw factorsError;
+        }
+
+        // Find the most recent TOTP factor that's not verified
+        const totpFactor = factors?.totp?.find((f) =>
+          f.status === "unverified"
+        );
+
+        if (!totpFactor) {
+          throw new Error("No unverified TOTP factor found. Please try again.");
+        }
+
+        // Verify the TOTP code with Supabase
+        const { data: challengeData, error: challengeError } = await supabase
+          .auth
+          .mfa.challenge({
+            factorId: totpFactor.id,
+          });
+
+        if (challengeError) {
+          throw challengeError;
+        }
+
+        const { error: verifyError } = await supabase.auth.mfa.verify({
+          factorId: totpFactor.id,
+          challengeId: challengeData.id,
+          code: verificationCode,
+        });
+
+        if (verifyError) {
+          throw verifyError;
+        }
+
+        // Enable 2FA in the profile
+        await toggleMFAMutation.mutateAsync(true);
+
+        showAlert({
+          title: "2FA Enabled",
+          message:
+            "Two-factor authentication has been successfully enabled for your account.",
+          buttons: [{
+            text: "OK",
+            onPress: () => {
+              setVerificationCode("");
+              setSecretKey("");
+              setQrCodeUrl("");
+              setStep("setup");
+              bottomSheetRef.current?.dismiss();
+            },
+          }],
+        });
+      } catch (err: any) {
+        console.error("Error enabling 2FA:", err);
+        showAlert({
+          title: "Error",
+          message: err.message ||
+            "Failed to enable 2FA. Please check your code and try again.",
+          buttons: [{ text: "OK" }],
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const handleDisable2FA = async () => {
+      showAlert({
+        title: "Disable 2FA",
+        message: "This will make your account less secure.",
+        buttons: [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Disable",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                setIsLoading(true);
+                const { data: factors } = await supabase.auth.mfa.listFactors();
+                const totpFactors = factors?.totp ?? [];
+                for (const factor of totpFactors) {
+                  if (factor.status === "verified") {
+                    await supabase.auth.mfa.unenroll({ factorId: factor.id });
+                  }
                 }
+                await toggleMFAMutation.mutateAsync(false);
+                showAlert({
+                  title: "2FA Disabled",
+                  buttons: [{
+                    text: "OK",
+                    onPress: () => bottomSheetRef.current?.dismiss(),
+                  }],
+                });
+              } catch (err: any) {
+                console.error("Error disabling 2FA:", err);
+                showAlert({
+                  title: "Error",
+                  message: "Failed to disable 2FA. Please try again.",
+                  buttons: [{ text: "OK" }],
+                });
+              } finally {
+                setIsLoading(false);
               }
-              await toggleMFAMutation.mutateAsync(false);
-              showAlert({
-                title: "2FA Disabled",
-                buttons: [{ text: "OK", onPress: onClose }],
-              });
-            } catch (err: any) {
-              console.error("Error disabling 2FA:", err);
-              showAlert({
-                title: "Error",
-                message: "Failed to disable 2FA. Please try again.",
-                buttons: [{ text: "OK" }],
-              });
-            } finally {
-              setIsLoading(false);
-            }
+            },
           },
-        },
-      ],
-    });
-  };
+        ],
+      });
+    };
 
-  const handleClose = () => {
-    setVerificationCode("");
-    setSecretKey("");
-    setQrCodeUrl("");
-    setStep("setup");
-    onClose();
-  };
+    const handleClose = () => {
+      setVerificationCode("");
+      setSecretKey("");
+      setQrCodeUrl("");
+      setStep("setup");
+    };
 
-  return (
-    <>
-      <BottomSheet visible={visible} onClose={handleClose}>
-        <View style={styles.modalContainer}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <View style={{ flex: 1 }} />
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={20} color={Colors.black} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={styles.modalContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {profile?.mfa_enabled
-              ? (
-                <View>
-                  <View style={styles.statusContainer}>
-                    <Ionicons
-                      name="shield-checkmark"
-                      size={48}
-                      color={Colors.primary}
-                    />
-                    <Text style={styles.statusTitle}>2FA Enabled</Text>
-                    <Text style={styles.statusDescription}>
-                      Two-factor authentication is protecting your account.
-                    </Text>
-                  </View>
-
-                  <Button
-                    mode="contained"
-                    onPress={handleDisable2FA}
-                    loading={isLoading}
-                    disabled={isLoading}
-                    style={[styles.button, styles.disableButton]}
-                    buttonColor="#FF3B30"
-                    textColor={Colors.white}
-                  >
-                    Disable 2FA
-                  </Button>
-                </View>
-              )
-              : step === "setup"
-              ? (
-                <View>
-                  <Text style={styles.description}>
-                    Use Google Authenticator or your preferred 2FA app
-                  </Text>
-
-                  {isLoading
-                    ? (
-                      <View style={styles.loadingContainer}>
-                        <CustomLoader />
-                        <Text style={styles.loadingText}>
-                          Setting up 2FA...
-                        </Text>
-                      </View>
-                    )
-                    : (
-                      <View>
-                        {/* QR Code Section */}
-                        <View style={styles.qrContainer}>
-                          <View style={styles.qrCodeWrapper}>
-                            {qrCodeUrl
-                              ? (
-                                <QRCode
-                                  value={qrCodeUrl}
-                                  size={200}
-                                  color={Colors.black}
-                                  backgroundColor={Colors.white}
-                                />
-                              )
-                              : (
-                                <View style={styles.qrPlaceholder}>
-                                  <Text style={styles.qrPlaceholderText}>
-                                    Generating QR Code...
-                                  </Text>
-                                </View>
-                              )}
-                          </View>
-                          <Text style={styles.qrHelpText}>
-                            Scan with your auth app
-                          </Text>
-                        </View>
-
-                        {/* Secret Key Section */}
-                        <View style={styles.secretContainer}>
-                          <Text style={styles.secretLabel}>
-                            Or enter manually:
-                          </Text>
-                          <View style={styles.secretBox}>
-                            <Text style={styles.secretText}>{secretKey}</Text>
-                            <TouchableOpacity
-                              onPress={async () => {
-                                const isCopied = await copyToClipboard(
-                                  secretKey,
-                                );
-                                if (isCopied) {
-                                  success(
-                                    "Secret Key Copied",
-                                    "Your 2FA secret key has been copied to the clipboard.",
-                                  );
-                                } else {
-                                  error(
-                                    "Copy Failed",
-                                    "Unable to copy secret key to clipboard.",
-                                  );
-                                }
-                              }}
-                              style={styles.shareButton}
-                            >
-                              <Ionicons
-                                name="copy-outline"
-                                size={20}
-                                color={Colors.primary}
-                              />
-                            </TouchableOpacity>
-                          </View>
-                          <Text style={styles.helpText}>
-                            Copy this key and enter it manually in your
-                            authenticator app
-                          </Text>
-                        </View>
-
-                        <Button
-                          mode="contained"
-                          onPress={handleSetup2FA}
-                          style={styles.button}
-                          buttonColor={Colors.primary}
-                          textColor={Colors.white}
-                        >
-                          I&apos;ve Added the Key
-                        </Button>
-                      </View>
-                    )}
-                </View>
-              )
-              : (
-                // Verify setup
-                <View>
-                  <View style={styles.verifyContainer}>
-                    <Text style={styles.verifyTitle}>
-                      Enter Verification Code
-                    </Text>
-
-                    {/* 6 Digit Boxes */}
-                    <View style={styles.codeBoxesContainer}>
-                      {[0, 1, 2, 3, 4, 5].map((index) => (
-                        <View
-                          key={index}
-                          style={[
-                            styles.codeBox,
-                            verificationCode[index] && styles.codeBoxFilled,
-                          ]}
-                        >
-                          <Text style={styles.codeBoxText}>
-                            {verificationCode[index] || ""}
-                          </Text>
-                        </View>
-                      ))}
+    return (
+      <>
+        <BottomSheetModal
+          ref={bottomSheetRef}
+          enableDynamicSizing
+          onChange={handleSheetChanges}
+          onClose={handleClose}
+        >
+          <View style={styles.modalContainer}>
+            <BottomSheetScrollView
+              contentContainerStyle={styles.modalContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {profile?.mfa_enabled
+                ? (
+                  <View>
+                    <View style={styles.statusContainer}>
+                      <Ionicons
+                        name="shield-checkmark"
+                        size={48}
+                        color={Colors.primary}
+                      />
+                      <Text style={styles.statusTitle}>2FA Enabled</Text>
+                      <Text style={styles.statusDescription}>
+                        Two-factor authentication is protecting your account.
+                      </Text>
                     </View>
 
-                    {/* Hidden Input for Keyboard */}
-                    <TextInput
-                      style={styles.hiddenInput}
-                      value={verificationCode}
-                      onChangeText={(t) =>
-                        setVerificationCode(t.replace(/\D/g, ""))}
-                      keyboardType="number-pad"
-                      maxLength={6}
-                      autoFocus
-                    />
-
-                    {verificationCode.length > 0 &&
-                      verificationCode.length !== 6 && (
-                      <Text style={styles.errorText}>
-                        Code must be 6 digits
-                      </Text>
-                    )}
+                    <Button
+                      mode="contained"
+                      onPress={handleDisable2FA}
+                      loading={isLoading}
+                      disabled={isLoading}
+                      style={[styles.button, styles.disableButton]}
+                      buttonColor="#FF3B30"
+                      textColor={Colors.white}
+                    >
+                      Disable 2FA
+                    </Button>
                   </View>
+                )
+                : step === "setup"
+                ? (
+                  <View>
+                    <Text style={styles.description}>
+                      Use Google Authenticator or your preferred 2FA app
+                    </Text>
 
-                  <TouchableOpacity
-                    style={[styles.button, isLoading && styles.buttonDisabled]}
-                    onPress={handleVerifyAndEnable}
-                    disabled={isLoading}
-                  >
                     {isLoading
-                      ? <CustomLoader />
-                      : <Text style={styles.buttonText}>Enable 2FA</Text>}
-                  </TouchableOpacity>
+                      ? (
+                        <View style={styles.loadingContainer}>
+                          <CustomLoader />
+                          <Text style={styles.loadingText}>
+                            Setting up 2FA...
+                          </Text>
+                        </View>
+                      )
+                      : (
+                        <View>
+                          {/* QR Code Section */}
+                          <View style={styles.qrContainer}>
+                            <View style={styles.qrCodeWrapper}>
+                              {qrCodeUrl
+                                ? (
+                                  <QRCode
+                                    value={qrCodeUrl}
+                                    size={200}
+                                    color={Colors.black}
+                                    backgroundColor={Colors.white}
+                                  />
+                                )
+                                : (
+                                  <View style={styles.qrPlaceholder}>
+                                    <Text style={styles.qrPlaceholderText}>
+                                      Generating QR Code...
+                                    </Text>
+                                  </View>
+                                )}
+                            </View>
+                            <Text style={styles.qrHelpText}>
+                              Scan with your auth app
+                            </Text>
+                          </View>
 
-                  <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => setStep("setup")}
-                  >
-                    <Text style={styles.backButtonText}>Back to Setup</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-          </ScrollView>
-        </View>
-      </BottomSheet>
-      <AlertComponent />
-    </>
-  );
-};
+                          {/* Secret Key Section */}
+                          <View style={styles.secretContainer}>
+                            <Text style={styles.secretLabel}>
+                              Or enter manually:
+                            </Text>
+                            <View style={styles.secretBox}>
+                              <Text style={styles.secretText}>{secretKey}</Text>
+                              <TouchableOpacity
+                                onPress={async () => {
+                                  const isCopied = await copyToClipboard(
+                                    secretKey,
+                                  );
+                                  if (isCopied) {
+                                    success(
+                                      "Secret Key Copied",
+                                      "Your 2FA secret key has been copied to the clipboard.",
+                                    );
+                                  } else {
+                                    error(
+                                      "Copy Failed",
+                                      "Unable to copy secret key to clipboard.",
+                                    );
+                                  }
+                                }}
+                                style={styles.shareButton}
+                              >
+                                <Ionicons
+                                  name="copy-outline"
+                                  size={20}
+                                  color={Colors.primary}
+                                />
+                              </TouchableOpacity>
+                            </View>
+                            <Text style={styles.helpText}>
+                              Copy this key and enter it manually in your
+                              authenticator app
+                            </Text>
+                          </View>
+
+                          <Button
+                            mode="contained"
+                            onPress={handleSetup2FA}
+                            style={styles.button}
+                            buttonColor={Colors.primary}
+                            textColor={Colors.white}
+                          >
+                            I&apos;ve Added the Key
+                          </Button>
+                        </View>
+                      )}
+                  </View>
+                )
+                : (
+                  // Verify setup
+                  <View>
+                    <View style={styles.verifyContainer}>
+                      <Text style={styles.verifyTitle}>
+                        Enter Verification Code
+                      </Text>
+
+                      {/* 6 Digit Boxes */}
+                      <View style={styles.codeBoxesContainer}>
+                        {[0, 1, 2, 3, 4, 5].map((index) => (
+                          <View
+                            key={index}
+                            style={[
+                              styles.codeBox,
+                              verificationCode[index] && styles.codeBoxFilled,
+                            ]}
+                          >
+                            <Text style={styles.codeBoxText}>
+                              {verificationCode[index] || ""}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+
+                      {/* Hidden Input for Keyboard */}
+                      <BottomSheetTextInput
+                        style={styles.hiddenInput}
+                        value={verificationCode}
+                        onChangeText={(t) =>
+                          setVerificationCode(t.replace(/\D/g, ""))}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        autoFocus
+                      />
+
+                      {verificationCode.length > 0 &&
+                        verificationCode.length !== 6 && (
+                        <Text style={styles.errorText}>
+                          Code must be 6 digits
+                        </Text>
+                      )}
+                    </View>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.button,
+                        isLoading && styles.buttonDisabled,
+                      ]}
+                      onPress={handleVerifyAndEnable}
+                      disabled={isLoading}
+                    >
+                      {isLoading
+                        ? <CustomLoader />
+                        : <Text style={styles.buttonText}>Enable 2FA</Text>}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.backButton}
+                      onPress={() => setStep("setup")}
+                    >
+                      <Text style={styles.backButtonText}>Back to Setup</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+            </BottomSheetScrollView>
+          </View>
+        </BottomSheetModal>
+        <AlertComponent />
+      </>
+    );
+  },
+);
+
+TwoFactorAuthModal.displayName = "TwoFactorAuthModal";
 
 const styles = StyleSheet.create({
   modalContainer: {
-    height: "100%",
     backgroundColor: Colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#f2f2f2",
-    alignItems: "center",
-    justifyContent: "center",
   },
   modalContent: {
-    flex: 1,
     padding: 20,
   },
   description: {
@@ -464,6 +460,7 @@ const styles = StyleSheet.create({
     color: Colors.grey,
     marginBottom: 24,
     lineHeight: 20,
+    textAlign: "center",
   },
   statusContainer: {
     alignItems: "center",
@@ -543,27 +540,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     textAlign: "center",
   },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Colors.black,
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: Colors.lightgrey,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 18,
-    color: Colors.black,
-    backgroundColor: Colors.white,
-    textAlign: "center",
-    letterSpacing: 4,
-  },
   button: {
     backgroundColor: Colors.primary,
     borderRadius: 8,
@@ -591,10 +567,6 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 16,
   },
-  textInputError: {
-    borderColor: "#FF3B30",
-    borderWidth: 2,
-  },
   errorText: {
     color: "#FF3B30",
     fontSize: 12,
@@ -609,12 +581,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: Colors.black,
     marginBottom: 8,
-  },
-  verifyDescription: {
-    fontSize: 14,
-    color: Colors.grey,
-    marginBottom: 24,
-    lineHeight: 20,
     textAlign: "center",
   },
   codeBoxesContainer: {

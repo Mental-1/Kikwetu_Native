@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import BottomSheet from "./BottomSheet";
+import BottomSheet, { BottomSheetRef } from "./BottomSheet";
 
 export interface PremiumFeatureModalProps {
   visible: boolean;
@@ -30,6 +30,15 @@ const PremiumFeatureModal: React.FC<PremiumFeatureModalProps> = (
   },
 ) => {
   const router = useRouter();
+  const bottomSheetRef = React.useRef<BottomSheetRef>(null);
+
+  React.useEffect(() => {
+    if (visible) {
+      bottomSheetRef.current?.expand();
+    } else {
+      bottomSheetRef.current?.close();
+    }
+  }, [visible]);
 
   const handleUpgrade = () => {
     onClose();
@@ -37,7 +46,12 @@ const PremiumFeatureModal: React.FC<PremiumFeatureModalProps> = (
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} enableDynamicSizing>
+    <BottomSheet
+      ref={bottomSheetRef}
+      onClose={onClose}
+      enableDynamicSizing
+      initialIndex={-1}
+    >
       <View style={styles.modalContainer}>
         {/* Header */}
         <View style={styles.header}>

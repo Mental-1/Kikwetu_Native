@@ -1,16 +1,26 @@
-import { useAuth } from '@/contexts/authContext';
-import { Colors } from '@/src/constants/constant';
-import { useProfile } from '@/src/hooks/useProfile';
-import { createAlertHelpers, useCustomAlert } from '@/utils/alertUtils';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import ChangeEmailModal from '../(auth)/changeEmail';
-import ChangePasswordModal from '../(auth)/changePassword';
-import TwoFactorAuthModal from '../(auth)/twoFactorAuth';
+import { useAuth } from "@/contexts/authContext";
+import { Colors } from "@/src/constants/constant";
+import { useProfile } from "@/src/hooks/useProfile";
+import { createAlertHelpers, useCustomAlert } from "@/utils/alertUtils";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useRef } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import ChangeEmailModal, { ChangeEmailModalRef } from "../(auth)/changeEmail";
+import ChangePasswordModal, {
+  ChangePasswordModalRef,
+} from "../(auth)/changePassword";
+import TwoFactorAuthModal, {
+  TwoFactorAuthModalRef,
+} from "../(auth)/twoFactorAuth";
 
 const Privacy = () => {
   const router = useRouter();
@@ -18,65 +28,76 @@ const Privacy = () => {
   const { data: profile } = useProfile();
   const { showAlert, AlertComponent } = useCustomAlert();
   const { error } = createAlertHelpers(showAlert);
-  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-  const [show2FAModal, setShow2FAModal] = useState(false);
+
+  const changeEmailRef = useRef<ChangeEmailModalRef>(null);
+  const changePasswordRef = useRef<ChangePasswordModalRef>(null);
+  const twoFactorAuthRef = useRef<TwoFactorAuthModalRef>(null);
 
   const handleBack = () => {
     router.back();
   };
 
   const handleChangeEmail = () => {
-    setShowChangeEmailModal(true);
+    changeEmailRef.current?.present();
   };
 
   const handleChangePassword = () => {
-    setShowChangePasswordModal(true);
+    changePasswordRef.current?.present();
   };
 
   const handleToggle2FA = () => {
-    setShow2FAModal(true);
+    twoFactorAuthRef.current?.present();
   };
 
   const privacySections = [
     {
-      title: 'Security Settings',
+      title: "Security Settings",
       items: [
         {
-          title: 'Change Email',
-          subtitle: 'Update your account email address',
-          icon: 'mail-outline',
+          title: "Change Email",
+          subtitle: "Update your account email address",
+          icon: "mail-outline",
           onPress: handleChangeEmail,
         },
         {
-          title: 'Change Password',
-          subtitle: 'Update your account password',
-          icon: 'lock-closed-outline',
+          title: "Change Password",
+          subtitle: "Update your account password",
+          icon: "lock-closed-outline",
           onPress: handleChangePassword,
         },
         {
-          title: 'Two-Factor Authentication',
-          subtitle: profile?.mfa_enabled ? 'Enabled - Tap to manage' : 'Disabled - Tap to enable',
-          icon: profile?.mfa_enabled ? 'shield-checkmark' : 'shield-outline',
+          title: "Two-Factor Authentication",
+          subtitle: profile?.mfa_enabled
+            ? "Enabled - Tap to manage"
+            : "Disabled - Tap to enable",
+          icon: profile?.mfa_enabled ? "shield-checkmark" : "shield-outline",
           onPress: handleToggle2FA,
           showStatus: profile?.mfa_enabled,
         },
       ],
     },
     {
-      title: 'Privacy Controls',
+      title: "Privacy Controls",
       items: [
         {
-          title: 'Profile Visibility',
-          subtitle: 'Control who can see your profile',
-          icon: 'eye-outline',
-          onPress: () => error('Not Implemented', 'Profile visibility settings will be implemented'),
+          title: "Profile Visibility",
+          subtitle: "Control who can see your profile",
+          icon: "eye-outline",
+          onPress: () =>
+            error(
+              "Not Implemented",
+              "Profile visibility settings will be implemented",
+            ),
         },
         {
-          title: 'Data Export',
-          subtitle: 'Download your account data',
-          icon: 'download-outline',
-          onPress: () => error('Not Implemented', 'Data export functionality will be implemented'),
+          title: "Data Export",
+          subtitle: "Download your account data",
+          icon: "download-outline",
+          onPress: () =>
+            error(
+              "Not Implemented",
+              "Data export functionality will be implemented",
+            ),
         },
       ],
     },
@@ -85,9 +106,9 @@ const Privacy = () => {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-      
+
       {/* Header */}
-      <SafeAreaView style={styles.header} edges={['top']}>
+      <SafeAreaView style={styles.header} edges={["top"]}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color={Colors.black} />
         </TouchableOpacity>
@@ -99,8 +120,12 @@ const Privacy = () => {
         {/* Current Account Info */}
         <View style={styles.infoSection}>
           <Text style={styles.infoTitle}>Current Account</Text>
-          <Text style={styles.infoText}>Email: {user?.email || 'Not available'}</Text>
-          <Text style={styles.infoText}>2FA: {profile?.mfa_enabled ? 'Enabled' : 'Disabled'}</Text>
+          <Text style={styles.infoText}>
+            Email: {user?.email || "Not available"}
+          </Text>
+          <Text style={styles.infoText}>
+            2FA: {profile?.mfa_enabled ? "Enabled" : "Disabled"}
+          </Text>
         </View>
 
         {/* Security Settings */}
@@ -118,7 +143,11 @@ const Privacy = () => {
                   onPress={item.onPress}
                 >
                   <View style={styles.itemIcon}>
-                    <Ionicons name={item.icon as any} size={24} color={Colors.primary} />
+                    <Ionicons
+                      name={item.icon as any}
+                      size={24}
+                      color={Colors.primary}
+                    />
                   </View>
                   <View style={styles.itemContent}>
                     <View style={styles.itemTitleRow}>
@@ -131,38 +160,32 @@ const Privacy = () => {
                     </View>
                     <Text style={styles.itemSubtitle}>{item.subtitle}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={Colors.grey}
+                  />
                 </TouchableOpacity>
               ))}
             </View>
           </View>
         ))}
 
-
         {/* Bottom padding for better scrolling */}
         <View style={styles.bottomPadding} />
       </ScrollView>
-      
+
       {/* Custom Alert Component */}
       <AlertComponent />
 
       {/* Change Email Modal */}
-      <ChangeEmailModal
-        visible={showChangeEmailModal}
-        onClose={() => setShowChangeEmailModal(false)}
-      />
+      <ChangeEmailModal ref={changeEmailRef} />
 
       {/* Change Password Modal */}
-      <ChangePasswordModal
-        visible={showChangePasswordModal}
-        onClose={() => setShowChangePasswordModal(false)}
-      />
+      <ChangePasswordModal ref={changePasswordRef} />
 
       {/* Two-Factor Authentication Modal */}
-      <TwoFactorAuthModal
-        visible={show2FAModal}
-        onClose={() => setShow2FAModal(false)}
-      />
+      <TwoFactorAuthModal ref={twoFactorAuthRef} />
     </View>
   );
 };
@@ -173,16 +196,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.white,
     borderBottomWidth: 0.2,
     borderBottomColor: Colors.lightgrey,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -195,7 +218,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.black,
   },
   headerRight: {
@@ -211,7 +234,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     elevation: 1,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -221,7 +244,7 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.black,
     marginBottom: 8,
   },
@@ -236,17 +259,17 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.grey,
     marginBottom: 12,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   sectionList: {
     backgroundColor: Colors.white,
     borderRadius: 12,
     elevation: 1,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -255,8 +278,8 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   settingsItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 0.5,
@@ -270,22 +293,22 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: Colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   itemContent: {
     flex: 1,
   },
   itemTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 2,
   },
   itemTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.black,
     flex: 1,
   },
@@ -298,7 +321,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.white,
   },
   itemSubtitle: {

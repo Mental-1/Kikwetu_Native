@@ -1,13 +1,10 @@
-import { Colors } from '@/src/constants/constant';
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import {
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import React, { memo } from "react";
+import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { useTheme } from "@/hooks/useTheme";
+import { BorderRadius, Spacing } from "@/constants/theme";
 
 interface ModalPickerProps {
     visible: boolean;
@@ -18,7 +15,7 @@ interface ModalPickerProps {
     onClose: () => void;
 }
 
-export default function ModalPicker({
+function ModalPickerComponent({
     visible,
     title,
     options,
@@ -26,65 +23,84 @@ export default function ModalPicker({
     onSelect,
     onClose,
 }: ModalPickerProps) {
-    const handleSelect = (value: string) => {
-        onSelect(value);
-        onClose();
-    };
+    const { theme } = useTheme();
 
     return (
         <Modal
             visible={visible}
+            animationType="slide"
             transparent
-            animationType="fade"
             onRequestClose={onClose}
         >
-            <TouchableOpacity
-                style={styles.overlay}
-                activeOpacity={1}
-                onPress={onClose}
-            >
-                <View style={styles.modalContainer}>
-                    <TouchableOpacity activeOpacity={1}>
-                        <View style={styles.header}>
-                            <Text style={styles.title}>{title}</Text>
-                            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                                <Ionicons name="close" size={24} color={Colors.white} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.optionsContainer}>
-                            {options.map((option, index) => {
-                                const isSelected = option === selectedValue;
-                                return (
-                                    <TouchableOpacity
-                                        key={index}
+            <View style={styles.overlay}>
+                <ThemedView style={styles.container}>
+                    <View style={styles.header}>
+                        <ThemedText type="h4" style={styles.title}>
+                            {title}
+                        </ThemedText>
+                        <Pressable
+                            onPress={onClose}
+                            style={({ pressed }) => [
+                                styles.closeButton,
+                                { opacity: pressed ? 0.6 : 1 },
+                            ]}
+                            hitSlop={8}
+                        >
+                            <Feather name="x" size={24} color={theme.text} />
+                        </Pressable>
+                    </View>
+                    <ScrollView
+                        style={styles.optionsList}
+                        contentContainerStyle={styles.optionsContent}
+                        showsVerticalScrollIndicator={false}
+                    >
+                        {options.map((option, index) => {
+                            const isSelected = option === selectedValue;
+                            return (
+                                <Pressable
+                                    key={option}
+                                    onPress={() => onSelect(option)}
+                                    style={({ pressed }) => [
+                                        styles.optionItem,
+                                        {
+                                            backgroundColor: pressed
+                                                ? theme.backgroundDefault
+                                                : theme.backgroundRoot,
+                                            borderBottomColor: theme.border,
+                                            borderBottomWidth:
+                                                index < options.length - 1
+                                                    ? 0.5
+                                                    : 0,
+                                        },
+                                    ]}
+                                >
+                                    <ThemedText
                                         style={[
-                                            styles.option,
-                                            isSelected && styles.selectedOption,
+                                            styles.optionText,
+                                            isSelected &&
+                                            {
+                                                color: theme.primary,
+                                                fontWeight: "600",
+                                            },
                                         ]}
-                                        onPress={() => handleSelect(option)}
-                                        activeOpacity={0.7}
                                     >
-                                        <View style={styles.radioContainer}>
-                                            <View style={[styles.radio, isSelected && styles.radioSelected]}>
-                                                {isSelected && <View style={styles.radioDot} />}
-                                            </View>
-                                            <Text
-                                                style={[
-                                                    styles.optionText,
-                                                    isSelected && styles.selectedOptionText,
-                                                ]}
-                                            >
-                                                {option}
-                                            </Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-                    </TouchableOpacity>
-                </View>
-            </TouchableOpacity>
+                                        {option}
+                                    </ThemedText>
+                                    {isSelected
+                                        ? (
+                                            <Feather
+                                                name="check"
+                                                size={20}
+                                                color={theme.primary}
+                                            />
+                                        )
+                                        : null}
+                                </Pressable>
+                            );
+                        })}
+                    </ScrollView>
+                </ThemedView>
+            </View>
         </Modal>
     );
 }
@@ -92,78 +108,46 @@ export default function ModalPicker({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        justifyContent: 'center',
-        alignItems: 'center',
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        justifyContent: "flex-end",
     },
-    modalContainer: {
-        width: '85%',
-        maxWidth: 400,
-        backgroundColor: '#1a1a1a',
-        borderRadius: 12,
-        overflow: 'hidden',
+    container: {
+        maxHeight: "60%",
+        borderTopLeftRadius: BorderRadius.lg,
+        borderTopRightRadius: BorderRadius.lg,
+        paddingBottom: Spacing["2xl"],
     },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#2a2a2a',
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: Spacing.xl,
+        paddingVertical: Spacing.lg,
+        borderBottomWidth: 0.5,
+        borderBottomColor: "rgba(128, 128, 128, 0.2)",
     },
     title: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: Colors.white,
-    },
-    closeButton: {
-        padding: 4,
-    },
-    optionsContainer: {
-        maxHeight: 300,
-    },
-    option: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 16,
-        paddingHorizontal: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#2a2a2a',
-    },
-    selectedOption: {
-        backgroundColor: '#2a2a2a',
-    },
-    radioContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
         flex: 1,
     },
-    radio: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        borderWidth: 2,
-        borderColor: Colors.grey,
-        marginRight: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
+    closeButton: {
+        padding: Spacing.xs,
     },
-    radioSelected: {
-        borderColor: Colors.primary,
+    optionsList: {
+        flexGrow: 0,
     },
-    radioDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: Colors.primary,
+    optionsContent: {
+        paddingHorizontal: Spacing.xl,
+    },
+    optionItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingVertical: Spacing.lg,
+        minHeight: 56,
     },
     optionText: {
         fontSize: 16,
-        color: Colors.white,
-        flex: 1,
-    },
-    selectedOptionText: {
-        color: Colors.primary,
-        fontWeight: '600',
     },
 });
+
+export const ModalPicker = memo(ModalPickerComponent);

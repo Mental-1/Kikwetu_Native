@@ -1,53 +1,66 @@
-import { useAuth } from '@/contexts/authContext';
-import { Colors } from '@/src/constants/constant';
-import { showErrorToast, showSuccessToast } from '@/utils/toast';
-import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Button, TextInput } from 'react-native-paper';
-import { z } from 'zod';
-import GoogleIcon from '@/components/ui/GoogleIcon';
-import BottomSheet from '@/components/BottomSheet';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import BottomSheetModal, {
+  BottomSheetModalRef,
+} from "@/components/BottomSheetModal";
+import BottomSheetScrollView from "@/components/BottomSheetScrollView";
+import BottomSheetTextInput from "@/components/BottomSheetTextInput";
+import GoogleIcon from "@/components/ui/GoogleIcon";
+import { useAuth } from "@/contexts/authContext";
+import { Colors } from "@/src/constants/constant";
+import { showErrorToast, showSuccessToast } from "@/utils/toast";
+import { zodResolver } from "@hookform/resolvers/zod";
+import React, {
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
+import { Controller, useForm } from "react-hook-form";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Button } from "react-native-paper";
+import { z } from "zod";
 
 const signUpSchema = z
   .object({
-    fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-    email: z.email('Please enter a valid email address'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
+    fullName: z.string().min(2, "Full name must be at least 2 characters"),
+    email: z.email("Please enter a valid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string(),
     phoneNumber: z
       .string()
       .regex(
         /^\+?[1-9]\d{7,14}$/,
-        'Enter a valid phone number in international format, e.g. +254712345678'
+        "Enter a valid phone number in international format, e.g. +254712345678",
       ),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
-    path: ['confirmPassword'],
+    path: ["confirmPassword"],
   });
 
 type SignUpFormData = z.infer<typeof signUpSchema>;
 
 interface SignUpProps {
-  visible: boolean;
-  onClose: () => void;
   onSwitchToSignIn: () => void;
 }
 
-const SignUp: React.FC<SignUpProps> = ({
-  visible,
-  onClose,
+export interface SignUpRef {
+  present: () => void;
+  dismiss: () => void;
+}
+
+const SignUp = forwardRef<SignUpRef, SignUpProps>(({
   onSwitchToSignIn,
-}) => {
+}, ref) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
-  const { bottom } = useSafeAreaInsets();
+  const bottomSheetRef = useRef<BottomSheetModalRef>(null);
+
+  useImperativeHandle(ref, () => ({
+    present: () => bottomSheetRef.current?.present(),
+    dismiss: () => bottomSheetRef.current?.dismiss(),
+  }));
 
   const {
     control,
@@ -57,11 +70,11 @@ const SignUp: React.FC<SignUpProps> = ({
   } = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      fullName: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      phoneNumber: '',
+      fullName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      phoneNumber: "",
     },
   });
 
@@ -72,204 +85,131 @@ const SignUp: React.FC<SignUpProps> = ({
         data.email,
         data.password,
         data.fullName,
-        data.phoneNumber
+        data.phoneNumber,
       );
       if (error) {
-        throw new Error(error.message || 'Failed to create account');
+        throw new Error(error.message || "Failed to create account");
       }
       showSuccessToast(
-        'Account created successfully! Please check your email to verify your account.',
-        'Welcome'
+        "Account created successfully! Please check your email to verify your account.",
+        "Welcome",
       );
-      onClose();
+      bottomSheetRef.current?.dismiss();
       reset();
     } catch (err: any) {
-      showErrorToast(err.message, 'Sign Up Error');
+      showErrorToast(err.message, "Sign Up Error");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleSwitchToSignIn = () => {
+    bottomSheetRef.current?.dismiss();
+    onSwitchToSignIn();
+  };
+
   return (
-    <BottomSheet visible={visible} onClose={onClose} enableDynamicSizing>
-      <KeyboardAwareScrollView
+    <BottomSheetModal ref={bottomSheetRef} enableDynamicSizing>
+      <BottomSheetScrollView
         contentContainerStyle={{
-          paddingBottom: bottom > 0 ? bottom + 12 : 24,
           paddingHorizontal: 16,
         }}
-        keyboardShouldPersistTaps='handled'
-        overScrollMode='never'
-        bottomOffset={bottom}
       >
         <Text style={styles.subtitle}>Create your account</Text>
 
         <View style={styles.formContainer}>
           <Controller
             control={control}
-            name='fullName'
+            name="fullName"
             render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label='Full Name'
+              <BottomSheetTextInput
+                label="Full Name"
                 value={value}
                 onBlur={onBlur}
                 onChangeText={onChange}
-                error={!!errors.fullName}
-                mode='outlined'
+                error={errors.fullName?.message}
                 style={styles.textInput}
-                theme={{
-                  roundness: 12,
-                  colors: {
-                    primary: Colors.primary,
-                    background: Colors.white,
-                    text: Colors.black,
-                  },
-                }}
               />
             )}
           />
-          {errors.fullName && (
-            <Text style={styles.errorText}>{errors.fullName.message}</Text>
-          )}
 
           <Controller
             control={control}
-            name='email'
+            name="email"
             render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label='Email'
+              <BottomSheetTextInput
+                label="Email"
                 value={value}
                 onBlur={onBlur}
                 onChangeText={onChange}
-                error={!!errors.email}
-                mode='outlined'
-                keyboardType='email-address'
-                autoCapitalize='none'
+                error={errors.email?.message}
+                keyboardType="email-address"
+                autoCapitalize="none"
                 style={styles.textInput}
-                theme={{
-                  roundness: 12,
-                  colors: {
-                    primary: Colors.primary,
-                    background: Colors.white,
-                    text: Colors.black,
-                  },
-                }}
               />
             )}
           />
-          {errors.email && (
-            <Text style={styles.errorText}>{errors.email.message}</Text>
-          )}
 
           <Controller
             control={control}
-            name='phoneNumber'
+            name="phoneNumber"
             render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label='Phone Number (e.g., +254712345678)'
+              <BottomSheetTextInput
+                label="Phone Number (e.g., +254712345678)"
                 value={value}
                 onBlur={onBlur}
                 onChangeText={onChange}
-                error={!!errors.phoneNumber}
-                mode='outlined'
-                keyboardType='phone-pad'
+                error={errors.phoneNumber?.message}
+                keyboardType="phone-pad"
                 style={styles.textInput}
-                theme={{
-                  roundness: 12,
-                  colors: {
-                    primary: Colors.primary,
-                    background: Colors.white,
-                    text: Colors.black,
-                  },
-                }}
               />
             )}
           />
-          {errors.phoneNumber && (
-            <Text style={styles.errorText}>{errors.phoneNumber.message}</Text>
-          )}
 
           <Controller
             control={control}
-            name='password'
+            name="password"
             render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label='Password'
+              <BottomSheetTextInput
+                label="Password"
                 value={value}
                 onBlur={onBlur}
                 onChangeText={onChange}
-                error={!!errors.password}
-                mode='outlined'
+                error={errors.password?.message}
                 secureTextEntry={!showPassword}
                 style={styles.textInput}
-                theme={{
-                  roundness: 12,
-                  colors: {
-                    primary: Colors.primary,
-                    background: Colors.white,
-                    text: Colors.black,
-                  },
-                }}
-                right={
-                  <TextInput.Icon
-                    icon={showPassword ? 'eye-off' : 'eye'}
-                    onPress={() => setShowPassword(!showPassword)}
-                  />
-                }
               />
             )}
           />
-          {errors.password && (
-            <Text style={styles.errorText}>{errors.password.message}</Text>
-          )}
 
           <Controller
             control={control}
-            name='confirmPassword'
+            name="confirmPassword"
             render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label='Confirm Password'
+              <BottomSheetTextInput
+                label="Confirm Password"
                 value={value}
                 onBlur={onBlur}
                 onChangeText={onChange}
-                error={!!errors.confirmPassword}
-                mode='outlined'
+                error={errors.confirmPassword?.message}
                 secureTextEntry={!showConfirmPassword}
                 style={styles.textInput}
-                theme={{
-                  roundness: 12,
-                  colors: {
-                    primary: Colors.primary,
-                    background: Colors.white,
-                    text: Colors.black,
-                  },
-                }}
-                right={
-                  <TextInput.Icon
-                    icon={showConfirmPassword ? 'eye-off' : 'eye'}
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  />
-                }
               />
             )}
           />
-          {errors.confirmPassword && (
-            <Text style={styles.errorText}>
-              {errors.confirmPassword.message}
-            </Text>
-          )}
         </View>
 
         <Button
-          mode='contained'
+          mode="contained"
           onPress={handleSubmit(onSubmitSignUp)}
           style={[styles.submitButton, { backgroundColor: Colors.primary }]}
           labelStyle={styles.submitButtonText}
           loading={isLoading}
           disabled={isLoading}
-          icon='email-outline'
+          icon="email-outline"
           contentStyle={styles.submitButtonContent}
         >
-          {isLoading ? 'Creating Account...' : 'Create Account'}
+          {isLoading ? "Creating Account..." : "Create Account"}
         </Button>
 
         <View style={styles.dividerContainer}>
@@ -294,72 +234,67 @@ const SignUp: React.FC<SignUpProps> = ({
             styles.switchAuthButton,
             { opacity: pressed ? 0.7 : 1 },
           ]}
-          onPress={onSwitchToSignIn}
+          onPress={handleSwitchToSignIn}
         >
           <Text style={styles.switchAuthText}>
-            Already have an account?{' '}
+            Already have an account?{" "}
             <Text style={styles.switchAuthLink}>Sign In</Text>
           </Text>
         </Pressable>
 
         <View style={styles.legalLinksContainer}>
           <Pressable
-            onPress={() => console.log('Navigate to Terms of Service')}
+            onPress={() => console.log("Navigate to Terms of Service")}
           >
             <Text style={styles.legalLink}>Terms</Text>
           </Pressable>
           <Text style={styles.legalDivider}>|</Text>
-          <Pressable onPress={() => console.log('Navigate to Privacy Policy')}>
+          <Pressable onPress={() => console.log("Navigate to Privacy Policy")}>
             <Text style={styles.legalLink}>Privacy Policy</Text>
           </Pressable>
         </View>
-      </KeyboardAwareScrollView>
-    </BottomSheet>
+      </BottomSheetScrollView>
+    </BottomSheetModal>
   );
-};
+});
+
+SignUp.displayName = "SignUp";
 
 const styles = StyleSheet.create({
   subtitle: {
     fontSize: 18,
     color: Colors.grey,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   formContainer: {
     marginVertical: 10,
   },
   textInput: {
     marginBottom: 12,
-    backgroundColor: 'transparent',
-  },
-  errorText: {
-    color: '#d32f2f',
-    fontSize: 12,
-    marginBottom: 8,
-    marginLeft: 16,
   },
   submitButton: {
     marginTop: 10,
     marginBottom: 8,
     borderRadius: 12,
-    width: '100%',
+    width: "100%",
   },
   submitButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     paddingVertical: 8,
     color: Colors.white,
   },
   submitButtonContent: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     paddingRight: 16,
   },
   switchAuthButton: {
     marginTop: 8,
-    alignItems: 'center',
-    width: '100%',
+    alignItems: "center",
+    width: "100%",
   },
   switchAuthText: {
     fontSize: 14,
@@ -367,12 +302,12 @@ const styles = StyleSheet.create({
   },
   switchAuthLink: {
     color: Colors.primary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   authButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -380,24 +315,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.black,
     gap: 12,
-    width: '100%',
+    width: "100%",
   },
   authButtonText: {
     color: Colors.black,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   legalLinksContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 20,
     paddingBottom: 20,
   },
   legalLink: {
     fontSize: 12,
     color: Colors.grey,
-    textDecorationLine: 'underline',
+    textDecorationLine: "underline",
   },
   legalDivider: {
     fontSize: 12,
@@ -405,8 +340,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: 24,
   },
   dividerLine: {
@@ -416,7 +351,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     width: 130,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 12,
     color: Colors.grey,
   },

@@ -1,15 +1,13 @@
-import { useAuth } from '@/contexts/authContext';
-import ForgotPasswordScreen from '@/src/app/(screens)/(auth)/forgot-password';
-import SignIn from '@/src/app/(screens)/(auth)/signin';
-import SignUp from '@/src/app/(screens)/(auth)/signup';
-import { Colors } from '@/src/constants/constant';
-import React, { useEffect, useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View
-} from 'react-native';
-import CustomLoader from './ui/CustomLoader';
+import { useAuth } from "@/contexts/authContext";
+import ForgotPasswordScreen, {
+  ForgotPasswordRef,
+} from "@/src/app/(screens)/(auth)/forgot-password";
+import SignIn, { SignInRef } from "@/src/app/(screens)/(auth)/signin";
+import SignUp, { SignUpRef } from "@/src/app/(screens)/(auth)/signup";
+import { Colors } from "@/src/constants/constant";
+import React, { useEffect, useRef } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import CustomLoader from "./ui/CustomLoader";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -17,38 +15,36 @@ interface AuthGuardProps {
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const { user, loading } = useAuth();
-  const [isSignInVisible, setIsSignInVisible] = useState(false);
-  const [isSignUpVisible, setIsSignUpVisible] = useState(false);
-  const [isForgotPasswordVisible, setIsForgotPasswordVisible] = useState(false);
+  const signInRef = useRef<SignInRef>(null);
+  const signUpRef = useRef<SignUpRef>(null);
+  const forgotPasswordRef = useRef<ForgotPasswordRef>(null);
 
   useEffect(() => {
     if (!loading && !user) {
-        setIsSignInVisible(true);
+      setTimeout(() => {
+        signInRef.current?.present();
+      }, 100);
     } else {
-        handleClose();
+      handleClose();
     }
   }, [loading, user]);
 
   const handleSwitchToSignUp = () => {
-    setIsSignInVisible(false);
-    setIsSignUpVisible(true);
+    setTimeout(() => signUpRef.current?.present(), 100);
   };
 
   const handleSwitchToSignIn = () => {
-    setIsSignUpVisible(false);
-    setIsForgotPasswordVisible(false);
-    setIsSignInVisible(true);
+    setTimeout(() => signInRef.current?.present(), 100);
   };
 
   const handleSwitchToForgotPassword = () => {
-      setIsSignInVisible(false);
-      setIsForgotPasswordVisible(true);
+    setTimeout(() => forgotPasswordRef.current?.present(), 100);
   };
 
   const handleClose = () => {
-    setIsSignInVisible(false);
-    setIsSignUpVisible(false);
-    setIsForgotPasswordVisible(false);
+    signInRef.current?.dismiss();
+    signUpRef.current?.dismiss();
+    forgotPasswordRef.current?.dismiss();
   };
 
   if (loading) {
@@ -66,22 +62,19 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
   return (
     <View style={styles.loadingContainer}>
-        <SignIn
-            visible={isSignInVisible}
-            onClose={handleClose}
-            onSwitchToSignUp={handleSwitchToSignUp}
-            onSwitchToForgotPassword={handleSwitchToForgotPassword}
-        />
-        <SignUp
-            visible={isSignUpVisible}
-            onClose={handleClose}
-            onSwitchToSignIn={handleSwitchToSignIn}
-        />
-        <ForgotPasswordScreen
-            visible={isForgotPasswordVisible}
-            onClose={handleClose}
-            onSwitchToSignIn={handleSwitchToSignIn}
-        />
+      <SignIn
+        ref={signInRef}
+        onSwitchToSignUp={handleSwitchToSignUp}
+        onSwitchToForgotPassword={handleSwitchToForgotPassword}
+      />
+      <SignUp
+        ref={signUpRef}
+        onSwitchToSignIn={handleSwitchToSignIn}
+      />
+      <ForgotPasswordScreen
+        ref={forgotPasswordRef}
+        onSwitchToSignIn={handleSwitchToSignIn}
+      />
     </View>
   );
 };
@@ -89,8 +82,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: Colors.background,
   },
   loadingText: {

@@ -1,256 +1,276 @@
+import { ThemedView } from "@/components/ThemedView";
 import CustomLoader from "@/components/ui/CustomLoader";
+import { Spacing } from "@/constants/theme";
 import {
   useCategories,
   useSubcategoriesByCategory,
 } from "@/hooks/useCategories";
-import AttributeRenderer from "@/src/components/post-ad/AttributeRenderer";
-import ControlledInput from "@/src/components/post-ad/ControlledInput";
+import { ConditionChips } from "@/src/components/post-ad/ConditionChips";
+import { DescriptionProgressBar } from "@/src/components/post-ad/DescriptionProgressBar";
+import { DynamicAttributes } from "@/src/components/post-ad/DynamicAttributes";
+import { FormInput } from "@/src/components/post-ad/FormInput";
+import { FormToggle } from "@/src/components/post-ad/FormToggle";
+import { LocationInput } from "@/src/components/post-ad/LocationInput";
+import { PrimaryButton } from "@/src/components/post-ad/PrimaryButton";
+import { ScreenKeyboardAwareScrollView } from "@/src/components/post-ad/ScreenKeyboardAwareScrollView";
+import { SelectField } from "@/src/components/post-ad/SelectField";
+import { TagsInput } from "@/src/components/post-ad/TagsInput";
 import { Colors } from "@/src/constants/constant";
-import { Step1FormData, step1Schema } from "@/src/utils/listingValidation";
 import { useAppStore } from "@/stores/useAppStore";
-import { Ionicons } from "@expo/vector-icons";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useMemo } from "react";
-import { useForm } from "react-hook-form";
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
-import { Button, TextInput } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Step1() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+
+  const { postAd } = useAppStore();
+  const { setField, setFormData } = postAd;
+
+  const [realtimeDescription, setRealtimeDescription] = useState(
+    postAd.description,
+  );
+
   const params = useLocalSearchParams<{
     categoryId?: string;
     subcategoryId?: string;
   }>();
 
-  const defaultValues = useAppStore.getState().postAd;
-
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { isValid },
-  } = useForm<Step1FormData>({
-    defaultValues: {
-      title: defaultValues.title,
-      description: defaultValues.description,
-      price: defaultValues.price ?? 0,
-      category_id: defaultValues.categoryId ?? 0,
-      subcategory_id: defaultValues.subcategoryId === null
-        ? undefined
-        : defaultValues.subcategoryId,
-      condition: defaultValues.condition,
-      location: defaultValues.location,
-      latitude: defaultValues.latitude === null
-        ? undefined
-        : defaultValues.latitude,
-      longitude: defaultValues.longitude === null
-        ? undefined
-        : defaultValues.longitude,
-      tags: defaultValues.tags ?? [],
-      negotiable: defaultValues.isNegotiable ?? false,
-      store_id: defaultValues.storeId === undefined
-        ? undefined
-        : defaultValues.storeId,
-      attributes: defaultValues.attributes ?? {},
-    },
-    resolver: zodResolver(step1Schema),
-    mode: "onBlur",
-  });
-
-  const categoryId = watch("category_id");
-  const subcategoryId = watch("subcategory_id");
-
   useEffect(() => {
-    if (params.categoryId) {
-      setValue("category_id", Number(params.categoryId), {
-        shouldValidate: true,
-      });
-    }
-    if (params.subcategoryId) {
-      setValue("subcategory_id", Number(params.subcategoryId), {
-        shouldValidate: true,
-      });
-    }
-  }, [params.categoryId, params.subcategoryId, setValue]);
+    let hasChanges = false;
 
-  const {
-    setTitle,
-    setDescription,
-    setPrice,
-    setIsNegotiable,
-    setLocation,
-    setCondition,
-    setTags,
-    setAttributes,
-    setCategoryId,
-    setSubcategoryId,
-    setStoreId,
-  } = useAppStore((state) => state.postAd);
+    if (params?.categoryId) {
+      const catId = parseInt(params.categoryId, 10);
+      if (!isNaN(catId)) {
+        setField("categoryId", catId);
+        hasChanges = true;
+        if (params.subcategoryId) {
+          const subId = parseInt(params.subcategoryId, 10);
+          if (!isNaN(subId)) {
+            setField("subcategoryId", subId);
+          }
+        }
+      }
+    }
+
+    if (hasChanges) {
+      router.setParams({});
+    }
+  }, [params?.categoryId, params?.subcategoryId, setField]);
 
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { data: subcategories, isLoading: subcategoriesLoading } =
-    useSubcategoriesByCategory(categoryId || null);
+    useSubcategoriesByCategory(postAd.categoryId || null);
 
   const selectedCategory = useMemo(() => {
-    return categories?.find((c) => c.id === categoryId);
-  }, [categories, categoryId]);
+    return categories?.find((c) => c.id === postAd.categoryId);
+  }, [categories, postAd.categoryId]);
 
   const selectedSubcategory = useMemo(() => {
-    return subcategories?.find((s) => s.id === subcategoryId);
-  }, [subcategories, subcategoryId]);
+    return subcategories?.find((s) => s.id === postAd.subcategoryId);
+  }, [subcategories, postAd.subcategoryId]);
 
   const attributeSchema = useMemo(() => {
     return selectedCategory?.attribute_schema || null;
   }, [selectedCategory]);
 
-  const handleBack = () => {
-    router.push("/(tabs)/listings");
-  };
+  const categoryDisplayValue = useMemo(() => {
+    if (!selectedCategory) return undefined;
+    if (selectedSubcategory) {
+      return `${selectedCategory.name} > ${selectedSubcategory.name}`;
+    }
+    return selectedCategory.name;
+  }, [selectedCategory, selectedSubcategory]);
 
-  const onSubmit = (data: Step1FormData) => {
-    setTitle(data.title);
-    setDescription(data.description);
-    setPrice(data.price);
-    setLocation(data.location, data.latitude ?? null, data.longitude ?? null);
-    setCondition(data.condition);
-    setCategoryId(data.category_id);
-    setSubcategoryId(data.subcategory_id ?? null);
-    setStoreId(data.store_id);
-    setTags(data.tags);
-    setIsNegotiable(data.negotiable);
-    setAttributes(data.attributes);
-
-    router.push("/(screens)/post-ad/step2");
-  };
-
-  const handleCategoryPress = () => {
+  const handleCategoryPress = useCallback(() => {
     router.push({
-      pathname: "/(screens)/post-ad/select-option" as any,
+      pathname: "./select-option",
       params: {
         type: "category",
         title: "Select Category",
       },
     });
-  };
+  }, []);
+
+  const handleAddTag = useCallback(
+    (tag: string) => {
+      if (!postAd.tags.includes(tag)) {
+        setField("tags", [...postAd.tags, tag]);
+      }
+    },
+    [postAd.tags, setField],
+  );
+
+  const handleRemoveTag = useCallback(
+    (tag: string) => {
+      setField(
+        "tags",
+        postAd.tags.filter((t) => t !== tag),
+      );
+    },
+    [postAd.tags, setField],
+  );
+
+  const handleNext = useCallback(() => {
+    router.push("./step2");
+  }, []);
+
+  const isFormValid = useMemo(() => {
+    return (
+      postAd.title.trim().length > 0 &&
+      postAd.description.trim().length > 0 &&
+      postAd.price !== null &&
+      postAd.categoryId !== null &&
+      postAd.condition.length > 0
+    );
+  }, [postAd]);
+
+  const footerHeight = 48 + Spacing.lg * 2 + tabBarHeight;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={{ flex: 1 }}>
-          <StatusBar style="dark" />
-          {/* Header */}
-          <SafeAreaView style={styles.header} edges={["top"]}>
-            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-              <Ionicons name="chevron-back" size={24} color={Colors.black} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Post Ad - Details</Text>
-            <View style={styles.placeholder} />
-          </SafeAreaView>
+    <View style={styles.container}>
+      <StatusBar style="auto" />
+      <ScreenKeyboardAwareScrollView
+        style={{ backgroundColor: Colors.background }}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: footerHeight + Spacing.xl * 2 },
+        ]}
+      >
+        <SelectField
+          label="Category *"
+          value={categoryDisplayValue}
+          placeholder="Select a category"
+          onPress={handleCategoryPress}
+        />
 
-          <ScrollView
-            style={styles.content}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 100 }}
-          >
-            {/* Category Selection */}
-            <TouchableOpacity
-              onPress={handleCategoryPress}
-              style={styles.categorySelector}
-              activeOpacity={0.7}
-            >
-              <View>
-                <Text style={styles.label}>Category</Text>
-                <Text
-                  style={[
-                    styles.value,
-                    !selectedCategory && styles.placeholderText,
-                  ]}
-                >
-                  {selectedCategory
-                    ? `${selectedCategory.name}${
-                      selectedSubcategory
-                        ? ` > ${selectedSubcategory.name}`
-                        : ""
-                    }`
-                    : "Select Category"}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
-            </TouchableOpacity>
+        <FormInput
+          label="Title *"
+          value={postAd.title}
+          onChangeText={(text) => setField("title", text)}
+          placeholder="What are you selling?"
+        />
 
-            {/* Basic Info */}
-            <ControlledInput
-              control={control}
-              name="title"
-              label="Title"
-              placeholder="What are you selling?"
-            />
+        <FormInput
+          label="Description *"
+          value={postAd.description}
+          onChangeText={(text) => setField("description", text)}
+          onRealtimeChange={setRealtimeDescription}
+          placeholder="Describe your item in detail..."
+          multiline
+          numberOfLines={5}
+        />
+        <DescriptionProgressBar
+          charCount={realtimeDescription.length}
+          minChars={90}
+          maxChars={1000}
+        />
 
-            <ControlledInput
-              control={control}
-              name="description"
-              label="Description"
-              placeholder="Describe your item in detail"
-              multiline
-              numberOfLines={4}
-              style={{ height: 100 }}
-            />
+        <FormInput
+          label="Price *"
+          value={postAd.price?.toString() || ""}
+          onChangeText={(text) => {
+            const numValue = text ? parseFloat(text.replace(/,/g, "")) : null;
+            setField("price", numValue);
+          }}
+          placeholder="0"
+          keyboardType="numeric"
+          prefix="KES"
+          formatPrice
+        />
 
-            <ControlledInput
-              control={control}
-              name="price"
-              label="Price"
-              placeholder="0.00"
-              keyboardType="numeric"
-              left={<TextInput.Affix text="KES " />}
-            />
+        {categoriesLoading || (postAd.categoryId && subcategoriesLoading)
+          ? <CustomLoader size="medium" />
+          : (
+            <>
+              <ConditionChips
+                value={postAd.condition}
+                onSelect={(condition) => setField("condition", condition)}
+              />
 
-            {/* Attributes (Condition, Location, Negotiable, Tags, Dynamic) */}
-            {categoriesLoading || (categoryId && subcategoriesLoading)
-              ? <CustomLoader size="medium" />
-              : (
-                <AttributeRenderer
-                  control={control}
-                  setValue={setValue}
-                  attributeSchema={attributeSchema}
+              <LocationInput
+                label="Location"
+                location={postAd.location}
+                latitude={postAd.latitude}
+                longitude={postAd.longitude}
+                onLocationChange={(text) => setField("location", text)}
+                onCoordinatesChange={(lat, lon) => {
+                  setFormData({
+                    latitude: lat,
+                    longitude: lon,
+                  });
+                }}
+              />
+
+              <FormToggle
+                label="Price is negotiable"
+                value={postAd.isNegotiable}
+                onValueChange={(value) => setField("isNegotiable", value)}
+              />
+
+              <FormToggle
+                label="Do you offer delivery?"
+                value={postAd.offerDelivery}
+                onValueChange={(value) => setField("offerDelivery", value)}
+              />
+
+              {attributeSchema && (
+                <DynamicAttributes
+                  schema={attributeSchema}
+                  values={postAd.attributes}
+                  onValueChange={(key, value) => {
+                    setFormData({
+                      attributes: {
+                        ...postAd.attributes,
+                        [key]: value,
+                      },
+                    });
+                  }}
+                  onNavigateToSelect={(field) => {
+                    router.push({
+                      pathname: "./select-option",
+                      params: {
+                        type: "attribute",
+                        title: `Select ${field.label}`,
+                        attributeKey: field.key,
+                        options: JSON.stringify(field.options || []),
+                      },
+                    });
+                  }}
                 />
               )}
-          </ScrollView>
 
-          {/* Footer */}
-          <SafeAreaView edges={["bottom"]} style={styles.footer}>
-            <Button
-              mode="contained"
-              onPress={handleSubmit(onSubmit)}
-              style={styles.nextButton}
-              contentStyle={styles.nextButtonContent}
-              labelStyle={styles.nextButtonLabel}
-              buttonColor={Colors.primary}
-            >
-              Next: Add Media
-            </Button>
-          </SafeAreaView>
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+              <TagsInput
+                tags={postAd.tags}
+                onAddTag={handleAddTag}
+                onRemoveTag={handleRemoveTag}
+              />
+            </>
+          )}
+      </ScreenKeyboardAwareScrollView>
+
+      <ThemedView
+        style={[
+          styles.footer,
+          {
+            bottom: tabBarHeight,
+            paddingBottom: insets.bottom > 0 ? Spacing.md : Spacing.lg,
+            borderTopColor: Colors.lightgrey,
+          },
+        ]}
+      >
+        <PrimaryButton
+          title="Next: Add Photos"
+          onPress={handleNext}
+          disabled={!isFormValid}
+        />
+      </ThemedView>
+    </View>
   );
 }
 
@@ -259,70 +279,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 0.4,
-    borderBottomColor: Colors.lightgrey,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: Colors.black,
-  },
-  placeholder: {
-    width: 32,
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  categorySelector: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.lightgrey,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 12,
-    color: Colors.grey,
-    marginBottom: 4,
-  },
-  value: {
-    fontSize: 16,
-    color: Colors.black,
-    fontWeight: "500",
-  },
-  placeholderText: {
-    color: Colors.grey,
-    fontWeight: "normal",
+  scrollContent: {
+    paddingTop: Spacing.md,
   },
   footer: {
-    padding: 16,
+    position: "absolute",
+    left: 0,
+    right: 0,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+    borderTopWidth: 0.5,
     backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.lightgrey,
-  },
-  nextButton: {
-    borderRadius: 8,
-  },
-  nextButtonContent: {
-    height: 50,
-  },
-  nextButtonLabel: {
-    fontSize: 16,
-    fontWeight: "600",
   },
 });

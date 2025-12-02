@@ -29,7 +29,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import BottomSheet from "./BottomSheet";
+import BottomSheet, { BottomSheetRef } from "./BottomSheet";
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 const { width } = Dimensions.get("window");
@@ -63,6 +63,7 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
   isLoading,
   initialFilters,
 }) => {
+  const bottomSheetRef = useRef<BottomSheetRef>(null);
   const [filters, setFilters] = useState<FilterOptions>({
     priceRange: initialFilters?.priceRange || { min: 0, max: 1000000 },
     condition: initialFilters?.condition || [],
@@ -81,12 +82,18 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
   const distanceDebounceRef = useRef<number | undefined>(undefined);
 
   React.useEffect(() => {
-    if (visible && initialFilters) {
-      setFilters((prev) => ({ ...prev, ...initialFilters }));
-      translateX.value = ((initialFilters.distance || 50) / 100) * SLIDER_WIDTH;
-      if (initialFilters.category) {
-        setSelectedCategoryId(parseInt(initialFilters.category, 10));
+    if (visible) {
+      bottomSheetRef.current?.expand();
+      if (initialFilters) {
+        setFilters((prev) => ({ ...prev, ...initialFilters }));
+        translateX.value = ((initialFilters.distance || 50) / 100) *
+          SLIDER_WIDTH;
+        if (initialFilters.category) {
+          setSelectedCategoryId(parseInt(initialFilters.category, 10));
+        }
       }
+    } else {
+      bottomSheetRef.current?.close();
     }
   }, [visible, initialFilters]);
   useEffect(() => {
@@ -254,9 +261,10 @@ const FiltersModal: React.FC<FiltersModalProps> = ({
 
   return (
     <BottomSheet
-      visible={visible}
+      ref={bottomSheetRef}
       onClose={onClose}
       snapPoints={["90%"]}
+      initialIndex={-1}
     >
       <KeyboardAvoidingView
         style={{ flex: 1 }}

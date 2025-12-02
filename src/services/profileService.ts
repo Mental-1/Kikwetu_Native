@@ -76,251 +76,166 @@ export interface UpdatePreferencesData {
   show_last_seen?: boolean;
 }
 
-export interface ChangePasswordData {
-  currentPassword: string;
-  newPassword: string;
-}
-
-export interface ChangeEmailData {
-  newEmail: string;
-  currentPassword: string;
-}
-
-/**
- * Get current user's profile
- */
 export async function getCurrentProfile(): Promise<Profile> {
-  try {
-    const response = await apiClient.get<Profile>("/user/profile");
+  const response = await apiClient.get<Profile>("/user/profile");
 
-    if (!response.success || !response.data) {
-      throw new Error(response.error || "Failed to fetch profile");
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error("Error in getCurrentProfile:", error);
-    throw error;
+  if (!response.success || !response.data) {
+    throw new Error(
+      response.error || response.message || "Failed to fetch profile",
+    );
   }
+
+  return response.data;
 }
 
-/**
- * Update user's profile
- */
 export async function updateProfile(
   profileData: UpdateProfileData,
 ): Promise<Profile> {
-  try {
-    const response = await apiClient.put<Profile>("/user/profile", profileData);
+  const response = await apiClient.put<Profile>("/user/profile", profileData);
 
-    if (!response.success || !response.data) {
-      throw new Error(response.error || "Failed to update profile");
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error("Error in updateProfile:", error);
-    throw error;
-  }
-}
-
-/**
- * Get user preferences
- */
-export async function getPreferences(): Promise<UpdatePreferencesData> {
-  try {
-    const response = await apiClient.get<UpdatePreferencesData>(
-      "/user/preferences",
+  if (!response.success || !response.data) {
+    throw new Error(
+      response.error || response.message || "Failed to update profile",
     );
-
-    if (!response.success || !response.data) {
-      throw new Error(response.error || "Failed to fetch preferences");
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error("Error in getPreferences:", error);
-    throw error;
   }
+
+  return response.data;
 }
 
-/**
- * Update user preferences
- */
+export async function getPreferences(): Promise<UpdatePreferencesData> {
+  const response = await apiClient.get<UpdatePreferencesData>(
+    "/user/preferences",
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(
+      response.error || response.message || "Failed to fetch preferences",
+    );
+  }
+
+  return response.data;
+}
+
 export async function updatePreferences(
   preferencesData: UpdatePreferencesData,
 ): Promise<UpdatePreferencesData> {
-  try {
-    const response = await apiClient.put<UpdatePreferencesData>(
-      "/user/preferences",
-      preferencesData,
+  const response = await apiClient.put<UpdatePreferencesData>(
+    "/user/preferences",
+    preferencesData,
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(
+      response.error || response.message || "Failed to update preferences",
     );
-
-    if (!response.success || !response.data) {
-      throw new Error(response.error || "Failed to update preferences");
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error("Error in updatePreferences:", error);
-    throw error;
   }
+
+  return response.data;
 }
 
-/**
- * Upload user avatar
- */
 export async function updateAvatar(imageUri: string): Promise<string> {
-  try {
-    // TODO: Process image before upload (WebP conversion, resizing)
-    const response = await apiClient.post<{ avatar_url: string }>(
-      "/user/avatar",
-      {
-        imageUri,
-      },
+  const response = await apiClient.post<{ avatar_url: string }>(
+    "/user/avatar",
+    { imageUri },
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(
+      response.error || response.message || "Failed to upload avatar",
     );
-
-    if (!response.success || !response.data) {
-      throw new Error(response.error || "Failed to upload avatar");
-    }
-
-    return response.data.avatar_url;
-  } catch (error) {
-    console.error("Error in updateAvatar:", error);
-    throw error;
   }
+
+  return response.data.avatar_url;
 }
 
-/**
- * Delete user's avatar
- */
 export async function deleteAvatar(): Promise<void> {
-  try {
-    const response = await apiClient.delete<void>("/user/avatar");
+  const response = await apiClient.delete<void>("/user/avatar");
 
-    if (!response.success) {
-      throw new Error(response.error || "Failed to delete avatar");
-    }
-  } catch (error) {
-    console.error("Error in deleteAvatar:", error);
-    throw error;
+  if (!response.success) {
+    throw new Error(
+      response.error || response.message || "Failed to delete avatar",
+    );
   }
 }
 
-/**
- * Delete user account
- */
 export async function deleteAccount(): Promise<void> {
-  try {
-    const response = await apiClient.delete<void>("/user/account");
+  const response = await apiClient.delete<void>("/user/account");
 
-    if (!response.success) {
-      throw new Error(response.error || "Failed to delete account");
-    }
-  } catch (error) {
-    console.error("Error in deleteAccount:", error);
-    throw error;
+  if (!response.success) {
+    throw new Error(
+      response.error || response.message || "Failed to delete account",
+    );
   }
 }
 
-/**
- * Initiate phone verification
- */
 export async function verifyPhone(phoneNumber: string): Promise<void> {
-  try {
-    const response = await apiClient.post<void>("/user/verify-phone", {
-      phone_number: phoneNumber,
-    });
+  const response = await apiClient.post<void>("/user/verify-phone", {
+    phone_number: phoneNumber,
+  });
 
-    if (!response.success) {
-      throw new Error(
-        response.error || "Failed to initiate phone verification",
-      );
-    }
-  } catch (error) {
-    console.error("Error in verifyPhone:", error);
-    throw error;
+  if (!response.success) {
+    throw new Error(
+      response.error || response.message ||
+        "Failed to initiate phone verification",
+    );
   }
 }
 
-/**
- * Confirm phone verification
- */
 export async function confirmPhoneVerification(
   verificationCode: string,
 ): Promise<void> {
-  try {
-    const response = await apiClient.post<void>("/user/confirm-phone", {
-      code: verificationCode,
-    });
+  const response = await apiClient.post<void>("/user/confirm-phone", {
+    code: verificationCode,
+  });
 
-    if (!response.success) {
-      throw new Error(response.error || "Failed to confirm phone verification");
-    }
-  } catch (error) {
-    console.error("Error in confirmPhoneVerification:", error);
-    throw error;
+  if (!response.success) {
+    throw new Error(
+      response.error || response.message ||
+        "Failed to confirm phone verification",
+    );
   }
 }
 
-/**
- * Get profile by ID (for viewing other users' profiles)
- */
 export async function getProfileById(
   profileId: string,
 ): Promise<Profile | null> {
-  try {
-    const response = await apiClient.get<Profile>(`/user/${profileId}`);
+  const response = await apiClient.get<Profile>(`/user/${profileId}`);
 
-    if (!response.success || !response.data) {
-      throw new Error(response.error || "Failed to fetch profile");
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error("Error in getProfileById:", error);
-    throw error;
+  if (!response.success || !response.data) {
+    throw new Error(
+      response.error || response.message || "Failed to fetch profile",
+    );
   }
+
+  return response.data;
 }
 
-/**
- * Toggle follow/unfollow a user
- */
 export async function toggleFollowUser(
   userId: string,
 ): Promise<{ following: boolean }> {
-  try {
-    const response = await apiClient.post<{ following: boolean }>(
-      `/user/${userId}/toggle-follow`,
+  const response = await apiClient.post<{ following: boolean }>(
+    `/user/${userId}/toggle-follow`,
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(
+      response.error || response.message || "Failed to toggle follow",
     );
-
-    if (!response.success || !response.data) {
-      throw new Error(response.error || "Failed to toggle follow");
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error("Error in toggleFollowUser:", error);
-    throw error;
   }
+
+  return response.data;
 }
 
-/**
- * Check if current user is following another user
- */
 export async function checkIfFollowing(userId: string): Promise<boolean> {
-  try {
-    const response = await apiClient.get<{ following: boolean }>(
-      `/user/${userId}/follow-status`,
+  const response = await apiClient.get<{ following: boolean }>(
+    `/user/${userId}/follow-status`,
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(
+      response.error || response.message || "Failed to check follow status",
     );
-
-    if (!response.success || !response.data) {
-      throw new Error(response.error || "Failed to check follow status");
-    }
-
-    return response.data.following;
-  } catch (error) {
-    console.error("Error in checkIfFollowing:", error);
-    throw error;
   }
+
+  return response.data.following;
 }

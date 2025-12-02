@@ -1,15 +1,20 @@
-import BottomSheet from '@/components/BottomSheet';
-import PlanUsageCard from '@/components/PlanUsageCard';
-import { Colors } from '@/src/constants/constant';
-import { useCreateListing, useSaveDraft } from '@/src/hooks/useListings';
-import { validateCompleteListing } from '@/src/utils/listingValidation';
-import { getUserPlan, useAppStore } from '@/stores/useAppStore';
-import { showErrorToast, showSuccessToast } from '@/utils/toast';
-import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useState } from 'react';
+import BottomSheetModal, {
+  BottomSheetModalRef,
+} from "@/components/BottomSheetModal";
+import BottomSheetScrollView from "@/components/BottomSheetScrollView";
+import PlanUsageCard from "@/components/PlanUsageCard";
+import { ThemedText } from "@/components/ThemedText";
+import { Colors } from "@/src/constants/constant";
+import { useCreateListing, useSaveDraft } from "@/src/hooks/useListings";
+import { useMediaUpload } from "@/src/hooks/useMediaUpload";
+import { validateCompleteListing } from "@/src/utils/listingValidation";
+import { getUserPlan, useAppStore } from "@/stores/useAppStore";
+import { showErrorToast, showSuccessToast } from "@/utils/toast";
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useCallback, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -18,8 +23,8 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Step3() {
   const router = useRouter();
@@ -27,7 +32,10 @@ export default function Step3() {
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [showLimitSheet, setShowLimitSheet] = useState(false);
+  const [currentUploadItem, setCurrentUploadItem] = useState<string>("");
+
+  const bottomSheetRef = useRef<BottomSheetModalRef>(null);
+  const { uploadMedia } = useMediaUpload();
 
   const userPlan = getUserPlan();
 
@@ -48,7 +56,7 @@ export default function Step3() {
     longitude,
     storeId,
     isDraft,
-    resetPostAd,
+    resetForm,
   } = postAd;
 
   const createListingMutation = useCreateListing();
@@ -59,7 +67,7 @@ export default function Step3() {
   }, [router]);
 
   const publishListing = useCallback(async () => {
-    const listingData = {
+    const validationData = {
       title,
       description,
       price: price || 0,
@@ -77,16 +85,57 @@ export default function Step3() {
       isDraft: false,
     };
 
-    const validation = validateCompleteListing(listingData);
+    const validation = validateCompleteListing(validationData);
     if (!validation.success) {
       const firstError = Object.values(validation.errors || {})[0];
-      showErrorToast(firstError || 'Please check your listing details');
+      showErrorToast(firstError || "Please check your listing details");
       return;
     }
 
     try {
       setIsPublishing(true);
       setUploadProgress(0);
+
+      const uploadedImageIds: string[] = [];
+      const totalFiles = images.length + videos.length;
+      let completedFiles = 0;
+
+      for (let i = 0; i < images.length; i++) {
+        setCurrentUploadItem(`Uploading image ${i + 1} of ${images.length}...`);
+        const mediaId = await uploadMedia(
+          { uri: images[i], type: "image" },
+          (progress: number) => {
+            const currentFileContribution = progress / 100;
+            const overallProgress =
+              ((completedFiles + currentFileContribution) / totalFiles) * 100;
+            setUploadProgress(overallProgress);
+          },
+        );
+        if (mediaId) {
+          uploadedImageIds.push(mediaId);
+        }
+        completedFiles++;
+      }
+
+      const uploadedVideoIds: string[] = [];
+      for (let i = 0; i < videos.length; i++) {
+        setCurrentUploadItem(`Uploading video ${i + 1} of ${videos.length}...`);
+        const mediaId = await uploadMedia(
+          { uri: videos[i], type: "video" },
+          (progress: number) => {
+            const currentFileContribution = progress / 100;
+            const overallProgress =
+              ((completedFiles + currentFileContribution) / totalFiles) * 100;
+            setUploadProgress(overallProgress);
+          },
+        );
+        if (mediaId) {
+          uploadedVideoIds.push(mediaId);
+        }
+        completedFiles++;
+      }
+
+      setCurrentUploadItem("Finalizing listing...");
 
       await createListingMutation.mutateAsync({
         listingData: {
@@ -97,97 +146,74 @@ export default function Step3() {
           subcategory_id: validation.data!.subcategory_id,
           condition: validation.data!.condition!,
           location: validation.data!.location!,
-          latitude: validation.data!.latitude ?? undefined,
-          longitude: validation.data!.longitude ?? undefined,
+          latitude: validation.data!.latitude!,
+          longitude: validation.data!.longitude!,
           negotiable: validation.data!.negotiable!,
-          images: validation.data!.images!,
-          videos: validation.data!.videos!,
+          images: uploadedImageIds,
+          videos: uploadedVideoIds,
           tags: validation.data!.tags!,
-          store_id: validation.data!.store_id
-            ? String(validation.data!.store_id)
-            : undefined,
-          isDraft: validation.data!.isDraft!,
-          status: 'pending'
+          store_id: storeId,
+          isDraft: false,
+          status: "pending",
         },
-        imageUris: images,
-        onUploadProgress: setUploadProgress,
       });
 
       setIsSuccess(true);
       showSuccessToast(
-        'Your ad has been published successfully!',
-        'Success'
+        "Your ad has been published successfully!",
+        "Success",
       );
       setTimeout(() => {
-        resetPostAd();
-        router.push('/(screens)/(dashboard)/mylistings');
+        resetForm();
+        router.push("/(screens)/(dashboard)/mylistings");
       }, 1500);
-
     } catch (error: any) {
-      console.error('Error publishing listing:', error);
-      setIsPublishing(false);
-      
-      Alert.alert(
-        'Publishing Failed',
-        'Please try again.',
-        [
-          {
-            text: 'OK',
-            style: 'cancel',
-            onPress: () => {},
-          },
-          {
-            text: 'Try Again',
-            onPress: publishListing,
-          },
-        ]
+      console.error("Error publishing listing:", error);
+      showErrorToast(
+        error.message || "Failed to publish listing. Please try again.",
       );
     } finally {
-      if (!isSuccess) {
-         // Keep loading state if success to show the green button
-         // Only turn off if error
-         // But wait, if I retry, I need isPublishing to be false first? 
-         // Actually, if error, I set isPublishing false in catch.
-         // If success, I want it to stay "publishing" (or rather "success") until nav.
-      }
+      setIsPublishing(false);
+      setUploadProgress(0);
+      setCurrentUploadItem("");
     }
   }, [
     title,
     description,
     price,
+    location,
+    condition,
     categoryId,
     subcategoryId,
-    condition,
-    location,
-    latitude,
-    longitude,
-    isNegotiable,
+    tags,
     images,
     videos,
-    tags,
+    isNegotiable,
+    latitude,
+    longitude,
     storeId,
     createListingMutation,
     router,
-    resetPostAd,
-    isSuccess
+    resetForm,
+    uploadMedia,
   ]);
 
   const handlePublish = useCallback(() => {
     if (userPlan.usedListings >= userPlan.maxListings) {
-      setShowLimitSheet(true);
+      bottomSheetRef.current?.present();
       return;
     }
 
     Alert.alert(
-      'Publish Your Ad',
-      'Are you sure you want to publish this listing?',
+      "Publish Your Ad",
+      "Are you sure you want to publish this listing?",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Publish Ad',
+          text: "Publish Ad",
           onPress: publishListing,
         },
-      ]
+      ],
     );
   }, [publishListing, userPlan]);
 
@@ -213,17 +239,17 @@ export default function Step3() {
     const validation = validateCompleteListing(listingData);
     if (!validation.success) {
       const firstError = Object.values(validation.errors || {})[0];
-      showErrorToast(firstError || 'Please check your listing details');
+      showErrorToast(firstError || "Please check your listing details");
       return;
     }
 
     Alert.alert(
-      'Save as Draft',
-      'Your listing will be saved as a draft. You can continue editing and publish it later.',
+      "Save as Draft",
+      "Your listing will be saved as a draft. You can continue editing and publish it later.",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Save Draft',
+          text: "Save Draft",
           onPress: async () => {
             try {
               setIsSavingDraft(true);
@@ -233,26 +259,26 @@ export default function Step3() {
                 store_id: validation.data!.store_id
                   ? String(validation.data!.store_id)
                   : undefined,
-                  isDraft: true,
+                isDraft: true,
               });
 
               showSuccessToast(
-                'Your listing has been saved as a draft!',
-                'Draft Saved'
+                "Your listing has been saved as a draft!",
+                "Draft Saved",
               );
-              resetPostAd();
-              router.push('/(tabs)/listings');
+              resetForm();
+              router.push("/(tabs)/listings");
             } catch (error: any) {
-              console.error('Error saving draft:', error);
+              console.error("Error saving draft:", error);
               showErrorToast(
-                error.message || 'Failed to save draft. Please try again.'
+                error.message || "Failed to save draft. Please try again.",
               );
             } finally {
               setIsSavingDraft(false);
             }
           },
         },
-      ]
+      ],
     );
   }, [
     title,
@@ -271,14 +297,17 @@ export default function Step3() {
     storeId,
     saveDraftMutation,
     router,
-    resetPostAd,
+    resetForm,
   ]);
 
-  const renderImageItem = useCallback(({ item }: { item: string }) => (
-    <View style={styles.mediaItem}>
-      <Image source={{ uri: item }} style={styles.mediaImage} />
-    </View>
-  ), []);
+  const renderImageItem = useCallback(
+    ({ item }: { item: string }) => (
+      <View style={styles.mediaItem}>
+        <Image source={{ uri: item }} style={styles.mediaImage} />
+      </View>
+    ),
+    [],
+  );
 
   const renderVideoItem = useCallback(
     ({ item, index }: { item: string; index: number }) => (
@@ -289,14 +318,14 @@ export default function Step3() {
         </View>
       </View>
     ),
-    []
+    [],
   );
 
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
       {/* Header */}
-      <SafeAreaView style={styles.header} edges={['top']}>
+      <SafeAreaView style={styles.header} edges={["top"]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={handleBack}
@@ -363,7 +392,11 @@ export default function Step3() {
 
             <View style={styles.listingMeta}>
               <View style={styles.metaItem}>
-                <Ionicons name="location-outline" size={16} color={Colors.grey} />
+                <Ionicons
+                  name="location-outline"
+                  size={16}
+                  color={Colors.grey}
+                />
                 <Text style={styles.metaText}>{location}</Text>
               </View>
               <View style={styles.metaItem}>
@@ -416,7 +449,7 @@ export default function Step3() {
       </ScrollView>
 
       {/* Footer Buttons */}
-      <SafeAreaView style={styles.footer} edges={['bottom']}>
+      <SafeAreaView style={styles.footer} edges={["bottom"]}>
         <View style={styles.footerButtonsContainer}>
           <TouchableOpacity
             style={[
@@ -428,7 +461,7 @@ export default function Step3() {
             activeOpacity={0.7}
           >
             <Text style={[styles.footerButtonText, styles.draftButtonText]}>
-              {isSavingDraft ? 'Saving...' : 'Save as Draft'}
+              {isSavingDraft ? "Saving..." : "Save as Draft"}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -441,45 +474,60 @@ export default function Step3() {
             disabled={isPublishing || isSavingDraft || isSuccess}
             activeOpacity={0.7}
           >
-            {isPublishing && !isSuccess ? (
-              <Text style={[styles.footerButtonText, styles.publishButtonText]}>
-                Publishing... {Math.round(uploadProgress * 100)}%
-              </Text>
-            ) : isSuccess ? (
-              <View style={styles.successContent}>
-                <Ionicons name="checkmark-circle" size={24} color={Colors.white} />
-                <Text style={styles.footerButtonText}>Published</Text>
-              </View>
-            ) : (
-              <Text style={[styles.footerButtonText, styles.publishButtonText]}>
-                Publish Ad
-              </Text>
-            )}
+            {isPublishing && !isSuccess
+              ? (
+                <Text
+                  style={[styles.footerButtonText, styles.publishButtonText]}
+                >
+                  Publishing... {Math.round(uploadProgress * 100)}%
+                </Text>
+              )
+              : isSuccess
+              ? (
+                <View style={styles.successContent}>
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={24}
+                    color={Colors.white}
+                  />
+                  <Text style={styles.footerButtonText}>Published</Text>
+                </View>
+              )
+              : (
+                <Text
+                  style={[styles.footerButtonText, styles.publishButtonText]}
+                >
+                  Publish Ad
+                </Text>
+              )}
           </TouchableOpacity>
         </View>
       </SafeAreaView>
 
       {/* Listing Limit Bottom Sheet */}
-      <BottomSheet
-        visible={showLimitSheet}
-        onClose={() => setShowLimitSheet(false)}
-        snapPoints={['45%']}
+      <BottomSheetModal
+        ref={bottomSheetRef}
+        snapPoints={["45%"]}
+        enableDynamicSizing={false}
       >
-        <View style={styles.limitSheetContent}>
+        <BottomSheetScrollView contentContainerStyle={styles.limitSheetContent}>
           <View style={styles.limitSheetHeader}>
             <Ionicons name="alert-circle" size={48} color={Colors.red} />
-            <Text style={styles.limitSheetTitle}>Listing Limit Reached</Text>
-            <Text style={styles.limitSheetMessage}>
-              You've used all {userPlan.maxListings} listings on your {userPlan.planName} plan.
-            </Text>
+            <ThemedText type="h3" style={styles.limitSheetTitle}>
+              Listing Limit Reached
+            </ThemedText>
+            <ThemedText type="body" style={styles.limitSheetMessage}>
+              You've used all {userPlan.maxListings} listings on your{" "}
+              {userPlan.planName} plan.
+            </ThemedText>
           </View>
 
           <View style={styles.limitSheetButtons}>
             <TouchableOpacity
               style={[styles.limitSheetButton, styles.upgradeButton]}
               onPress={() => {
-                setShowLimitSheet(false);
-                router.push('/(screens)/(dashboard)/plans-billing');
+                bottomSheetRef.current?.dismiss();
+                router.push("/(screens)/(dashboard)/plans-billing");
               }}
               activeOpacity={0.7}
             >
@@ -489,17 +537,19 @@ export default function Step3() {
             <TouchableOpacity
               style={[styles.limitSheetButton, styles.payButton]}
               onPress={() => {
-                setShowLimitSheet(false);
+                bottomSheetRef.current?.dismiss();
                 // TODO: Open payment modal
-                showErrorToast('Payment modal not implemented yet');
+                showErrorToast("Payment modal not implemented yet");
               }}
               activeOpacity={0.7}
             >
-              <Text style={styles.payButtonText}>Pay for this listing only</Text>
+              <Text style={styles.payButtonText}>
+                Pay for this listing only
+              </Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </BottomSheet>
+        </BottomSheetScrollView>
+      </BottomSheetModal>
     </View>
   );
 }
@@ -510,9 +560,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
@@ -524,7 +574,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.black,
   },
   placeholder: {
@@ -540,7 +590,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.black,
     marginBottom: 4,
   },
@@ -552,7 +602,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.lightgrey,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: 24,
   },
   mediaSection: {
@@ -562,7 +612,7 @@ const styles = StyleSheet.create({
   },
   mediaTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
   },
   mediaList: {
@@ -572,17 +622,17 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 8,
-    overflow: 'hidden',
+    overflow: "hidden",
     backgroundColor: Colors.lightgrey,
   },
   mediaImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   videoPlaceholder: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   videoText: {
     marginTop: 4,
@@ -593,19 +643,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 12,
     color: Colors.primary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   detailsSection: {
     padding: 16,
   },
   listingTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 8,
   },
   listingPrice: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.primary,
     marginBottom: 12,
   },
@@ -616,13 +666,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   listingMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 16,
   },
   metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   metaText: {
@@ -634,12 +684,12 @@ const styles = StyleSheet.create({
   },
   tagsTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
   },
   tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   tag: {
@@ -656,17 +706,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 24,
     padding: 16,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f9f9f9",
     borderRadius: 12,
   },
   summaryTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
   },
   summaryItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 8,
     paddingBottom: 8,
     borderBottomWidth: 1,
@@ -678,10 +728,10 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     color: Colors.black,
-    maxWidth: '70%',
-    textAlign: 'right',
+    maxWidth: "70%",
+    textAlign: "right",
   },
   footer: {
     borderTopWidth: 1,
@@ -689,7 +739,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   footerButtonsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
     gap: 12,
   },
@@ -697,8 +747,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     height: 56,
   },
   draftButton: {
@@ -712,7 +762,7 @@ const styles = StyleSheet.create({
   },
   footerButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   draftButtonText: {
     color: Colors.primary,
@@ -721,28 +771,23 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   successContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   limitSheetContent: {
     padding: 20,
   },
   limitSheetHeader: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
   },
   limitSheetTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.black,
     marginTop: 16,
     marginBottom: 8,
   },
   limitSheetMessage: {
-    fontSize: 14,
-    color: Colors.grey,
-    textAlign: 'center',
+    textAlign: "center",
   },
   limitSheetButtons: {
     gap: 12,
@@ -750,14 +795,14 @@ const styles = StyleSheet.create({
   limitSheetButton: {
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   upgradeButton: {
     backgroundColor: Colors.primary,
   },
   upgradeButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.white,
   },
   payButton: {
@@ -767,7 +812,7 @@ const styles = StyleSheet.create({
   },
   payButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.primary,
   },
 });

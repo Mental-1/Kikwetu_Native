@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { Button } from "react-native-paper";
-import BottomSheet from "./BottomSheet";
+import BottomSheet, { BottomSheetRef } from "./BottomSheet";
 
 interface ReportReason {
   id: string;
@@ -58,6 +58,15 @@ const ReportListingModal: React.FC<ReportListingModalProps> = ({
   onSubmit,
 }) => {
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
+  const bottomSheetRef = React.useRef<BottomSheetRef>(null);
+
+  React.useEffect(() => {
+    if (visible) {
+      bottomSheetRef.current?.expand();
+    } else {
+      bottomSheetRef.current?.close();
+    }
+  }, [visible]);
 
   const handleSubmit = () => {
     if (selectedReason) {
@@ -73,9 +82,14 @@ const ReportListingModal: React.FC<ReportListingModalProps> = ({
   };
 
   return (
-    <BottomSheet visible={visible} onClose={handleClose} enableDynamicSizing>
+    <BottomSheet
+      ref={bottomSheetRef}
+      onClose={handleClose}
+      enableDynamicSizing
+      initialIndex={-1}
+    >
       <View style={styles.modalContainer}>
-        {/* New Header Style */}
+        {/*Header Style */}
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Report Listing</Text>
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>

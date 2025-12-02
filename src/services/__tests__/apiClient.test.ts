@@ -11,6 +11,7 @@ jest.mock("../../utils/tokenManager", () => ({
     getRefreshToken: jest.fn(),
     setTokens: jest.fn(),
     clearTokens: jest.fn(),
+    isTokenExpired: jest.fn().mockReturnValue(false),
 }));
 
 // Mock global fetch
@@ -19,7 +20,7 @@ global.fetch = jest.fn();
 describe("ApiClient", () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        (global.fetch as jest.Mock).mockClear();
+        (global.fetch as jest.Mock).mockReset();
     });
 
     describe("getAuthHeaders", () => {
@@ -134,17 +135,22 @@ describe("ApiClient", () => {
                 json: () =>
                     Promise.resolve({
                         success: true,
-                        data: { accessToken: "new-access-token" },
+                        data: { access_token: "new-access-token" },
                     }),
+            });
+
+            // Mock retry success
+            const retryResponse = { success: true, data: "retried data" };
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(JSON.stringify(retryResponse)),
+                json: () => Promise.resolve(retryResponse),
             });
 
             const result = await apiClient.get("/protected");
 
-            // The current implementation returns a specific error on refresh
-            expect(result).toEqual({
-                success: false,
-                error: "Token refreshed. Please retry the request.",
-            });
+            // Expect the result of the retried request
+            expect(result).toEqual(retryResponse);
 
             expect(setTokens).toHaveBeenCalledWith(
                 "new-access-token",
